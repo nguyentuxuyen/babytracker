@@ -4,14 +4,8 @@
 The Baby Tracker App is a web application designed to help parents manage and track the development of their child. Built with React and following Google's Material Design 3, this application provides a user-friendly interface optimized for smartphone users.
 
 ## Features
-- **Child Information Tab**: Allows parents to input and view essential information about their child, including name, date of birth, gender, weight at birth, height at birth, and a profile picture.
-- **Activities Tab**: Enables parents to log daily activities such as feeding, diaper changes, sleeping, bathing, and measurements. It also provides a summary of activities and AI-generated suggestions for future activities.
-- **Statistics Tab**: Offers visual representations of the child's activities over time, including feeding frequency, diaper changes, sleep duration, weight, and height.
 
 ## Technologies Used
-- **Frontend**: React, Material Design 3
-- **Backend**: Firebase (Firestore for database)
-- **Authentication**: Firebase Authentication
 
 ## Setup Instructions
 1. **Clone the repository**:
@@ -37,8 +31,6 @@ The Baby Tracker App is a web application designed to help parents manage and tr
    Open your browser and navigate to `http://localhost:3000`.
 
 ## Folder Structure
-- `public/`: Contains the main HTML file and static assets.
-- `src/`: Contains all the source code for the application.
   - `components/`: Reusable components for the application.
   - `contexts/`: Context providers for managing global state.
   - `firebase/`: Firebase configuration and service functions.
@@ -55,3 +47,6 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.
+
+<!-- deployment-trigger: append to force redeploy -->
+Last automated commit to trigger redeploy: 2025-10-20 00:00:00 UTC
