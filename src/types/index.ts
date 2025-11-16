@@ -42,11 +42,17 @@ interface MemoDetails extends BaseActivityDetails {
     notes: string; // notes is mandatory for memo
 }
 
+interface DailyRatingDetails extends BaseActivityDetails {
+    rating: number; // 1-5 stars
+    notes?: string; // optional notes about the day
+}
+
 // Discriminated Union for Activities
 export type Activity = 
     | { id: string; babyId: string; type: 'feeding'; timestamp: Date; details: FeedingDetails }
-    | { id: string; babyId: string; type: 'diaperChange'; timestamp: Date; details: DiaperChangeDetails }
+    | { id: string; babyId: string; type: 'diaper'; timestamp: Date; details: DiaperChangeDetails }
     | { id: string; babyId: string; type: 'sleep'; timestamp: Date; details: SleepDetails }
     | { id: string; babyId: string; type: 'bath'; timestamp: Date; details: BathDetails }
     | { id: string; babyId: string; type: 'measurement'; timestamp: Date; details: MeasurementDetails }
-    | { id: string; babyId: string; type: 'memo'; timestamp: Date; details: MemoDetails };
+    | { id: string; babyId: string; type: 'memo'; timestamp: Date; details: MemoDetails }
+    | { id: string; babyId: string; type: 'dailyRating'; timestamp: Date; details: DailyRatingDetails };

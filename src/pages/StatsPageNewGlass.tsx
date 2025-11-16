@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, Typography, Box, Button, ButtonGroup, TextField, Grid } from '@mui/material';
-import LineChart from '../components/common/LineChart';
-import MultiLineChart from '../components/common/MultiLineChart';
-import { useBaby } from '../contexts/BabyContext';
+import { Card, Typography, Box, Checkbox, FormControlLabel, Grid, Slider } from '@mui/material';
 import { Activity } from '../types';
 import { firestore } from '../firebase/firestore';
 import { getCurrentUser } from '../firebase/auth';
+import { useBaby } from '../contexts/BabyContext';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts';
 
 interface FilterType {
-    period: 'day' | 'week' | 'month';
+    period: 'day' | 'week' | 'month' | 'range';
     startDate: Date;
     endDate: Date;
+    count?: number; // number of days/weeks/months to show (for non-range periods)
 }
 
 interface ChartData {
     date: string;
+    label: string;
     feeding: number;
     feedingAmount: number;
     diaper: number;
@@ -27,26 +28,25 @@ interface ChartData {
 }
 
 const StatsPage: React.FC = () => {
-    const { baby } = useBaby();
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
+    const { baby } = useBaby();
     
     // Filter states
     const [filter, setFilter] = useState<FilterType>({
-        period: 'week',
-        startDate: baby?.birthDate ? new Date(baby.birthDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        period: 'day',
+        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         endDate: new Date()
+        ,count: 7
     });
 
-    // Chart visibility states
+    // Chart visibility states for multi-line chart
     const [chartVisibility, setChartVisibility] = useState({
         feeding: true,
+        diaper: true,
         urine: true,
-        stool: true,
-        weight: true,
-        height: true,
-        temperature: true
+        stool: true
     });
 
     // Get current user when component mounts
@@ -62,9 +62,15 @@ const StatsPage: React.FC = () => {
                 try {
                     setLoading(true);
                     const userActivities = await firestore.getActivities(currentUser.uid);
-                    setActivities(userActivities);
+                    
+                    // Filter activities for current baby
+                    const babyActivities = baby?.id 
+                        ? userActivities.filter(a => a.babyId === baby.id)
+                        : userActivities;
+                    
+                    setActivities(babyActivities);
                 } catch (error) {
-                    console.error('Error loading activities:', error);
+                    // Error loading activities - silently fail in production
                 } finally {
                     setLoading(false);
                 }
@@ -72,103 +78,416 @@ const StatsPage: React.FC = () => {
         };
 
         loadActivities();
-    }, [currentUser]);
+    }, [currentUser, baby?.id]);
+
+    // Get period label
+    const getPeriodLabel = () => {
+        const birthDate = baby?.birthDate ? new Date(baby.birthDate) : null;
+        const today = new Date();
+        
+        switch (filter.period) {
+            case 'day':
+                {
+                    const desired = filter.count || 7;
+                    if (birthDate) {
+                        const daysSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        const daysToShow = Math.min(desired, daysSinceBirth);
+                        return `Last ${daysToShow} day${daysToShow > 1 ? 's' : ''}`;
+                    }
+                    return `Last ${desired} day${desired > 1 ? 's' : ''}`;
+                }
+            case 'week':
+                {
+                    const desired = filter.count || 4;
+                    if (birthDate) {
+                        const weeksSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
+                        const weeksToShow = Math.min(desired, weeksSinceBirth);
+                        return `Last ${weeksToShow} week${weeksToShow > 1 ? 's' : ''}`;
+                    }
+                    return `Last ${desired} week${desired > 1 ? 's' : ''}`;
+                }
+            case 'month':
+                {
+                    const desired = filter.count || 12;
+                    if (birthDate) {
+                        const monthsSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1;
+                        const monthsToShow = Math.min(desired, monthsSinceBirth);
+                        return `Last ${monthsToShow} month${monthsToShow > 1 ? 's' : ''}`;
+                    }
+                    return `Last ${desired} month${desired > 1 ? 's' : ''}`;
+                }
+            case 'range':
+                return 'Custom range';
+            default:
+                return '';
+        }
+    };
 
     // Process data for charts
     const chartData = useMemo(() => {
         const data: ChartData[] = [];
-        const startDate = new Date(filter.startDate);
-        const endDate = new Date(filter.endDate);
+        const today = new Date();
+        const birthDate = baby?.birthDate ? new Date(baby.birthDate) : null;
         
-        // Create date range
-        const dateRange: Date[] = [];
-        let currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-            dateRange.push(new Date(currentDate));
+        if (filter.period === 'day') {
+            // Last N days (but not before birth date)
+            let daysToShow = filter.count || 7;
             
-            if (filter.period === 'day') {
-                currentDate.setDate(currentDate.getDate() + 1);
-            } else if (filter.period === 'week') {
-                currentDate.setDate(currentDate.getDate() + 7);
-            } else {
-                currentDate.setMonth(currentDate.getMonth() + 1);
+            if (birthDate) {
+                const daysSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                daysToShow = Math.min(daysToShow, daysSinceBirth);
+            }
+            
+            for (let i = daysToShow - 1; i >= 0; i--) {
+                const dateStart = new Date(today);
+                dateStart.setDate(dateStart.getDate() - i);
+                dateStart.setHours(0, 0, 0, 0);
+                
+                // Skip if before birth date
+                if (birthDate && dateStart < birthDate) continue;
+                
+                const dateEnd = new Date(dateStart);
+                dateEnd.setHours(23, 59, 59, 999);
+                
+                const label = dateStart.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+                
+                // Filter and process activities - Use date comparison instead of timestamp to avoid timezone issues
+                const periodActivities = activities.filter(activity => {
+                    const activityDate = new Date(activity.timestamp);
+                    return activityDate.getFullYear() === dateStart.getFullYear() &&
+                           activityDate.getMonth() === dateStart.getMonth() &&
+                           activityDate.getDate() === dateStart.getDate();
+                });
+                
+                const daySummary = periodActivities.reduce((acc, activity) => {
+                    const activityType = activity.type as string;
+                    const details = activity.details as any;
+                    switch (activityType) {
+                        case 'feeding':
+                            acc.feeding += 1;
+                            acc.feedingAmount += details.amount || 0;
+                            break;
+                        case 'diaper':
+                        case 'diaperChange':
+                            acc.diaper += 1;
+                            if (details?.isUrine) acc.urine += 1;
+                            // Count stool ONLY if isStool is explicitly true
+                            if (details?.isStool === true) acc.stool += 1;
+                            break;
+                        case 'sleep':
+                            acc.sleep += details.duration || 0;
+                            break;
+                        case 'measurement':
+                            if (details.weight) acc.weight = details.weight;
+                            if (details.height) acc.height = details.height;
+                            if (details.temperature) acc.temperature = details.temperature;
+                            break;
+                        default:
+                            break;
+                    }
+                    return acc;
+                }, {
+                    date: label,
+                    label: label,
+                    feeding: 0,
+                    feedingAmount: 0,
+                    diaper: 0,
+                    urine: 0,
+                    stool: 0,
+                    sleep: 0,
+                    weight: undefined,
+                    height: undefined,
+                    temperature: undefined
+                } as ChartData);
+                
+                data.push(daySummary);
+            }
+        } else if (filter.period === 'week') {
+            // Last N weeks (but not before birth date)
+            let weeksToShow = filter.count || 4;
+            
+            if (birthDate) {
+                const weeksSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
+                weeksToShow = Math.min(weeksToShow, weeksSinceBirth);
+            }
+            
+            for (let i = weeksToShow - 1; i >= 0; i--) {
+                const dateStart = new Date(today);
+                dateStart.setDate(dateStart.getDate() - (7 * i + 6));
+                dateStart.setHours(0, 0, 0, 0);
+                
+                // Skip if week starts before birth date
+                if (birthDate && dateStart < birthDate) {
+                    if (birthDate) dateStart.setTime(birthDate.getTime());
+                }
+                
+                const dateEnd = new Date(dateStart);
+                dateEnd.setDate(dateEnd.getDate() + 6);
+                dateEnd.setHours(23, 59, 59, 999);
+                
+                const label = `Week ${weeksToShow - i}`;
+                
+                // Filter and process activities
+                const periodActivities = activities.filter(activity => {
+                    const activityDate = new Date(activity.timestamp);
+                    return activityDate >= dateStart && activityDate <= dateEnd;
+                });
+                
+                const weekSummary = periodActivities.reduce((acc, activity) => {
+                    const activityType = activity.type as string;
+                    const details = activity.details as any;
+                    switch (activityType) {
+                        case 'feeding':
+                            acc.feeding += 1;
+                            acc.feedingAmount += details.amount || 0;
+                            break;
+                        case 'diaper':
+                        case 'diaperChange':
+                            acc.diaper += 1;
+                            if (details?.isUrine) acc.urine += 1;
+                            // Count stool ONLY if isStool is explicitly true
+                            if (details?.isStool === true) acc.stool += 1;
+                            break;
+                        case 'sleep':
+                            acc.sleep += details.duration || 0;
+                            break;
+                        case 'measurement':
+                            if (details.weight) acc.weight = details.weight;
+                            if (details.height) acc.height = details.height;
+                            if (details.temperature) acc.temperature = details.temperature;
+                            break;
+                        default:
+                            break;
+                    }
+                    return acc;
+                }, {
+                    date: label,
+                    label: label,
+                    feeding: 0,
+                    feedingAmount: 0,
+                    diaper: 0,
+                    urine: 0,
+                    stool: 0,
+                    sleep: 0,
+                    weight: undefined,
+                    height: undefined,
+                    temperature: undefined
+                } as ChartData);
+                
+                data.push(weekSummary);
+            }
+        } else if (filter.period === 'month') {
+            // Last N months (but not before birth date)
+            let monthsToShow = filter.count || 12;
+            
+            if (birthDate) {
+                const monthsSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1;
+                monthsToShow = Math.min(monthsToShow, monthsSinceBirth);
+            }
+            
+            for (let i = monthsToShow - 1; i >= 0; i--) {
+                const dateStart = new Date(today);
+                dateStart.setMonth(dateStart.getMonth() - i);
+                dateStart.setDate(1);
+                dateStart.setHours(0, 0, 0, 0);
+                
+                // Skip if month is before birth date
+                if (birthDate) {
+                    const monthStart = new Date(dateStart);
+                    if (monthStart < birthDate) {
+                        // If this month contains birth date, start from birth date
+                        const monthEnd = new Date(dateStart);
+                        monthEnd.setMonth(monthEnd.getMonth() + 1);
+                        monthEnd.setDate(0);
+                        
+                        if (birthDate <= monthEnd) {
+                            dateStart.setTime(birthDate.getTime());
+                        } else {
+                            continue; // Skip this month entirely
+                        }
+                    }
+                }
+                
+                const dateEnd = new Date(dateStart);
+                dateEnd.setMonth(dateEnd.getMonth() + 1);
+                dateEnd.setDate(0);
+                dateEnd.setHours(23, 59, 59, 999);
+                
+                const label = dateStart.toLocaleDateString('en-US', { month: 'short' });
+                
+                // Filter and process activities
+                const periodActivities = activities.filter(activity => {
+                    const activityDate = new Date(activity.timestamp);
+                    return activityDate >= dateStart && activityDate <= dateEnd;
+                });
+                
+                const monthSummary = periodActivities.reduce((acc, activity) => {
+                    const activityType = activity.type as string;
+                    const details = activity.details as any;
+                    switch (activityType) {
+                        case 'feeding':
+                            acc.feeding += 1;
+                            acc.feedingAmount += details.amount || 0;
+                            break;
+                        case 'diaper':
+                        case 'diaperChange':
+                            acc.diaper += 1;
+                            if (details?.isUrine) acc.urine += 1;
+                            // Count stool ONLY if isStool is explicitly true
+                            if (details?.isStool === true) acc.stool += 1;
+                            break;
+                        case 'sleep':
+                            acc.sleep += details.duration || 0;
+                            break;
+                        case 'measurement':
+                            if (details.weight) acc.weight = details.weight;
+                            if (details.height) acc.height = details.height;
+                            if (details.temperature) acc.temperature = details.temperature;
+                            break;
+                        default:
+                            break;
+                    }
+                    return acc;
+                }, {
+                    date: label,
+                    label: label,
+                    feeding: 0,
+                    feedingAmount: 0,
+                    diaper: 0,
+                    urine: 0,
+                    stool: 0,
+                    sleep: 0,
+                    weight: undefined,
+                    height: undefined,
+                    temperature: undefined
+                } as ChartData);
+                
+                data.push(monthSummary);
+            }
+        } else {
+            // Range: custom date range (but not before birth date)
+            const start = new Date(filter.startDate);
+            const end = new Date(filter.endDate);
+            
+            // Adjust start date if it's before birth date
+            const actualStart = birthDate && start < birthDate ? new Date(birthDate) : start;
+            const diffDays = Math.floor((end.getTime() - actualStart.getTime()) / (1000 * 60 * 60 * 24));
+            
+            for (let i = 0; i <= Math.min(diffDays, 30); i++) {
+                const dateStart = new Date(actualStart);
+                dateStart.setDate(dateStart.getDate() + i);
+                dateStart.setHours(0, 0, 0, 0);
+                
+                // Skip if before birth date
+                if (birthDate && dateStart < birthDate) continue;
+                
+                const dateEnd = new Date(dateStart);
+                dateEnd.setHours(23, 59, 59, 999);
+                
+                const label = dateStart.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+                
+                // Filter and process activities
+                const periodActivities = activities.filter(activity => {
+                    const activityDate = new Date(activity.timestamp);
+                    return activityDate >= dateStart && activityDate <= dateEnd;
+                });
+                
+                const daySummary = periodActivities.reduce((acc, activity) => {
+                    const activityType = activity.type as string;
+                    const details = activity.details as any;
+                    switch (activityType) {
+                        case 'feeding':
+                            acc.feeding += 1;
+                            acc.feedingAmount += details.amount || 0;
+                            break;
+                        case 'diaper':
+                        case 'diaperChange':
+                            acc.diaper += 1;
+                            if (details?.isUrine) acc.urine += 1;
+                            // Count stool ONLY if isStool is explicitly true
+                            if (details?.isStool === true) acc.stool += 1;
+                            break;
+                        case 'sleep':
+                            acc.sleep += details.duration || 0;
+                            break;
+                        case 'measurement':
+                            if (details.weight) acc.weight = details.weight;
+                            if (details.height) acc.height = details.height;
+                            if (details.temperature) acc.temperature = details.temperature;
+                            break;
+                        default:
+                            break;
+                    }
+                    return acc;
+                }, {
+                    date: label,
+                    label: label,
+                    feeding: 0,
+                    feedingAmount: 0,
+                    diaper: 0,
+                    urine: 0,
+                    stool: 0,
+                    sleep: 0,
+                    weight: undefined,
+                    height: undefined,
+                    temperature: undefined
+                } as ChartData);
+                
+                data.push(daySummary);
             }
         }
-
-        // Process activities for each date
-        dateRange.forEach(date => {
-            const dayActivities = activities.filter(activity => {
-                const activityDate = new Date(activity.timestamp);
-                
-                if (filter.period === 'day') {
-                    return activityDate.toDateString() === date.toDateString();
-                } else if (filter.period === 'week') {
-                    const weekStart = new Date(date);
-                    const weekEnd = new Date(date);
-                    weekEnd.setDate(weekEnd.getDate() + 6);
-                    return activityDate >= weekStart && activityDate <= weekEnd;
-                } else {
-                    return activityDate.getMonth() === date.getMonth() && 
-                           activityDate.getFullYear() === date.getFullYear();
-                }
-            });
-
-            const daySummary = dayActivities.reduce((acc, activity) => {
-                switch (activity.type) {
-                    case 'feeding':
-                        acc.feeding += 1;
-                        acc.feedingAmount += activity.details.amount || 0;
-                        break;
-                    case 'diaperChange':
-                        acc.diaper += 1;
-                        if (activity.details.isUrine) acc.urine += 1;
-                        if (activity.details.isStool) acc.stool += 1;
-                        break;
-                    case 'sleep':
-                        acc.sleep += activity.details.duration || 0;
-                        break;
-                    case 'measurement':
-                        if (activity.details.weight) acc.weight = activity.details.weight;
-                        if (activity.details.height) acc.height = activity.details.height;
-                        if (activity.details.temperature) acc.temperature = activity.details.temperature;
-                        break;
-                    default:
-                        break;
-                }
-                return acc;
-            }, {
-                date: date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-                feeding: 0,
-                feedingAmount: 0,
-                diaper: 0,
-                urine: 0,
-                stool: 0,
-                sleep: 0,
-                weight: undefined,
-                height: undefined,
-                temperature: undefined
-            } as ChartData);
-
-            data.push(daySummary);
-        });
+        
         return data;
-    }, [activities, filter]);
+    }, [activities, filter, baby?.birthDate]);
 
-    const handleFilterChange = (period: 'day' | 'week' | 'month') => {
+    // Calculate aggregates for summary cards
+    const totalMilk = useMemo(() => {
+        return chartData.reduce((sum, day) => sum + day.feedingAmount, 0);
+    }, [chartData]);
+
+    const totalSleep = useMemo(() => {
+        return chartData.reduce((sum, day) => sum + day.sleep, 0);
+    }, [chartData]);
+
+    // Compute slider limits based on baby's birth date so user cannot select ranges before birth
+    const sliderLimits = useMemo(() => {
+        const today = new Date();
+        if (!baby?.birthDate) {
+            return { dayMax: 90, weekMax: 52, monthMax: 36 };
+        }
+        const birth = new Date(baby.birthDate);
+        const daysSinceBirth = Math.max(1, Math.floor((today.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+        const weeksSinceBirth = Math.max(1, Math.floor(daysSinceBirth / 7));
+        const monthsSinceBirth = Math.max(1, Math.floor((today.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1);
+
+        return {
+            dayMax: Math.min(90, daysSinceBirth),
+            weekMax: Math.min(52, weeksSinceBirth),
+            monthMax: Math.min(36, monthsSinceBirth)
+        };
+    }, [baby?.birthDate]);
+
+    // Clamp filter.count to the computed slider max when period or birthDate changes
+    useEffect(() => {
+        const maxForPeriod = filter.period === 'day' ? sliderLimits.dayMax : filter.period === 'week' ? sliderLimits.weekMax : sliderLimits.monthMax;
+        if ((filter.count || 0) > maxForPeriod) {
+            setFilter(prev => ({ ...prev, count: maxForPeriod }));
+        }
+    }, [filter.period, sliderLimits.dayMax, sliderLimits.weekMax, sliderLimits.monthMax, filter.count]);
+
+    const latestMeasurement = useMemo(() => {
+        const withMeasurements = chartData.filter(d => d.weight || d.height);
+        return withMeasurements[withMeasurements.length - 1];
+    }, [chartData]);
+
+    const handlePeriodChange = (period: 'day' | 'week' | 'month' | 'range') => {
         setFilter(prev => ({
             ...prev,
             period
         }));
     };
 
-    const handleDateChange = (type: 'start' | 'end', date: string) => {
-        setFilter(prev => ({
-            ...prev,
-            [type === 'start' ? 'startDate' : 'endDate']: new Date(date)
-        }));
-    };
-
-    const toggleChartVisibility = (dataKey: string) => {
+    const toggleChartLine = (dataKey: string) => {
         setChartVisibility(prev => ({
             ...prev,
             [dataKey]: !(prev as any)[dataKey]
@@ -187,207 +506,507 @@ const StatsPage: React.FC = () => {
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', p: 2, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-            {/* Header & Filter */}
-            <Card sx={{ 
-                mb: 2, 
-                borderRadius: '24px', 
-                boxShadow: 'none', 
-                border: '1.5px solid rgba(255, 255, 255, 0.4)',
-                background: 'rgba(255, 255, 255, 0.7)',
-                backdropFilter: 'blur(20px)',
-                p: 1
-            }}>
-                <CardContent>
-                    <Typography variant="h5" fontWeight={700} mb={2} color="#333" textAlign="center">
-                        Thống kê của {baby?.name || 'bé'}くん
-                    </Typography>
-                    <Box mb={2}>
-                        <Typography variant="subtitle2" color="#333" mb={1} textAlign="center">
-                            Xem theo:
+        <Box sx={{
+            minHeight: '100vh',
+            bgcolor: '#f6f7f8',
+            p: 0,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        }}>
+            {/* Main Content */}
+            <Box sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+                {/* Period Selector Tabs */}
+                    <Box sx={{ mb: 3 }}>
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 0.5,
+                            p: 0.5,
+                            bgcolor: '#ffffff',
+                            borderRadius: '12px',
+                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                            border: '1px solid #e5e7eb'
+                        }}>
+                        {[
+                            { key: 'day', label: 'Day' },
+                            { key: 'week', label: 'Week' },
+                            { key: 'month', label: 'Month' },
+                            { key: 'range', label: 'Range' }
+                        ].map(period => (
+                            <Box
+                                key={period.key}
+                                onClick={() => handlePeriodChange(period.key as 'day' | 'week' | 'month' | 'range')}
+                                sx={{
+                                    flex: 1,
+                                    py: 1,
+                                    px: 2,
+                                    textAlign: 'center',
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    bgcolor: filter.period === period.key ? '#13a4ec' : 'transparent',
+                                    color: filter.period === period.key ? '#ffffff' : '#6b7f8a',
+                                    '&:hover': {
+                                        bgcolor: filter.period === period.key ? '#13a4ec' : 'rgba(19, 164, 236, 0.1)'
+                                    }
+                                }}
+                            >
+                                {period.label}
+                            </Box>
+                        ))}
+                        {/* slider is shown in a dedicated card below */}
+                    </Box>
+                </Box>
+
+                {/* Date Range Picker - Show when Range is selected */}
+                {filter.period === 'range' && (
+                    <Box sx={{ 
+                        mb: 3, 
+                        bgcolor: '#ffffff', 
+                        borderRadius: '16px', 
+                        p: 3,
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
+                    }}>
+                        <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 2 }}>
+                            Select Date Range
                         </Typography>
-                        <Box display="flex" justifyContent="center" mb={2}>
-                            <ButtonGroup variant="outlined" color="primary" sx={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                                borderRadius: '12px',
-                                '& .MuiButton-outlined': {
-                                    color: '#333',
-                                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                    }
-                                },
-                                '& .MuiButton-contained': {
-                                    color: 'white',
-                                    backgroundColor: '#673ab7',
-                                    '&:hover': {
-                                        backgroundColor: '#5e35b1',
-                                    }
+                        
+                        <Grid container spacing={3}>
+                            {/* Start Date */}
+                            <Grid item xs={12} sm={6}>
+                                <Box>
+                                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
+                                        Start Date
+                                    </Typography>
+                                    <input
+                                        type="date"
+                                        value={filter.startDate.toISOString().split('T')[0]}
+                                        min={baby?.birthDate ? new Date(baby.birthDate).toISOString().split('T')[0] : undefined}
+                                        max={filter.endDate.toISOString().split('T')[0]}
+                                        onChange={(e) => {
+                                            const newStartDate = new Date(e.target.value);
+                                            const birthDate = baby?.birthDate ? new Date(baby.birthDate) : null;
+                                            
+                                            // Ensure start date is not before birth date
+                                            if (birthDate && newStartDate < birthDate) {
+                                                return;
+                                            }
+                                            
+                                            setFilter({
+                                                ...filter,
+                                                startDate: newStartDate
+                                            });
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            fontSize: '14px',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '12px',
+                                            color: '#101c22',
+                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                </Box>
+                            </Grid>
+                            
+                            {/* End Date */}
+                            <Grid item xs={12} sm={6}>
+                                <Box>
+                                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
+                                        End Date
+                                    </Typography>
+                                    <input
+                                        type="date"
+                                        value={filter.endDate.toISOString().split('T')[0]}
+                                        min={filter.startDate.toISOString().split('T')[0]}
+                                        max={new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => {
+                                            const newEndDate = new Date(e.target.value);
+                                            setFilter({
+                                                ...filter,
+                                                endDate: newEndDate
+                                            });
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            fontSize: '14px',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '12px',
+                                            color: '#101c22',
+                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                </Box>
+                            </Grid>
+                        </Grid>
+                        
+                        {/* Info text */}
+                        <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <svg width="16" height="16" viewBox="0 0 256 256" fill="#6b7f8a">
+                                <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path>
+                            </svg>
+                            <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
+                                {baby?.birthDate 
+                                    ? `Date range limited from ${new Date(baby.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (birth date) to today`
+                                    : 'Select a custom date range to view statistics'
                                 }
-                            }}>
-                                {[
-                                    { key: 'day', label: 'Ngày' },
-                                    { key: 'week', label: 'Tuần' },
-                                    { key: 'month', label: 'Tháng' }
-                                ].map(period => (
-                                    <Button
-                                        key={period.key}
-                                        onClick={() => handleFilterChange(period.key as 'day' | 'week' | 'month')}
-                                        variant={filter.period === period.key ? 'contained' : 'outlined'}
-                                        sx={{ fontWeight: filter.period === period.key ? 700 : 500, borderRadius: '12px' }}
-                                    >
-                                        {period.label}
-                                    </Button>
-                                ))}
-                            </ButtonGroup>
+                            </Typography>
                         </Box>
                     </Box>
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Từ ngày"
-                                type="date"
-                                value={filter.startDate.toISOString().split('T')[0]}
-                                onChange={(e) => handleDateChange('start', e.target.value)}
-                                InputLabelProps={{ shrink: true }}
-                                fullWidth
-                                size="small"
-                                sx={{
-                                    backgroundColor: 'transparent',
-                                    borderRadius: '12px',
-                                    '& .MuiInputBase-input': {
-                                        color: '#333',
-                                    },
-                                    '& .MuiInputLabel-root': {
-                                        color: 'rgba(0, 0, 0, 0.6)',
-                                    },
-                                    '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: 'rgba(0, 0, 0, 0.23)',
-                                    },
-                                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: '#333',
-                                    },
-                                    '& .MuiSvgIcon-root': {
-                                        color: '#333',
-                                    }
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Đến ngày"
-                                type="date"
-                                value={filter.endDate.toISOString().split('T')[0]}
-                                onChange={(e) => handleDateChange('end', e.target.value)}
-                                InputLabelProps={{ shrink: true }}
-                                fullWidth
-                                size="small"
-                                sx={{
-                                    backgroundColor: 'transparent',
-                                    borderRadius: '12px',
-                                    '& .MuiInputBase-input': {
-                                        color: '#333',
-                                    },
-                                    '& .MuiInputLabel-root': {
-                                        color: 'rgba(0, 0, 0, 0.6)',
-                                    },
-                                    '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: 'rgba(0, 0, 0, 0.23)',
-                                    },
-                                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: '#333',
-                                    },
-                                    '& .MuiSvgIcon-root': {
-                                        color: '#333',
-                                    }
-                                }}
-                            />
-                        </Grid>
-                    </Grid>
-                </CardContent>
-            </Card>
+                )}
 
-            {/* Charts */}
-            <Card sx={{ 
-                mb: 2, 
-                borderRadius: '24px', 
-                boxShadow: 'none', 
-                border: '1.5px solid rgba(255, 255, 255, 0.4)',
-                background: 'rgba(255, 255, 255, 0.7)',
-                backdropFilter: 'blur(20px)',
-                p: 1
-            }}>
-                <CardContent>
-                    <Box display="flex" flexDirection="column" gap={2}>
-                        {/* Feeding Charts */}
-                        <LineChart
-                            data={chartData}
-                            dataKey="feedingAmount"
-                            title="🥛 Total feeding amount over time"
-                            color="#81C784"
-                            unit="ml"
-                            verticalLabels={filter.period === 'day'}
-                        />
-                        {/* Multi-line Activity Chart */}
-                        <MultiLineChart
-                            data={chartData}
-                            title="👶 Hoạt động theo thời gian"
-                            verticalLabels={filter.period === 'day'}
-                            lines={[
-                                {
-                                    dataKey: 'feeding',
-                                    label: 'Feeding',
-                                    color: '#4FC3F7',
-                                    visible: chartVisibility.feeding
-                                },
-                                {
-                                    dataKey: 'urine',
-                                    label: 'Urine',
-                                    color: '#81C784',
-                                    visible: chartVisibility.urine
-                                },
-                                {
-                                    dataKey: 'stool',
-                                    label: 'Stool',
-                                    color: '#CE93D8',
-                                    visible: chartVisibility.stool
-                                }
-                            ]}
-                            onToggleLine={toggleChartVisibility}
-                            unit=" lần"
-                        />
-                        {/* Measurement Chart (Weight, Height & Temperature) */}
-                        {(chartData.some(d => d.weight) || chartData.some(d => d.height) || chartData.some(d => d.temperature)) && (
-                            <MultiLineChart
-                                data={chartData.filter(d => d.weight || d.height || d.temperature)}
-                                title="⚖️ Cân nặng, Chiều cao & Nhiệt độ"
-                                verticalLabels={filter.period === 'day'}
-                                lines={[
-                                    {
-                                        dataKey: 'weight',
-                                        label: 'Cân nặng (g)',
-                                        color: '#F48FB1',
-                                        visible: chartVisibility.weight
-                                    },
-                                    {
-                                        dataKey: 'height',
-                                        label: 'Chiều cao (cm)',
-                                        color: '#A5D6A7',
-                                        visible: chartVisibility.height
-                                    },
-                                    {
-                                        dataKey: 'temperature',
-                                        label: 'Nhiệt độ (°C)',
-                                        color: '#FFD54F',
-                                        visible: chartVisibility.temperature
-                                    }
-                                ]}
-                                onToggleLine={toggleChartVisibility}
-                            />
-                        )}
+                {/* Charts Grid */}
+                {/* Slider Card for custom range */}
+                {filter.period !== 'range' && (
+                    <Box sx={{ mb: 3 }}>
+                        <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#ffffff', border: '1px solid #e5e7eb' }}>
+                            {/* Title + optional subtitle */}
+                            <Box>
+                                <Typography
+                                    noWrap
+                                    sx={{
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                    }}
+                                >
+                                    Adjust range
+                                </Typography>
+                                {/* optional helper text (kept small) */}
+                                <Typography sx={{ fontSize: 12, color: '#6b7f8a', mt: 0.5 }}>
+                                    Use the slider to adjust how many {filter.period === 'day' ? 'days' : filter.period === 'week' ? 'weeks' : 'months'} to display
+                                </Typography>
+                            </Box>
+
+                            {/* Slider placed below the title to avoid clipping on small screens */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Slider
+                                        sx={{ width: '100%' }}
+                                        value={filter.count || (filter.period === 'day' ? 7 : filter.period === 'week' ? 4 : 12)}
+                                        onChange={(_, value) => {
+                                            const v = Array.isArray(value) ? value[0] : (value as number);
+                                            setFilter(prev => ({ ...prev, count: v }));
+                                        }}
+                                        min={filter.period === 'day' ? Math.min(3, sliderLimits.dayMax) : filter.period === 'week' ? 1 : 1}
+                                        max={filter.period === 'day' ? sliderLimits.dayMax : filter.period === 'week' ? sliderLimits.weekMax : sliderLimits.monthMax}
+                                        step={1}
+                                        valueLabelDisplay="auto"
+                                    />
+                                </Box>
+
+                                <Box sx={{ ml: 1, flex: '0 0 auto' }}>
+                                    <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
+                                        {filter.count || (filter.period === 'day' ? 7 : filter.period === 'week' ? 4 : 12)}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Card>
                     </Box>
-                </CardContent>
-            </Card>
+                )}
+
+                <Grid container spacing={3}>
+                    {/* Daily Activities Multi-line Chart - Spans 2 columns on sm and up */}
+                    <Grid item xs={12} sm={12} lg={8}>
+                        <Card sx={{
+                            bgcolor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: 'none',
+                            p: 3
+                        }}>
+                            <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
+                                Daily Activities
+                            </Typography>
+                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                                {getPeriodLabel()}
+                            </Typography>
+
+                            {/* Chart Area */}
+                            <Box sx={{ minHeight: '250px', position: 'relative', mb: 3 }}>
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <LineChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                        <XAxis 
+                                            dataKey="label" 
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis 
+                                            tick={{ fontSize: 12, fill: '#6b7f8a' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            width={35}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: '#ffffff',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '8px',
+                                                fontSize: '12px'
+                                            }}
+                                        />
+                                        {chartVisibility.feeding && (
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="feeding" 
+                                                stroke="#13a4ec" 
+                                                strokeWidth={3}
+                                                dot={false}
+                                                strokeLinecap="round"
+                                            />
+                                        )}
+                                        {chartVisibility.diaper && (
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="diaper" 
+                                                stroke="#f59e0b" 
+                                                strokeWidth={3}
+                                                dot={false}
+                                                strokeLinecap="round"
+                                            />
+                                        )}
+                                        {chartVisibility.urine && (
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="urine" 
+                                                stroke="#10b981" 
+                                                strokeWidth={3}
+                                                dot={false}
+                                                strokeLinecap="round"
+                                            />
+                                        )}
+                                        {chartVisibility.stool && (
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="stool" 
+                                                stroke="#ef4444" 
+                                                strokeWidth={3}
+                                                dot={false}
+                                                strokeLinecap="round"
+                                            />
+                                        )}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </Box>
+
+                            {/* Checkboxes for toggling lines */}
+                            <Grid container spacing={2}>
+                                {[
+                                    { key: 'feeding', label: 'Feeding', color: '#13a4ec' },
+                                    { key: 'diaper', label: 'Diaper', color: '#f59e0b' },
+                                    { key: 'urine', label: 'Urination', color: '#10b981' },
+                                    { key: 'stool', label: 'Defecation', color: '#ef4444' }
+                                ].map(line => (
+                                    <Grid item xs={6} sm={3} key={line.key}>
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    checked={(chartVisibility as any)[line.key]}
+                                                    onChange={() => toggleChartLine(line.key)}
+                                                    sx={{
+                                                        color: line.color,
+                                                        '&.Mui-checked': {
+                                                            color: line.color
+                                                        }
+                                                    }}
+                                                />
+                                            }
+                                            label={
+                                                <Typography sx={{ fontSize: '14px', color: '#101c22' }}>
+                                                    {line.label}
+                                                </Typography>
+                                            }
+                                        />
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Card>
+                    </Grid>
+
+                    {/* Milk Intake Card */}
+                    <Grid item xs={12} sm={6} lg={4}>
+                        <Card sx={{
+                            bgcolor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: 'none',
+                            p: 3
+                        }}>
+                            <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
+                                Milk Intake
+                            </Typography>
+                            <Typography sx={{ fontSize: '32px', fontWeight: 700, color: '#101c22', mb: 0.5 }}>
+                                {totalMilk} ml
+                            </Typography>
+                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                                {getPeriodLabel()}
+                            </Typography>
+
+                            {/* Chart Area */}
+                            <Box sx={{ minHeight: '220px' }}>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <AreaChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
+                                        <defs>
+                                            <linearGradient id="colorMilk" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#13a4ec" stopOpacity={0.2} />
+                                                <stop offset="100%" stopColor="#13a4ec" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis 
+                                            dataKey="label" 
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: '#ffffff',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '8px',
+                                                fontSize: '12px'
+                                            }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="feedingAmount" 
+                                            stroke="#13a4ec" 
+                                            strokeWidth={3}
+                                            fill="url(#colorMilk)"
+                                            strokeLinecap="round"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </Box>
+                        </Card>
+                    </Grid>
+
+                    {/* Sleep Duration Card */}
+                    <Grid item xs={12} sm={6} lg={4}>
+                        <Card sx={{
+                            bgcolor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: 'none',
+                            p: 3
+                        }}>
+                            <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
+                                Sleep Duration
+                            </Typography>
+                            <Typography sx={{ fontSize: '32px', fontWeight: 700, color: '#101c22', mb: 0.5 }}>
+                                {Math.floor(totalSleep / 60)} hours
+                            </Typography>
+                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                                {getPeriodLabel()}
+                            </Typography>
+
+                            {/* Chart Area */}
+                            <Box sx={{ minHeight: '220px' }}>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <AreaChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
+                                        <defs>
+                                            <linearGradient id="colorSleep" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#13a4ec" stopOpacity={0.2} />
+                                                <stop offset="100%" stopColor="#13a4ec" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis 
+                                            dataKey="label" 
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: '#ffffff',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '8px',
+                                                fontSize: '12px'
+                                            }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="sleep" 
+                                            stroke="#13a4ec" 
+                                            strokeWidth={3}
+                                            fill="url(#colorSleep)"
+                                            strokeLinecap="round"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </Box>
+                        </Card>
+                    </Grid>
+
+                    {/* Weight & Height Card */}
+                    <Grid item xs={12} sm={6} lg={4}>
+                        <Card sx={{
+                            bgcolor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: 'none',
+                            p: 3
+                        }}>
+                            <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
+                                Weight & Height
+                            </Typography>
+                            <Typography sx={{ fontSize: '32px', fontWeight: 700, color: '#101c22', mb: 0.5 }}>
+                                {latestMeasurement ? `${latestMeasurement.weight || 0} kg, ${latestMeasurement.height || 0} cm` : 'No data'}
+                            </Typography>
+                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                                {getPeriodLabel()}
+                            </Typography>
+
+                            {/* Chart Area */}
+                            <Box sx={{ minHeight: '220px' }}>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <AreaChart 
+                                        data={chartData.filter(d => d.weight || d.height)} 
+                                        margin={{ top: 10, right: 20, left: -10, bottom: 5 }}
+                                    >
+                                        <defs>
+                                            <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#13a4ec" stopOpacity={0.2} />
+                                                <stop offset="100%" stopColor="#13a4ec" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis 
+                                            dataKey="label" 
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: '#ffffff',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '8px',
+                                                fontSize: '12px'
+                                            }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="weight" 
+                                            stroke="#13a4ec" 
+                                            strokeWidth={3}
+                                            fill="url(#colorWeight)"
+                                            strokeLinecap="round"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </Box>
+                        </Card>
+                    </Grid>
+                </Grid>
+            </Box>
         </Box>
     );
 };

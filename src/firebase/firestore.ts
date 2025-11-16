@@ -8,7 +8,10 @@ import {
     deleteDoc, 
     query, 
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    limit,
+    where,
+    Timestamp
 } from 'firebase/firestore';
 import { db } from './config';
 import { Baby, Activity } from '../types';
@@ -165,10 +168,21 @@ export const firestore = {
     },
     
     // Get activities for user (following security rules: /users/{userId}/activities)
-    getActivities: async (userId: string): Promise<Activity[]> => {
+    // Optimized: Only load last 90 days by default for better performance
+    getActivities: async (userId: string, daysToLoad: number = 90): Promise<Activity[]> => {
         try {
             const activitiesRef = collection(db, 'users', userId, 'activities');
-            const q = query(activitiesRef, orderBy('timestamp', 'desc'));
+            
+            // Calculate date 90 days ago
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - daysToLoad);
+            
+            const q = query(
+                activitiesRef, 
+                where('timestamp', '>=', Timestamp.fromDate(cutoffDate)),
+                orderBy('timestamp', 'desc'),
+                limit(500) // Hard limit to prevent excessive data loading
+            );
             const querySnapshot = await getDocs(q);
             
             const activities: Activity[] = [];
@@ -185,7 +199,7 @@ export const firestore = {
             
             return activities;
         } catch (error) {
-            console.error('Error getting activities:', error);
+            // Silently fail in production
             return [];
         }
     },
@@ -236,5 +250,153 @@ export const firestore = {
         const user = getCurrentUser();
         if (!user) return [];
         return firestore.getActivities(user.uid);
+    },
+
+    // Sleep timer functions
+    // Get ongoing sleep session for a baby
+    getOngoingSleep: async (userId: string, babyId: string): Promise<{ startTime: Date } | null> => {
+        try {
+            const sleepDocRef = doc(db, 'users', userId, 'ongoingSleep', babyId);
+            const sleepDoc = await getDoc(sleepDocRef);
+            
+            if (sleepDoc.exists()) {
+                const data = sleepDoc.data();
+                return {
+                    startTime: data.startTime.toDate()
+                };
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error getting ongoing sleep:', error);
+            return null;
+        }
+    },
+
+    // Start a new sleep session
+    startOngoingSleep: async (userId: string, babyId: string, startTime: Date): Promise<boolean> => {
+        try {
+            const sleepDocRef = doc(db, 'users', userId, 'ongoingSleep', babyId);
+            await setDoc(sleepDocRef, {
+                startTime: startTime,
+                createdAt: serverTimestamp()
+            });
+            
+            console.log('✅ Sleep timer started:', startTime);
+            return true;
+        } catch (error) {
+            console.error('Error starting sleep timer:', error);
+            return false;
+        }
+    },
+
+    // Stop ongoing sleep session and return the sleep data
+    stopOngoingSleep: async (userId: string, babyId: string): Promise<{ startTime: Date; endTime: Date; duration: number } | null> => {
+        try {
+            const sleepDocRef = doc(db, 'users', userId, 'ongoingSleep', babyId);
+            const sleepDoc = await getDoc(sleepDocRef);
+            
+            if (!sleepDoc.exists()) {
+                console.log('No ongoing sleep session found');
+                return null;
+            }
+            
+            const data = sleepDoc.data();
+            const startTime = data.startTime.toDate();
+            const endTime = new Date();
+            const durationMs = endTime.getTime() - startTime.getTime();
+            const durationMinutes = Math.round(durationMs / (1000 * 60));
+            
+            // Delete the ongoing sleep document
+            await deleteDoc(sleepDocRef);
+            
+            console.log('✅ Sleep timer stopped. Duration:', durationMinutes, 'minutes');
+            
+            return {
+                startTime,
+                endTime,
+                duration: durationMinutes
+            };
+        } catch (error) {
+            console.error('Error stopping sleep timer:', error);
+            return null;
+        }
+    },
+
+    // Daily Rating functions
+    // Get daily rating for a specific date
+    getDailyRating: async (userId: string, babyId: string, date: Date): Promise<{ rating: number; notes?: string } | null> => {
+        try {
+            // Normalize date to start of day
+            const dateKey = new Date(date);
+            dateKey.setHours(0, 0, 0, 0);
+            const dateStr = dateKey.toISOString().split('T')[0]; // YYYY-MM-DD format
+            
+            const ratingDocRef = doc(db, 'users', userId, 'dailyRatings', dateStr);
+            const ratingDoc = await getDoc(ratingDocRef);
+            
+            if (ratingDoc.exists()) {
+                const data = ratingDoc.data();
+                return {
+                    rating: data.rating,
+                    notes: data.notes
+                };
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error getting daily rating:', error);
+            return null;
+        }
+    },
+
+    // Save or update daily rating for a specific date
+    saveDailyRating: async (userId: string, babyId: string, date: Date, rating: number, notes?: string): Promise<boolean> => {
+        try {
+            // Normalize date to start of day
+            const dateKey = new Date(date);
+            dateKey.setHours(0, 0, 0, 0);
+            const dateStr = dateKey.toISOString().split('T')[0]; // YYYY-MM-DD format
+            
+            const ratingDocRef = doc(db, 'users', userId, 'dailyRatings', dateStr);
+            await setDoc(ratingDocRef, {
+                babyId: babyId,
+                rating: rating,
+                notes: notes || '',
+                date: dateKey,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+            
+            console.log('✅ Daily rating saved:', rating, 'stars for', dateStr);
+            return true;
+        } catch (error) {
+            console.error('Error saving daily rating:', error);
+            return false;
+        }
+    },
+
+    // Get all daily ratings for a date range (for calendar view)
+    getDailyRatingsForRange: async (userId: string, startDate: Date, endDate: Date): Promise<Map<string, number>> => {
+        try {
+            const ratingsRef = collection(db, 'users', userId, 'dailyRatings');
+            const querySnapshot = await getDocs(ratingsRef);
+            
+            const ratingsMap = new Map<string, number>();
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const dateStr = doc.id; // Document ID is the date string (YYYY-MM-DD)
+                const docDate = new Date(dateStr);
+                
+                // Only include ratings within the date range
+                if (docDate >= startDate && docDate <= endDate) {
+                    ratingsMap.set(dateStr, data.rating);
+                }
+            });
+            
+            return ratingsMap;
+        } catch (error) {
+            console.error('Error getting daily ratings for range:', error);
+            return new Map();
+        }
     }
 };

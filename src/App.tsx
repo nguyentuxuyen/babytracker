@@ -1,23 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme/theme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BabyProvider, useBaby } from './contexts/BabyContext';
-import ActivitiesPageNew from './pages/ActivitiesPageNew';
-import BabyInfoPageNew from './pages/BabyInfoPageNew';
-import StatsPageNewGlass from './pages/StatsPageNewGlass';
+import { DateProvider } from './contexts/DateContext';
+import AppRouter from './routes/AppRouter';
+import BabyInfoPage from './pages/BabyInfoPageNew';
 
 import {
-    Favorite as FavoriteIcon,
-    CalendarToday as CalendarTodayIcon,
     AccountCircle as AccountCircleIcon,
     ChildCare as ChildCareIcon,
     Logout as LogoutIcon,
-    PersonOff as PersonOffIcon,
-    Edit as EditIcon,
-    BarChart as BarChartIcon,
-    ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
+import { Box } from '@mui/material';
 
-// Header Component
+// Header Component - New Design
 const HeaderComponent: React.FC<{
     currentUser: any;
     logout: () => Promise<void>;
@@ -25,89 +23,108 @@ const HeaderComponent: React.FC<{
 }> = ({ currentUser, logout, onShowBabyInfo }) => {
     const { baby } = useBaby();
     const [showMenu, setShowMenu] = useState(false);
-    const today = new Date().toLocaleDateString('vi-VN', { 
-        year: 'numeric', 
-        month: 'numeric', 
-        day: 'numeric' 
-    });
 
     return (
         <div style={{
             position: 'sticky',
             top: 0,
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            borderTop: 'none',
-            padding: '12px 16px',
             zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
+            backgroundColor: 'rgba(246, 247, 248, 0.8)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
         }}>
-            {/* Left side - Greeting and date */}
             <div style={{
+                padding: '16px',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                flex: 1
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                maxWidth: '1200px',
+                margin: '0 auto'
             }}>
+                {/* Left side - Name and age */}
                 <div style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    color: '#333333',
-                    fontFamily: '"Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
+                    flexDirection: 'column',
+                    gap: '2px'
                 }}>
-                    Hello {baby?.name + 'くん' || 'bé yêu'}!
-                    <span style={{ fontSize: '24px', color: 'rgba(0, 0, 0, 0.6)', fontWeight: '400' }}>
-                        {today}
-                    </span>
+                    <div style={{
+                        fontSize: '20px',
+                        fontWeight: '700',
+                        color: '#101c22',
+                        fontFamily: 'Manrope, sans-serif'
+                    }}>
+                        {(() => {
+                            const namePart = baby?.name ? `Welcome, ${baby.name}くん` : 'Welcome';
+                            return namePart;
+                        })()}
+                    </div>
+                    <div style={{
+                        fontSize: '12px',
+                        fontWeight: '400',
+                        color: '#6b7f8a'
+                    }}>
+                        {(() => {
+                            try {
+                                if (baby?.birthDate) {
+                                    const birth = new Date(baby.birthDate);
+                                    if (!isNaN(birth.getTime())) {
+                                        const now = new Date();
+                                        const birthNorm = new Date(birth);
+                                        birthNorm.setHours(0,0,0,0);
+                                        const nowNorm = new Date(now);
+                                        nowNorm.setHours(0,0,0,0);
+                                        const diffMs = nowNorm.getTime() - birthNorm.getTime();
+                                        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                        if (days >= 0) return `${days} days old`;
+                                    }
+                                }
+                            } catch (err) {
+                                // ignore
+                            }
+                            return '';
+                        })()}
+                    </div>
                 </div>
-            </div>
 
-            {/* Right side - User menu */}
-            {currentUser && (
-                <div style={{ position: 'relative' }}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '20px',
-                            background: 'rgba(0, 0, 0, 0.05)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(0, 0, 0, 0.1)',
-                            color: '#333333',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.3s ease'
-                        }}
-                    >
-                        <AccountCircleIcon sx={{ fontSize: '20px' }} />
-                    </button>
+                {/* Right side - Avatar */}
+                {currentUser && (
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '24px',
+                                background: '#13a4ec',
+                                border: 'none',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 8px rgba(19, 164, 236, 0.3)'
+                            }}
+                        >
+                            <AccountCircleIcon sx={{ fontSize: '28px' }} />
+                        </button>
 
-                    {showMenu && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '48px',
-                            right: '0',
-                            background: 'rgba(255, 255, 255, 0.95)',
-                            backdropFilter: 'blur(20px)',
-                            borderRadius: '12px',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-                            minWidth: '200px',
-                            zIndex: 1000
-                        }}>
-                            <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(0, 0, 0, 0.1)' }}>
-                                <div style={{ fontSize: '14px', fontWeight: '500', color: '#333' }}>
+                        {showMenu && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '56px',
+                                right: '0',
+                                background: '#ffffff',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                                minWidth: '220px',
+                                zIndex: 1000,
+                                overflow: 'hidden'
+                            }}>
+                            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#101c22' }}>
                                     {currentUser.email}
                                 </div>
                             </div>
@@ -124,15 +141,17 @@ const HeaderComponent: React.FC<{
                                     textAlign: 'left',
                                     cursor: 'pointer',
                                     fontSize: '14px',
-                                    color: '#333',
+                                    color: '#101c22',
                                     fontWeight: '500',
                                     transition: 'background-color 0.2s',
-                                    borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
                                 }}
-                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.05)'}
+                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
                                 onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                             >
-                                <ChildCareIcon sx={{ mr: 1, color: '#6750A4' }} />
+                                <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
                                 Thông tin bé
                             </button>
                             <button
@@ -149,274 +168,96 @@ const HeaderComponent: React.FC<{
                                     padding: '12px 16px',
                                     background: 'none',
                                     border: 'none',
+                                    borderTop: '1px solid #e5e7eb',
                                     textAlign: 'left',
                                     cursor: 'pointer',
                                     fontSize: '14px',
-                                    color: '#d32f2f',
+                                    color: '#ef4444',
                                     fontWeight: '500',
-                                    borderRadius: '0 0 12px 12px',
-                                    transition: 'background-color 0.2s'
+                                    transition: 'background-color 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
                                 }}
-                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = 'rgba(211, 47, 47, 0.1)'}
+                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#fef2f2'}
                                 onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                             >
-                                <LogoutIcon sx={{ mr: 1 }} />
+                                <LogoutIcon sx={{ fontSize: '20px' }} />
                                 Đăng xuất
                             </button>
                         </div>
                     )}
                 </div>
             )}
-
-            {!currentUser && (
-                <div style={{
-                    fontSize: '12px',
-                    color: 'rgba(0, 0, 0, 0.6)',
-                    background: 'rgba(0, 0, 0, 0.05)',
-                    padding: '6px 12px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)'
-                }}>
-                    <PersonOffIcon sx={{ mr: 0.5, fontSize: '16px' }} />
-                    Chưa đăng nhập
-                </div>
-            )}
+        </div>
         </div>
     );
 };
 
-// Main App Component with 3 Tabs
+// Main App Component
 const MainApp: React.FC = () => {
-    const { currentUser, loading, logout } = useAuth();
-    const [activeTab, setActiveTab] = useState<'activities' | 'stats'>('activities');
-
-    // Material Design 3 colors
-    const colors = {
-        primary: '#6750A4',
-        primaryContainer: '#EADDFF',
-        secondary: '#625B71',
-        secondaryContainer: '#E8DEF8',
-        surface: '#FFFBFE',
-        surfaceVariant: '#E7E0EC',
-        outline: '#79747E',
-        outlineVariant: '#CAC4D0',
-        onSurface: '#1C1B1F',
-        onSurfaceVariant: '#49454F'
-    };
-
-    // Set default tab based on login status
-    useEffect(() => {
-        if (!loading) {
-            if (!currentUser) {
-                // Automatically show login screen for unauthenticated users
-                setShowBabyInfo(true);
-            } else {
-                // Reset to activities tab when user logs in
-                setActiveTab('activities');
-                setShowBabyInfo(false);
-            }
-        }
-    }, [currentUser, loading]);
-
-    const tabs = [
-        {
-            id: 'activities' as const,
-            label: 'Ghi chép hoạt động',
-            icon: '📝',
-            component: <ActivitiesPageNew />
-        },
-        {
-            id: 'stats' as const,
-            label: 'Thống kê',
-            icon: '�',
-            component: <StatsPageNewGlass />
-        }
-    ];
-
-    // Separate baby info page state
+    const { currentUser, logout, loading } = useAuth();
     const [showBabyInfo, setShowBabyInfo] = useState(false);
 
-    const renderTabBar = () => (
-        <div style={{
-            position: 'fixed',
-            bottom: '16px',
-            left: '16px',
-            right: '16px',
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            display: 'flex',
-            padding: '8px',
-            paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
-            zIndex: 1000,
-            borderRadius: '20px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-        }}>
-            {tabs.map(tab => {
-                const isActive = activeTab === tab.id;
-                const isDisabled = !currentUser && tab.id === 'activities';
-                
-                return (
-                    <button
-                        key={tab.id}
-                        onClick={() => {
-                            if (!isDisabled) {
-                                setActiveTab(tab.id);
-                            }
-                        }}
-                        disabled={isDisabled}
-                        style={{
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '12px 8px 16px 8px',
-                            background: isActive 
-                                ? 'rgba(0, 0, 0, 0.1)' 
-                                : 'rgba(0, 0, 0, 0.02)',
-                            backdropFilter: 'blur(10px)',
-                            WebkitBackdropFilter: 'blur(10px)',
-                            borderRadius: '20px',
-                            margin: '4px',
-                            cursor: isDisabled ? 'not-allowed' : 'pointer',
-                            opacity: isDisabled ? 0.5 : 1,
-                            transition: 'all 0.3s ease',
-                            fontFamily: '"Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                            border: isActive 
-                                ? '1px solid rgba(0, 0, 0, 0.15)' 
-                                : '1px solid rgba(0, 0, 0, 0.05)',
-                            boxShadow: isActive 
-                                ? '0 8px 32px rgba(0, 0, 0, 0.1)' 
-                                : '0 4px 16px rgba(0, 0, 0, 0.05)'
-                        }}
-                    >
-                        <div style={{
-                            fontSize: '18px',
-                            marginBottom: '4px',
-                            color: isActive ? '#333333' : 'rgba(0, 0, 0, 0.5)'
-                        }}>
-                            {tab.id === 'activities' && <EditIcon />}
-                            {tab.id === 'stats' && <BarChartIcon />}
-                        </div>
-                        <span style={{
-                            fontSize: '11px',
-                            fontWeight: isActive ? '600' : '400',
-                            color: isActive ? '#333333' : 'rgba(0, 0, 0, 0.5)',
-                            textAlign: 'center',
-                            lineHeight: '1.2'
-                        }}>
-                            {tab.label}
-                        </span>
-
-                    </button>
-                );
-            })}
-        </div>
-    );
-
-    const renderCurrentPage = () => {
-        if (showBabyInfo) {
-            return <BabyInfoPageNew />;
-        }
-        const currentTab = tabs.find(tab => tab.id === activeTab);
-        return currentTab ? currentTab.component : tabs[0].component;
-    };
-
+    // Show loading spinner while checking auth
     if (loading) {
+        console.log('[App] Loading auth state...');
         return (
-            <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
                 height: '100vh',
-                backgroundColor: colors.surface,
-                fontFamily: '"Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                bgcolor: '#f6f7f8'
             }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                        fontSize: '48px', 
-                        marginBottom: '16px',
-                        animation: 'pulse 1.5s infinite'
-                    }}>
-                        👶
-                    </div>
-                    <p style={{ 
-                        color: colors.onSurfaceVariant,
-                        fontSize: '16px'
-                    }}>
-                        Đang tải...
-                    </p>
-                </div>
-            </div>
+                <Box sx={{ color: '#101c22', fontSize: '18px' }}>Đang tải...</Box>
+            </Box>
         );
     }
 
+    // Redirect to login if not authenticated - let AppRouter handle this
+    if (!currentUser) {
+        console.log('[App] No user, showing AppRouter (will redirect to /login)');
+        return <AppRouter />;
+    }
+
+    // Show baby info modal if requested
+    if (showBabyInfo) {
+        return <BabyInfoPage onBack={() => setShowBabyInfo(false)} />;
+    }
+
     return (
-        <div style={{ 
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
             minHeight: '100vh',
-            background: '#ffffff',
-            paddingBottom: showBabyInfo ? '16px' : '100px' // No tab bar space when showing baby info
+            bgcolor: '#f6f7f8'
         }}>
-            {/* Header */}
-            <HeaderComponent currentUser={currentUser} logout={logout} onShowBabyInfo={() => setShowBabyInfo(true)} />
+            {/* Sticky Header */}
+            <HeaderComponent
+                currentUser={currentUser}
+                logout={logout}
+                onShowBabyInfo={() => setShowBabyInfo(true)}
+            />
 
-            {/* Back button for Baby Info */}
-            {showBabyInfo && currentUser && (
-                <div style={{ padding: '16px' }}>
-                    <button
-                        onClick={() => setShowBabyInfo(false)}
-                        style={{
-                            background: 'rgba(0, 0, 0, 0.05)',
-                            backdropFilter: 'blur(10px)',
-                            border: '1px solid rgba(0, 0, 0, 0.1)',
-                            borderRadius: '12px',
-                            padding: '8px 16px',
-                            color: '#333333',
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}
-                    >
-                        <ArrowBackIcon sx={{ mr: 1 }} />
-                        Quay lại
-                    </button>
-                </div>
-            )}
-
-            {/* Page Content */}
-            {renderCurrentPage()}
-
-            {/* Bottom Navigation - only show when authenticated and not in baby info */}
-            {!showBabyInfo && currentUser && renderTabBar()}
-
-            <style>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-                
-                button:hover {
-                    opacity: 0.8 !important;
-                }
-                
-                button:active {
-                    transform: scale(0.98);
-                }
-            `}</style>
-        </div>
+            {/* Main content with router and bottom nav */}
+            <Box sx={{ flex: 1 }}>
+                <AppRouter />
+            </Box>
+        </Box>
     );
 };
 
-// Root App Component
 const App: React.FC = () => {
     return (
         <AuthProvider>
             <BabyProvider>
-                <MainApp />
+                <DateProvider>
+                    <ThemeProvider theme={theme}>
+                        <CssBaseline />
+                        <MainApp />
+                    </ThemeProvider>
+                </DateProvider>
             </BabyProvider>
         </AuthProvider>
     );

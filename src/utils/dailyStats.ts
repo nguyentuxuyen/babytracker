@@ -1,7 +1,7 @@
 // Utility to calculate daily stats for a given date
 interface Activity {
     id: string;
-    type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo';
+    type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
     timestamp: Date;
     details: any;
 }
