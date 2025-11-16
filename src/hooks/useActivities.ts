@@ -1,0 +1,2 @@
+// useActivities hook - placeholder
+export {};

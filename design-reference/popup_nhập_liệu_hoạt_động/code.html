@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stitch Design</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Manrope:wght@400;500;700;800" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                        "content-light": "#111618",
+                        "content-dark": "#ffffff",
+                        "subtle-light": "#f0f3f4",
+                        "subtle-dark": "#1a2831",
+                        "placeholder-light": "#617c89",
+                        "placeholder-dark": "#94a3b8"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+        .form-checkbox:checked {
+            background-color: #13a4ec;
+            border-color: #13a4ec;
+        }
+        .form-checkbox:checked:hover {
+            background-color: #13a4ec;
+            border-color: #13a4ec;
+        }
+        .form-checkbox:focus {
+           --tw-ring-color: #13a4ec;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col justify-between overflow-x-hidden">
+<div class="fixed inset-0 bg-black/40 flex flex-col justify-end">
+<div class="bg-background-light dark:bg-background-dark rounded-t-xl">
+<div class="flex h-5 w-full items-center justify-center pt-2 pb-2">
+<div class="h-1 w-9 rounded-full bg-subtle-light dark:bg-subtle-dark"></div>
+</div>
+<div class="flex flex-col items-center px-4 pt-3 pb-4">
+<h1 class="text-content-light dark:text-content-dark text-[22px] font-bold leading-tight tracking-tight">Tã</h1>
+<div class="w-full mt-6 space-y-4">
+<label class="flex flex-col">
+<input class="form-input w-full resize-none overflow-hidden rounded-lg bg-subtle-light dark:bg-subtle-dark text-content-light dark:text-content-dark placeholder:text-placeholder-light dark:placeholder:text-placeholder-dark focus:outline-none focus:ring-2 focus:ring-primary border-none h-14 p-4 text-base font-normal leading-normal" placeholder="Thời gian" type="time"/>
+</label>
+<div class="rounded-lg bg-subtle-light dark:bg-subtle-dark p-4 space-y-4">
+<h2 class="text-content-light dark:text-content-dark font-semibold">Loại</h2>
+<div class="flex space-x-2">
+<button class="flex-1 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-wide flex items-center justify-center">
+<span>Đại tiện</span>
+</button>
+<button class="flex-1 rounded-lg h-10 px-4 bg-background-light dark:bg-background-dark text-content-light dark:text-content-dark text-sm font-bold leading-normal tracking-wide flex items-center justify-center">
+<span>Tè</span>
+</button>
+<button class="flex-1 rounded-lg h-10 px-4 bg-background-light dark:bg-background-dark text-content-light dark:text-content-dark text-sm font-bold leading-normal tracking-wide flex items-center justify-center">
+<span>Cả hai</span>
+</button>
+</div>
+<div class="space-y-3">
+<h3 class="text-content-light dark:text-content-dark text-sm font-medium">Màu sắc</h3>
+<div class="grid grid-cols-2 gap-x-4 gap-y-3">
+<label class="flex items-center space-x-3">
+<input checked="" class="form-checkbox h-5 w-5 rounded text-primary focus:ring-primary-focus border-gray-300 dark:border-gray-600 dark:bg-subtle-dark" type="checkbox"/>
+<span class="text-content-light dark:text-content-dark">Vàng</span>
+</label>
+<label class="flex items-center space-x-3">
+<input class="form-checkbox h-5 w-5 rounded text-primary focus:ring-primary-focus border-gray-300 dark:border-gray-600 dark:bg-subtle-dark" type="checkbox"/>
+<span class="text-content-light dark:text-content-dark">Nâu</span>
+</label>
+<label class="flex items-center space-x-3">
+<input class="form-checkbox h-5 w-5 rounded text-primary focus:ring-primary-focus border-gray-300 dark:border-gray-600 dark:bg-subtle-dark" type="checkbox"/>
+<span class="text-content-light dark:text-content-dark">Xanh</span>
+</label>
+<label class="flex items-center space-x-3">
+<input class="form-checkbox h-5 w-5 rounded text-primary focus:ring-primary-focus border-gray-300 dark:border-gray-600 dark:bg-subtle-dark" type="checkbox"/>
+<span class="text-content-light dark:text-content-dark">Đen</span>
+</label>
+</div>
+</div>
+<label class="flex flex-col">
+<textarea class="form-textarea w-full resize-none overflow-hidden rounded-lg bg-background-light dark:bg-background-dark text-content-light dark:text-content-dark placeholder:text-placeholder-light dark:placeholder:text-placeholder-dark focus:outline-none focus:ring-2 focus:ring-primary border-none min-h-24 p-4 text-base font-normal leading-normal" placeholder="Ghi chú"></textarea>
+</label>
+</div>
+</div>
+</div>
+<div class="flex justify-between gap-3 px-4 py-3">
+<button class="flex-1 rounded-lg h-12 px-4 bg-subtle-light dark:bg-subtle-dark text-content-light dark:text-content-dark text-sm font-bold leading-normal tracking-wide flex items-center justify-center">
+<span class="truncate">Hủy</span>
+</button>
+<button class="flex-1 rounded-lg h-12 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-wide flex items-center justify-center">
+<span class="truncate">Lưu</span>
+</button>
+</div>
+<div class="h-5 bg-background-light dark:bg-background-dark"></div>
+</div>
+</div>
+</div>
+
+</body></html>

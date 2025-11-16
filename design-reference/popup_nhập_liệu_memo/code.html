@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Memo Input</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<style>
+        .time-picker::-webkit-calendar-picker-indicator {
+            display: none;
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="fixed inset-0 bg-black/30 flex items-end">
+<div class="w-full bg-background-light dark:bg-background-dark rounded-t-xl">
+<div class="flex justify-center py-3">
+<div class="w-10 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+</div>
+<div class="p-5">
+<h1 class="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">Nhập Memo</h1>
+<div class="space-y-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="time">Giờ giấc</label>
+<div class="relative">
+<input class="time-picker w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-primary focus:border-primary" id="time" type="time" value="09:30"/>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="note">Ghi chú</label>
+<textarea class="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-primary focus:border-primary" id="note" placeholder="Nhập ghi chú của bạn..." rows="4"></textarea>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 mt-8">
+<button class="w-full py-3 px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold">
+                        Hủy
+                    </button>
+<button class="w-full py-3 px-4 rounded-lg bg-primary text-white font-semibold">
+                        Lưu
+                    </button>
+</div>
+</div>
+<div class="h-8"></div>
+</div>
+</div>
+
+</body></html>

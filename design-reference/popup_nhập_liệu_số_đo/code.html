@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stitch Design</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1a2830",
+                        "text-primary-light": "#0b1216",
+                        "text-primary-dark": "#eef4f8",
+                        "text-secondary-light": "#5c7380",
+                        "text-secondary-dark": "#a3b8c3",
+                        "border-light": "#e6e9eb",
+                        "border-dark": "#2d3f49"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235c7380' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="fixed inset-0 bg-black/30 flex justify-center items-end">
+<div class="w-full max-w-lg bg-background-light dark:bg-background-dark rounded-t-lg">
+<div class="flex justify-center pt-4">
+<div class="w-8 h-1 bg-border-light dark:bg-border-dark rounded-full"></div>
+</div>
+<div class="p-6">
+<h1 class="text-2xl font-bold text-center text-text-primary-light dark:text-text-primary-dark mb-6">Nhập thông tin Số đo</h1>
+<form class="space-y-4">
+<div>
+<label class="sr-only" for="time">Giờ giấc</label>
+<select class="form-select w-full bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark rounded-lg p-4 focus:ring-primary focus:border-primary" id="time">
+<option>Giờ giấc</option>
+</select>
+</div>
+<div>
+<label class="sr-only" for="height">Chiều cao (cm)</label>
+<input class="w-full bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark rounded-lg p-4 focus:ring-primary focus:border-primary" id="height" placeholder="Chiều cao (cm)" type="number"/>
+</div>
+<div>
+<label class="sr-only" for="weight">Cân nặng (gram)</label>
+<input class="w-full bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark rounded-lg p-4 focus:ring-primary focus:border-primary" id="weight" placeholder="Cân nặng (gram)" type="number"/>
+</div>
+<div>
+<label class="sr-only" for="temperature">Nhiệt độ (°C)</label>
+<input class="w-full bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark rounded-lg p-4 focus:ring-primary focus:border-primary" id="temperature" placeholder="Nhiệt độ (°C)" step="0.1" type="number"/>
+</div>
+<div>
+<label class="sr-only" for="notes">Ghi chú</label>
+<textarea class="w-full bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light dark:placeholder-text-secondary-dark rounded-lg p-4 focus:ring-primary focus:border-primary" id="notes" placeholder="Ghi chú" rows="4"></textarea>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-4">
+<button class="w-full py-3 px-4 rounded-lg bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark font-bold border border-border-light dark:border-border-dark" type="button">Hủy</button>
+<button class="w-full py-3 px-4 rounded-lg bg-primary text-white font-bold" type="submit">Lưu</button>
+</div>
+</form>
+</div>
+<div class="h-8 bg-background-light dark:bg-background-dark"></div>
+</div>
+</div>
+
+</body></html>

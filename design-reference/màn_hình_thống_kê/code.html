@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Baby Growth Tracker</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#13a4ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101c22",
+            "content-light": "#1f2937",
+            "content-dark": "#e5e7eb",
+            "subtle-light": "#6b7280",
+            "subtle-dark": "#9ca3af",
+            "border-light": "#e5e7eb",
+            "border-dark": "#374151",
+            "card-light": "#ffffff",
+            "card-dark": "#1f2937",
+            "chart-line": "#13a4ec",
+            "chart-fill-light": "#13a4ec",
+            "chart-fill-dark": "#13a4ec",
+            "chart-line-2": "#f59e0b",
+            "chart-line-3": "#10b981",
+            "chart-line-4": "#ef4444",
+          },
+          fontFamily: {
+            display: ["Manrope", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.75rem", // Changed from 0.5rem
+            lg: "1rem",
+            xl: "1.5rem",
+            full: "9999px",
+          },
+        },
+      },
+    };
+  </script>
+<style>
+    .font-display {
+      font-family: "Manrope", sans-serif;
+    }
+    .text-content-light {
+      color: #1f2937;
+    }
+    .dark .text-content-dark {
+      color: #e5e7eb;
+    }
+    .text-subtle-light {
+      color: #6b7280;
+    }
+    .dark .text-subtle-dark {
+      color: #9ca3af;
+    }
+    .bg-background-light {
+      background-color: #f6f7f8;
+    }
+    .dark .bg-background-dark {
+      background-color: #101c22;
+    }
+    .bg-card-light {
+      background-color: #ffffff;
+    }
+    .dark .bg-card-dark {
+      background-color: #1f2937;
+    }
+    .border-border-light {
+      border-color: #e5e7eb;
+    }
+    .dark .border-border-dark {
+      border-color: #374151;
+    }
+    .fill-chart-fill-light {
+      fill: #13a4ec33;
+    }
+    .dark .fill-chart-fill-dark {
+      fill: #13a4ec33;
+    }
+    .stroke-chart-line {
+      stroke: #13a4ec;
+    }
+    .dark .stroke-chart-line {
+      stroke: #13a4ec;
+    }
+    .stroke-chart-line-2 {
+      stroke: #f59e0b;
+    }
+    .stroke-chart-line-3 {
+      stroke: #10b981;
+    }
+    .stroke-chart-line-4 {
+      stroke: #ef4444;
+    }
+    .form-checkbox, .form-input, .form-select, .form-textarea {
+        background-color: #f6f7f8;
+        border-color: #e5e7eb;
+        border-radius: 0.75rem;}
+    .dark .form-checkbox, .dark .form-input, .dark .form-select, .dark .form-textarea {
+        background-color: #1f2937;
+        border-color: #374151;
+    }
+    .form-checkbox:checked {
+      background-color: currentColor;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="min-h-screen">
+<header class="sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm z-10 px-4 py-3">
+<div class="flex items-center justify-between max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<div>
+<h1 class="text-xl font-bold text-content-light dark:text-content-dark">
+              Welcome, Sophia
+            </h1>
+<p class="text-xs text-subtle-light dark:text-subtle-dark">180 days old</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center">
+<img alt="User Avatar" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9yrpYb3pPDG_Ksn_gnmpbf2NnE9e4IGgzQIUKEhtGXrmaFNePpycFkID-rXpsFWeI679wUztoeJ8ShwHO70jtOcgmTw6ZsUvtb6gVPMNMp2zFwoy15Pj3b_DLGnRHVZij1zY8fT36tWzM1SQhH43q4jdWIJsXcKRZWZryxuVK0oPythe8hhJmfkL5oaVe1y6kezWuMSNyuiibYZ09lmHFiOqIDcfgoCT9vs2_CvAO0SK3NEGoM0syDo8LetNGp4ju4hS4v9lV2hND"/>
+</button>
+</div>
+</header>
+<main class="p-4 max-w-7xl mx-auto">
+<div class="mb-6">
+<div class="flex space-x-2 p-1 bg-background-light dark:bg-card-dark rounded-lg shadow-inner">
+<button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium bg-primary text-white">
+            Day
+          </button>
+<button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-subtle-light dark:text-subtle-dark hover:bg-primary/10 dark:hover:bg-primary/20">
+            Week
+          </button>
+<button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-subtle-light dark:text-subtle-dark hover:bg-primary/10 dark:hover:bg-primary/20">
+            Month
+          </button>
+<button class="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-subtle-light dark:text-subtle-dark hover:bg-primary/10 dark:hover:bg-primary/20">
+            Range
+          </button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-border-light dark:border-border-dark flex flex-col gap-4 sm:col-span-2">
+<p class="text-base font-medium text-content-light dark:text-content-dark">
+            Daily Activities
+          </p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark -mt-2">
+            Last 7 days
+          </p>
+<div class="flex-1 flex flex-col justify-end min-h-[250px] relative">
+<svg class="w-full absolute inset-0" fill="none" preserveAspectRatio="none" viewBox="0 0 472 150" xmlns="http://www.w3.org/2000/svg">
+<path class="stroke-chart-line" d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke-linecap="round" stroke-width="3"></path>
+<path class="stroke-chart-line-2" d="M0 70C18.1538 70 18.1538 90 36.3077 90C54.4615 90 54.4615 60 72.6154 60C90.7692 60 90.7692 110 108.923 110C127.077 110 127.077 40 145.231 40C163.385 40 163.385 80 181.538 80C199.692 80 199.692 50 217.846 50C236 50 236 100 254.154 100C272.308 100 272.308 30 290.462 30C308.615 30 308.615 130 326.769 130C344.923 130 344.923 20 363.077 20C381.231 20 381.231 70 399.385 70C417.538 70 417.538 140 435.692 140C453.846 140 453.846 50 472 50" stroke-linecap="round" stroke-width="3"></path>
+<path class="stroke-chart-line-3" d="M0 130C18.1538 130 18.1538 80 36.3077 80C54.4615 80 54.4615 100 72.6154 100C90.7692 100 90.7692 50 108.923 50C127.077 50 127.077 120 145.231 120C163.385 120 163.385 60 181.538 60C199.692 60 199.692 90 217.846 90C236 90 236 70 254.154 70C272.308 70 272.308 140 290.462 140C308.615 140 308.615 40 326.769 40C344.923 40 344.923 110 363.077 110C381.231 110 381.231 30 399.385 30C417.538 30 417.538 90 435.692 90C453.846 90 453.846 20 472 20" stroke-linecap="round" stroke-width="3"></path>
+<path class="stroke-chart-line-4" d="M0 40C18.1538 40 18.1538 140 36.3077 140C54.4615 140 54.4615 30 72.6154 30C90.7692 30 90.7692 130 108.923 130C127.077 130 127.077 10 145.231 10C163.385 10 163.385 120 181.538 120C199.692 120 199.692 20 217.846 20C236 20 236 110 254.154 110C272.308 110 272.308 50 290.462 50C308.615 50 308.615 100 326.769 100C344.923 100 344.923 60 363.077 60C381.231 60 381.231 140 399.385 140C417.538 140 417.538 70 435.692 70C453.846 70 453.846 130 472 130" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="flex justify-between mt-2 text-xs font-bold text-subtle-light dark:text-subtle-dark z-10 pt-[150px]">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 mt-4">
+<label class="flex items-center space-x-2 text-sm text-content-light dark:text-content-dark">
+<input checked="" class="form-checkbox h-4 w-4 text-primary focus:ring-primary/50" type="checkbox"/>
+<span>Feeding</span>
+</label>
+<label class="flex items-center space-x-2 text-sm text-content-light dark:text-content-dark">
+<input checked="" class="form-checkbox h-4 w-4 text-chart-line-2 focus:ring-chart-line-2/50" type="checkbox"/>
+<span>Diaper</span>
+</label>
+<label class="flex items-center space-x-2 text-sm text-content-light dark:text-content-dark">
+<input checked="" class="form-checkbox h-4 w-4 text-chart-line-3 focus:ring-chart-line-3/50" type="checkbox"/>
+<span>Urination</span>
+</label>
+<label class="flex items-center space-x-2 text-sm text-content-light dark:text-content-dark">
+<input checked="" class="form-checkbox h-4 w-4 text-chart-line-4 focus:ring-chart-line-4/50" type="checkbox"/>
+<span>Defecation</span>
+</label>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-border-light dark:border-border-dark flex flex-col gap-2">
+<p class="text-base font-medium text-content-light dark:text-content-dark">
+            Milk Intake
+          </p>
+<p class="text-3xl font-bold text-content-light dark:text-content-dark truncate">
+            750 ml
+          </p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark">
+            Last 7 days
+          </p>
+<div class="flex-1 flex flex-col justify-end min-h-[220px]">
+<svg class="w-full" fill="none" preserveAspectRatio="none" viewBox="0 0 472 150" xmlns="http://www.w3.org/2000/svg">
+<path class="fill-chart-fill-light dark:fill-chart-fill-dark" d="M0 60C18.1538 60 18.1538 90 36.3077 90C54.4615 90 54.4615 70 72.6154 70C90.7692 70 90.7692 40 108.923 40C127.077 40 127.077 80 145.231 80C163.385 80 163.385 50 181.538 50C199.692 50 199.692 100 217.846 100C236 100 236 30 254.154 30C272.308 30 272.308 110 290.462 110C308.615 110 308.615 20 326.769 20C344.923 20 344.923 120 363.077 120C381.231 120 381.231 70 399.385 70C417.538 70 417.538 130 435.692 130C453.846 130 453.846 40 472 40V150H0V60Z"></path>
+<path class="stroke-chart-line" d="M0 60C18.1538 60 18.1538 90 36.3077 90C54.4615 90 54.4615 70 72.6154 70C90.7692 70 90.7692 40 108.923 40C127.077 40 127.077 80 145.231 80C163.385 80 163.385 50 181.538 50C199.692 50 199.692 100 217.846 100C236 100 236 30 254.154 30C272.308 30 272.308 110 290.462 110C308.615 110 308.615 20 326.769 20C344.923 20 344.923 120 363.077 120C381.231 120 381.231 70 399.385 70C417.538 70 417.538 130 435.692 130C453.846 130 453.846 40 472 40" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="flex justify-between mt-2 text-xs font-bold text-subtle-light dark:text-subtle-dark">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-border-light dark:border-border-dark flex flex-col gap-2">
+<p class="text-base font-medium text-content-light dark:text-content-dark">
+            Sleep Duration
+          </p>
+<p class="text-3xl font-bold text-content-light dark:text-content-dark truncate">
+            14 hours
+          </p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark">
+            Last 7 days
+          </p>
+<div class="flex-1 flex flex-col justify-end min-h-[220px]">
+<svg class="w-full" fill="none" preserveAspectRatio="none" viewBox="0 0 472 150" xmlns="http://www.w3.org/2000/svg">
+<path class="fill-chart-fill-light dark:fill-chart-fill-dark" d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V150H0V109Z"></path>
+<path class="stroke-chart-line" d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="flex justify-between mt-2 text-xs font-bold text-subtle-light dark:text-subtle-dark">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+</div>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-6 rounded-xl border border-border-light dark:border-border-dark flex flex-col gap-2">
+<p class="text-base font-medium text-content-light dark:text-content-dark">
+            Weight &amp; Height
+          </p>
+<p class="text-3xl font-bold text-content-light dark:text-content-dark truncate">
+            7.5 kg, 68 cm
+          </p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark">
+            Last 7 days
+          </p>
+<div class="flex-1 flex flex-col justify-end min-h-[220px]">
+<svg class="w-full" fill="none" preserveAspectRatio="none" viewBox="0 0 472 150" xmlns="http://www.w3.org/2000/svg">
+<path class="fill-chart-fill-light dark:fill-chart-fill-dark" d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V150H0V109Z"></path>
+<path class="stroke-chart-line" d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="flex justify-between mt-2 text-xs font-bold text-subtle-light dark:text-subtle-dark">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

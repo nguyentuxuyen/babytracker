@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Baby Profile</title>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Manrope:wght@400;500;700;800" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13a4ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101c22",
+          },
+          fontFamily: {
+            "display": ["Manrope"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "1rem",
+            "xl": "1.5rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    .btn-rounded {
+      border-radius: 1rem;
+    }
+    input[type="text"], input[type="date"], select {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+    }
+    .dark input[type="text"], .dark input[type="date"], .dark select {
+      background-color: rgba(30, 41, 59, 0.5);
+      border: 1px solid #334155;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-200">
+<div class="relative flex min-h-screen w-full flex-col justify-between">
+<div class="flex-grow">
+<header class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+<button class="flex items-center justify-center w-10 h-10 btn-rounded hover:bg-slate-200/50 dark:hover:bg-slate-800/50">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">arrow_back_ios_new</span>
+</button>
+<div class="text-center">
+<h1 class="text-lg font-bold text-slate-900 dark:text-white">Welcome, Sophia</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400">Olivia is 453 days old</p>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-full">
+<img alt="User avatar" class="w-8 h-8 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgauAaVG4FmkJKi70-n2lRatj_yQsP6YdpXc1EZ6ccNl0vsMoop94Fb_fMIWsUu_wHBYDVAF3lLYR9ZD5uebTvA2ujDwrUV7rEQOol5m038n6oNHoedCjIDorVuiNhIpt2ucD-N8vZfd0Sm6MSt_QSocikjQMm8SYJc5UGQEdnpxBAoCTIPJ07xhnIPrwEs5rx59TmIPFpjzY1ddI58eZtIwYLaAinciKupdiL5kAldFQvm1SrqMtx2s-mV-BWLyqGPauomqx_XDNe"/>
+</button>
+</header>
+<main class="p-6">
+<div class="flex flex-col items-center gap-4 mb-8">
+<div class="relative">
+<div class="w-32 h-32 bg-center bg-no-repeat bg-cover rounded-full" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDhy1JYgjevfaQwitit5mhhZ-ralSqKKTvtO4qC_-libS1gJZqt-_rp9IwSzl0iWAooL9h14N_TN2Hq-mbF9haD8JmAZjH_KrrfTnliPSu6iXHHUppBNnlRda2KmnLJWKQxgZLMd2Ho6NiFVQiC1jTAr_li8BtyRljkgCkN4wEKNzbeVhYz02cyxJo3OlsVSbYDzI6xzvdGz6MWsQTVcYi3ulHCoXVVXtOLrbwmckzk9RxOSmNbq5o0FdsBV1hRV5KZl5tTiclDpvxv");'></div>
+<button class="absolute bottom-0 right-0 flex items-center justify-center w-8 h-8 btn-rounded bg-primary text-white">
+<span class="material-symbols-outlined text-base">edit</span>
+</button>
+</div>
+<div class="text-center">
+<h2 class="text-2xl font-bold text-slate-900 dark:text-white">Baby Olivia</h2>
+<p class="text-slate-500 dark:text-slate-400">Born on March 15, 2023</p>
+<p class="text-slate-500 dark:text-slate-400">Female</p>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 px-1">Basic Information</h3>
+<div class="bg-white dark:bg-slate-900/50 rounded-xl shadow-sm">
+<ul class="divide-y divide-slate-200 dark:divide-slate-800">
+<li class="flex justify-between items-center p-4">
+<span class="text-sm text-slate-500 dark:text-slate-400">Name</span>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">Olivia Carter</span>
+</li>
+<li class="flex justify-between items-center p-4">
+<span class="text-sm text-slate-500 dark:text-slate-400">Date of Birth</span>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">March 15, 2023</span>
+</li>
+<li class="flex justify-between items-center p-4">
+<span class="text-sm text-slate-500 dark:text-slate-400">Gender</span>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">Female</span>
+</li>
+</ul>
+</div>
+</div>
+<div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 px-1">Health Information</h3>
+<div class="bg-white dark:bg-slate-900/50 rounded-xl shadow-sm">
+<ul class="divide-y divide-slate-200 dark:divide-slate-800">
+<li class="flex justify-between items-center p-4">
+<span class="text-sm text-slate-500 dark:text-slate-400">Blood Type</span>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">O+</span>
+</li>
+<li class="flex justify-between items-center p-4">
+<span class="text-sm text-slate-500 dark:text-slate-400">Allergies</span>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">None</span>
+</li>
+<li class="flex justify-between items-center p-4">
+<span class="text-sm text-slate-500 dark:text-slate-400">Medications</span>
+<span class="text-sm font-medium text-slate-800 dark:text-slate-200">None</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+</div>
+<footer class="p-4 bg-background-light dark:bg-background-dark sticky bottom-0 border-t border-slate-200 dark:border-slate-800">
+<button class="w-full h-12 px-6 bg-primary text-white btn-rounded text-sm font-bold flex items-center justify-center gap-2">
+        Edit Profile
+      </button>
+</footer>
+</div>
+</body></html>

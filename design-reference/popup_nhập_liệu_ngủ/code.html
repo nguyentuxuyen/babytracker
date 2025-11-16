@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nhập thông tin Ngủ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>input[type="time"]::-webkit-calendar-picker-indicator {
+            background: none;
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center">
+<div class="bg-background-light dark:bg-background-dark w-full max-w-md rounded-t-xl flex flex-col h-[95vh]">
+<header class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+<h1 class="text-lg font-bold text-center flex-1 text-gray-900 dark:text-white">Nhập thông tin Ngủ</h1>
+<button class="text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<main class="flex-1 p-6 space-y-6 overflow-y-auto">
+<div class="space-y-2">
+<label class="text-sm font-medium text-gray-700 dark:text-gray-300" for="start-time">Giờ giấc (bắt đầu)</label>
+<div class="relative">
+<input class="bg-gray-100 dark:bg-gray-800 border-none text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-4" id="start-time" type="time" value="21:30"/>
+<div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-400">schedule</span>
+</div>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-gray-700 dark:text-gray-300" for="duration">Thời gian ngủ (phút)</label>
+<input class="bg-gray-100 dark:bg-gray-800 border-none text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-4 placeholder-gray-400 dark:placeholder-gray-500" id="duration" placeholder="Nhập số phút" type="number"/>
+</div>
+<div class="space-y-2">
+<label class="text-sm font-medium text-gray-700 dark:text-gray-300" for="notes">Ghi chú</label>
+<textarea class="bg-gray-100 dark:bg-gray-800 border-none text-gray-900 dark:text-white text-base rounded-lg focus:ring-primary focus:border-primary block w-full p-4 placeholder-gray-400 dark:placeholder-gray-500 resize-none" id="notes" placeholder="Nhập ghi chú" rows="4"></textarea>
+</div>
+</main>
+<footer class="p-4 bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-gray-700">
+<div class="grid grid-cols-2 gap-4">
+<button class="w-full py-3 px-4 text-base font-bold text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 rounded-lg">Hủy</button>
+<button class="w-full py-3 px-4 text-base font-bold text-white bg-primary rounded-lg">Lưu</button>
+</div>
+</footer>
+</div>
+</div>
+
+</body></html>

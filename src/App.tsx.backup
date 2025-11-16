@@ -1,0 +1,455 @@
+import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme/theme';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BabyProvider, useBaby } from './contexts/BabyContext';
+import { DateProvider } from './contexts/DateContext';
+import AppRouter from './routes/AppRouter';
+import BabyInfoPage from './pages/BabyInfoPageNew';
+
+import {
+    AccountCircle as AccountCircleIcon,
+    ChildCare as ChildCareIcon,
+    Logout as LogoutIcon,
+} from '@mui/icons-material';
+import { Box } from '@mui/material';
+
+// Header Component - New Design
+const HeaderComponent: React.FC<{
+    currentUser: any;
+    logout: () => Promise<void>;
+    onShowBabyInfo: () => void;
+}> = ({ currentUser, logout, onShowBabyInfo }) => {
+    const { baby } = useBaby();
+    const [showMenu, setShowMenu] = useState(false);
+
+    return (
+        <div style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            backgroundColor: 'rgba(246, 247, 248, 0.8)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+        }}>
+            <div style={{
+                padding: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                maxWidth: '1200px',
+                margin: '0 auto'
+            }}>
+                {/* Left side - Name and age */}
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                }}>
+                    <div style={{
+                        fontSize: '20px',
+                        fontWeight: '700',
+                        color: '#101c22',
+                        fontFamily: 'Manrope, sans-serif'
+                    }}>
+                        {(() => {
+                            const namePart = baby?.name ? `Welcome, ${baby.name}` : 'Welcome';
+                            return namePart;
+                        })()}
+                    </div>
+                    <div style={{
+                        fontSize: '12px',
+                        fontWeight: '400',
+                        color: '#6b7f8a'
+                    }}>
+                        {(() => {
+                            try {
+                                if (baby?.birthDate) {
+                                    const birth = new Date(baby.birthDate);
+                                    if (!isNaN(birth.getTime())) {
+                                        const now = new Date();
+                                        const birthNorm = new Date(birth);
+                                        birthNorm.setHours(0,0,0,0);
+                                        const nowNorm = new Date(now);
+                                        nowNorm.setHours(0,0,0,0);
+                                        const diffMs = nowNorm.getTime() - birthNorm.getTime();
+                                        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                        if (days >= 0) return `${days} days old`;
+                                    }
+                                }
+                            } catch (err) {
+                                // ignore
+                            }
+                            return '';
+                        })()}
+                    </div>
+                </div>
+
+                {/* Right side - Avatar */}
+                {currentUser && (
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '24px',
+                                background: '#13a4ec',
+                                border: 'none',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 8px rgba(19, 164, 236, 0.3)'
+                            }}
+                        >
+                            <AccountCircleIcon sx={{ fontSize: '28px' }} />
+                        </button>
+
+                        {showMenu && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '56px',
+                                right: '0',
+                                background: '#ffffff',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                                minWidth: '220px',
+                                zIndex: 1000,
+                                overflow: 'hidden'
+                            }}>
+                            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#101c22' }}>
+                                    {currentUser.email}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    onShowBabyInfo();
+                                    setShowMenu(false);
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    background: 'none',
+                                    border: 'none',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: '#101c22',
+                                    fontWeight: '500',
+                                    transition: 'background-color 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
+                                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                            >
+                                <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
+                                Thông tin bé
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await logout();
+                                        setShowMenu(false);
+                                    } catch (error) {
+                                        console.error('Logout error:', error);
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    background: 'none',
+                                    border: 'none',
+                                    borderTop: '1px solid #e5e7eb',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: '#ef4444',
+                                    fontWeight: '500',
+                                    transition: 'background-color 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#fef2f2'}
+                                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                            >
+                                <LogoutIcon sx={{ fontSize: '20px' }} />
+                                Đăng xuất
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {!currentUser && (
+                <div style={{
+                    fontSize: '12px',
+                    color: '#6b7f8a',
+                    background: '#e3e8eb',
+                    padding: '8px 12px',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                }}>
+                    <PersonOffIcon sx={{ fontSize: '16px' }} />
+                    Chưa đăng nhập
+                </div>
+            )}
+        </div>
+        </div>
+    );
+};
+
+// Main App Component with 3 Tabs
+const MainApp: React.FC = () => {
+    const { currentUser, logout, loading } = useAuth();
+    const [activeTab, setActiveTab] = useState<'home' | 'chart' | 'milestones'>('home');
+    const [showBabyInfo, setShowBabyInfo] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    // Listen for scroll events to shrink tab bar
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 50);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Show loading spinner while checking auth
+    if (loading) {
+        return (
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: '100vh',
+                bgcolor: 'primary.main'
+            }}>
+                <Box sx={{ color: 'white', fontSize: '18px' }}>Đang tải...</Box>
+            </Box>
+        );
+    }
+
+    // Redirect to login if not authenticated
+    if (!currentUser) {
+        return <BabyInfoPage onBack={() => {}} />;
+    }
+
+    const renderCurrentPage = () => {
+        if (showBabyInfo) {
+            return <BabyInfoPage onBack={() => setShowBabyInfo(false)} />;
+        }
+        switch (activeTab) {
+            case 'home':
+                return <ActivitiesPageNew />;
+            case 'chart':
+                return <StatsPageNewGlass />;
+            case 'milestones':
+                return <MilestonesPage />;
+            default:
+                return <ActivitiesPageNew />;
+        }
+    };
+
+    const renderTabBar = () => {
+        const tabs = [
+            { value: 'home', label: 'Home', icon: <HomeIcon /> },
+            { value: 'chart', label: 'Chart', icon: <ChartIcon /> },
+            { value: 'milestones', label: 'Milestones', icon: <MilestonesIcon /> },
+        ];
+
+        // When scrolled, show a slim 5px segmented line attached under the header
+        // Each segment corresponds to a tab and highlights the active one with primary color.
+        if (isScrolled) {
+            return (
+                <Box sx={{
+                    position: 'sticky',
+                    top: '64px', // attach under header
+                    zIndex: 80,
+                    width: '100%',
+                    height: '10px',
+                    display: 'flex',
+                    gap: '6px',
+                    alignItems: 'center',
+                    transition: 'height 0.2s ease, top 0.2s ease',
+                    px: 2,
+                }}>
+                    {tabs.map((tab, idx) => (
+                        <Box
+                            key={tab.value}
+                            onClick={() => setActiveTab(tab.value as any)}
+                            sx={{
+                                flex: 1,
+                                height: '10px',
+                                backgroundColor: activeTab === tab.value
+                                    ? theme.palette.primary.main
+                                    : 'rgba(0,0,0,0.08)',
+                                transition: 'background-color 200ms ease, transform 160ms ease',
+                                cursor: 'pointer',
+                                borderRadius: idx === 0 ? '6px 0 0 6px' : idx === tabs.length - 1 ? '0 6px 6px 0' : 0,
+                                boxShadow: activeTab === tab.value ? '0 6px 18px rgba(54,41,183,0.14)' : 'none',
+                                '&:active': { transform: 'scaleY(0.98)' }
+                            }}
+                        />
+                    ))}
+                </Box>
+            );
+        }
+
+        return (
+            <Box sx={{
+                position: 'sticky',
+                top: '72px',
+                zIndex: 50,
+                width: '100%',
+                padding: isScrolled ? '6px 12px' : '10px',
+                backgroundColor: theme.palette.background.paper,
+                borderRadius: '12px',
+                boxShadow: '0 6px 20px rgba(16,24,40,0.06)',
+                display: 'flex',
+                justifyContent: 'space-around',
+                alignItems: 'center',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                height: isScrolled ? '44px' : 'auto',
+            }}>
+                {tabs.map((tab) => (
+                    <Box
+                        key={tab.value}
+                        onClick={() => setActiveTab(tab.value as any)}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: activeTab === tab.value 
+                                ? (isScrolled ? '8px 12px' : '8px 14px')
+                                : '6px 8px',
+                            borderRadius: '9999px',
+                            backgroundColor: activeTab === tab.value 
+                                ? theme.palette.primary.main 
+                                : 'transparent',
+                            color: activeTab === tab.value 
+                                ? theme.palette.primary.contrastText 
+                                : theme.palette.text.secondary,
+                            cursor: 'pointer',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            '&:hover': {
+                                backgroundColor: activeTab === tab.value 
+                                    ? theme.palette.primary.main 
+                                    : 'rgba(0, 0, 0, 0.04)',
+                            },
+                        }}
+                    >
+                        {!isScrolled && (
+                            <Box sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                '& .MuiSvgIcon-root': {
+                                    fontSize: '20px',
+                                }
+                            }}>
+                                {tab.icon}
+                            </Box>
+                        )}
+                        {(activeTab === tab.value || isScrolled) && (
+                            <Box sx={{ 
+                                marginLeft: (!isScrolled && activeTab === tab.value) ? '8px' : 0,
+                                fontSize: isScrolled ? '12px' : '14px',
+                                fontWeight: activeTab === tab.value ? 600 : 500,
+                            }}>
+                                {tab.label}
+                            </Box>
+                        )}
+                    </Box>
+                ))}
+            </Box>
+        );
+    };
+
+
+    return (
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: '100vh',
+            bgcolor: 'primary.main'
+        }}>
+            {/* Sticky Header */}
+            <Box sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 100,
+                bgcolor: 'primary.main'
+            }}>
+                <HeaderComponent
+                    currentUser={currentUser}
+                    logout={logout}
+                    onShowBabyInfo={() => setShowBabyInfo(true)}
+                />
+            </Box>
+
+            {/* Rounded content card that overlaps header */}
+            <Box sx={{ px: 2, pt: 2 }}>
+                <Box sx={{
+                    mt: -2, // Giảm overlap để không bị che
+                    borderRadius: '12px',
+                    backgroundColor: theme.palette.background.default,
+                    padding: 2,
+                    paddingTop: 2,
+                    boxShadow: '0 8px 24px rgba(16,24,40,0.06)',
+                    position: 'relative',
+                    zIndex: 2,
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
+                    {/* Tab bar - now sticky */}
+                    {renderTabBar()}
+
+                    {/* Main content with extra height to allow scrolling */}
+                    <Box sx={{ 
+                        mt: 1, 
+                        flex: 1, 
+                        minHeight: '100vh',
+                        pb: 8,
+                        // Đảm bảo content có background và radius riêng
+                        backgroundColor: theme.palette.background.default,
+                        borderRadius: '16px', // Radius riêng cho content
+                        padding: '0px', // Remove padding để content width match tab bar
+                        // Tạo shadow để phân biệt với tab bar
+                        boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.04)',
+                    }}>
+                        {renderCurrentPage()}
+                    </Box>
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
+const App: React.FC = () => {
+    return (
+        <AuthProvider>
+            <BabyProvider>
+                <DateProvider>
+                    <ThemeProvider theme={theme}>
+                        <CssBaseline />
+                        <MainApp />
+                    </ThemeProvider>
+                </DateProvider>
+            </BabyProvider>
+        </AuthProvider>
+    );
+};
+
+export default App;
