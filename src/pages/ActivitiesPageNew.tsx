@@ -1590,19 +1590,51 @@ const ActivitiesPage: React.FC = () => {
                             }}>
                                 
                                 {(() => {
-                                    const filteredActivities = (activities || []).filter((activity) => {
+                                    // Filter and process activities to handle overnight sleep
+                                    const filteredActivities = (activities || []).flatMap((activity) => {
                                         try {
                                             const actDate = new Date(activity.timestamp);
                                             if (isNaN(actDate.getTime())) {
-                                                return false;
+                                                return [];
                                             }
-                                            return (
+                                            
+                                            const isSameDay = 
                                                 actDate.getFullYear() === selectedDate.getFullYear() &&
                                                 actDate.getMonth() === selectedDate.getMonth() &&
-                                                actDate.getDate() === selectedDate.getDate()
-                                            );
+                                                actDate.getDate() === selectedDate.getDate();
+                                            
+                                            if (isSameDay) {
+                                                return [activity];
+                                            }
+                                            
+                                            // Check for sleep from previous day that ends on selected date
+                                            if (activity.type === 'sleep' && activity.details && activity.details.duration) {
+                                                const durationMinutes = Number(activity.details.duration);
+                                                const endTime = new Date(actDate.getTime() + durationMinutes * 60000);
+                                                
+                                                const endsOnSelectedDate = 
+                                                    endTime.getFullYear() === selectedDate.getFullYear() &&
+                                                    endTime.getMonth() === selectedDate.getMonth() &&
+                                                    endTime.getDate() === selectedDate.getDate();
+                                                    
+                                                if (endsOnSelectedDate) {
+                                                    // Return a modified activity with the end time as timestamp
+                                                    // We clone it to avoid mutating the original state
+                                                    return [{
+                                                        ...activity,
+                                                        timestamp: endTime,
+                                                        // Add a flag to details to indicate it's a carry over
+                                                        details: {
+                                                            ...activity.details,
+                                                            isCarryOver: true
+                                                        }
+                                                    }];
+                                                }
+                                            }
+                                            
+                                            return [];
                                         } catch (error) {
-                                            return false;
+                                            return [];
                                         }
                                     });
                                     
@@ -1841,38 +1873,54 @@ const ActivitiesPage: React.FC = () => {
                                                                                     {activity.details.duration}min
                                                                                     {(() => {
                                                                                         // Check if this is a sleep that crossed midnight
-                                                                                        if (activity.type === 'sleep' && activity.details.notes) {
-                                                                                            const startTimeMatch = activity.details.notes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
-                                                                                            if (startTimeMatch) {
-                                                                                                const endTime = new Date(activity.timestamp);
-                                                                                                const startHour = parseInt(startTimeMatch[1]);
-                                                                                                const startMinute = parseInt(startTimeMatch[2]);
-                                                                                                
-                                                                                                // Create a start time on the same day first
-                                                                                                const possibleStartTime = new Date(endTime);
-                                                                                                possibleStartTime.setHours(startHour, startMinute, 0, 0);
-                                                                                                
-                                                                                                // If start time is after end time, it must be previous day
-                                                                                                if (possibleStartTime > endTime) {
-                                                                                                    possibleStartTime.setDate(possibleStartTime.getDate() - 1);
-                                                                                                }
-                                                                                                
-                                                                                                // Check if it's a different day (overnight sleep)
-                                                                                                const isDifferentDay = possibleStartTime.getDate() !== endTime.getDate() ||
-                                                                                                                       possibleStartTime.getMonth() !== endTime.getMonth() ||
-                                                                                                                       possibleStartTime.getFullYear() !== endTime.getFullYear();
-                                                                                                
-                                                                                                if (isDifferentDay) {
-                                                                                                    return (
-                                                                                                        <span style={{
-                                                                                                            marginLeft: '4px',
-                                                                                                            fontSize: '11px',
-                                                                                                            color: '#f59e0b',
-                                                                                                            fontWeight: 500
-                                                                                                        }}>
-                                                                                                            (qua đêm)
-                                                                                                        </span>
-                                                                                                    );
+                                                                                        if (activity.type === 'sleep') {
+                                                                                            // Check explicit carry over flag (from overnight sleep logic)
+                                                                                            if (activity.details?.isCarryOver) {
+                                                                                                return (
+                                                                                                    <span style={{
+                                                                                                        marginLeft: '4px',
+                                                                                                        fontSize: '11px',
+                                                                                                        color: '#f59e0b',
+                                                                                                        fontWeight: 500
+                                                                                                    }}>
+                                                                                                        (từ hôm qua)
+                                                                                                    </span>
+                                                                                                );
+                                                                                            }
+
+                                                                                            if (activity.details.notes) {
+                                                                                                const startTimeMatch = activity.details.notes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
+                                                                                                if (startTimeMatch) {
+                                                                                                    const endTime = new Date(activity.timestamp);
+                                                                                                    const startHour = parseInt(startTimeMatch[1]);
+                                                                                                    const startMinute = parseInt(startTimeMatch[2]);
+                                                                                                    
+                                                                                                    // Create a start time on the same day first
+                                                                                                    const possibleStartTime = new Date(endTime);
+                                                                                                    possibleStartTime.setHours(startHour, startMinute, 0, 0);
+                                                                                                    
+                                                                                                    // If start time is after end time, it must be previous day
+                                                                                                    if (possibleStartTime > endTime) {
+                                                                                                        possibleStartTime.setDate(possibleStartTime.getDate() - 1);
+                                                                                                    }
+                                                                                                    
+                                                                                                    // Check if it's a different day (overnight sleep)
+                                                                                                    const isDifferentDay = possibleStartTime.getDate() !== endTime.getDate() ||
+                                                                                                                        possibleStartTime.getMonth() !== endTime.getMonth() ||
+                                                                                                                        possibleStartTime.getFullYear() !== endTime.getFullYear();
+                                                                                                    
+                                                                                                    if (isDifferentDay) {
+                                                                                                        return (
+                                                                                                            <span style={{
+                                                                                                                marginLeft: '4px',
+                                                                                                                fontSize: '11px',
+                                                                                                                color: '#f59e0b',
+                                                                                                                fontWeight: 500
+                                                                                                            }}>
+                                                                                                                (qua đêm)
+                                                                                                            </span>
+                                                                                                        );
+                                                                                                    }
                                                                                                 }
                                                                                             }
                                                                                         }

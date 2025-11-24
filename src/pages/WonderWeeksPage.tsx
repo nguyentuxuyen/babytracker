@@ -143,11 +143,11 @@ const WonderWeeksPage: React.FC = () => {
 
     const calculateAgeInWeeks = () => {
         if (!baby?.birthDate) return 0;
-        // Note: Wonder Weeks are officially calculated from the due date. 
-        // We are using birth date as an approximation.
-        const birthDate = new Date(baby.birthDate);
+        
+        // Wonder Weeks are calculated from the due date if available, otherwise birth date
+        const baseDate = baby.dueDate ? new Date(baby.dueDate) : new Date(baby.birthDate);
         const today = new Date();
-        const diffTime = Math.abs(today.getTime() - birthDate.getTime());
+        const diffTime = Math.abs(today.getTime() - baseDate.getTime());
         const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
         return diffWeeks;
     };
@@ -193,7 +193,7 @@ const WonderWeeksPage: React.FC = () => {
                     {currentLeap && <Typography sx={{ color: '#ef4444' }}>Bé đang ở trong Tuần Khủng Hoảng {currentLeap.id}!</Typography>}
                     {nextLeap && !currentLeap && <Typography sx={{ color: '#3b82f6' }}>Tuần Khủng Hoảng tiếp theo (Số {nextLeap.id}) sẽ bắt đầu vào khoảng tuần {nextLeap.startWeek}.</Typography>}
                      <Typography sx={{ fontSize: '0.8rem', color: '#6b7280', mt: 1 }}>
-                        Lưu ý: Thời gian được tính từ ngày sinh và có thể thay đổi tùy theo sự phát triển của mỗi bé.
+                        Lưu ý: Thời gian được tính từ {baby?.dueDate ? 'ngày dự sinh' : 'ngày sinh'} và có thể thay đổi tùy theo sự phát triển của mỗi bé.
                     </Typography>
                 </Box>
 

@@ -1,14 +1,58 @@
-import React from 'react';
-import { Box, Typography, Card, IconButton, Button } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import EditIcon from '@mui/icons-material/Edit';
 import { useAuth } from '../contexts/AuthContext';
 import { useBaby } from '../contexts/BabyContext';
+import { firestore } from '../firebase/firestore';
 
 const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { currentUser } = useAuth();
     const { baby } = useBaby();
     
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState({
+        name: '',
+        birthDate: '',
+        dueDate: '',
+        gender: 'male',
+        birthWeight: '',
+        birthHeight: ''
+    });
+
+    const handleEditClick = () => {
+        if (baby) {
+            setEditData({
+                name: baby.name,
+                birthDate: baby.birthDate ? new Date(baby.birthDate).toISOString().split('T')[0] : '',
+                dueDate: baby.dueDate ? new Date(baby.dueDate).toISOString().split('T')[0] : '',
+                gender: baby.gender,
+                birthWeight: baby.birthWeight.toString(),
+                birthHeight: baby.birthHeight.toString()
+            });
+            setIsEditing(true);
+        }
+    };
+
+    const handleSave = async () => {
+        if (currentUser && baby) {
+            const updatedBaby = {
+                ...baby,
+                name: editData.name,
+                birthDate: new Date(editData.birthDate),
+                dueDate: editData.dueDate ? new Date(editData.dueDate) : undefined,
+                gender: editData.gender as 'male' | 'female',
+                birthWeight: Number(editData.birthWeight),
+                birthHeight: Number(editData.birthHeight)
+            };
+            
+            await firestore.saveBabyData(currentUser.uid, updatedBaby);
+            setIsEditing(false);
+            // Ideally we should refresh the baby context here, but for now let's assume it updates or requires reload
+            window.location.reload();
+        }
+    };
+
     // Calculate baby's age in days
     const calculateAgeInDays = () => {
         if (!baby?.birthDate) return 0;
@@ -216,6 +260,14 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                     }) 
                                     : 'Not set' 
                                 },
+                                { label: 'Due Date', value: baby?.dueDate 
+                                    ? new Date(baby.dueDate).toLocaleDateString('en-US', { 
+                                        month: 'long', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                    }) 
+                                    : 'Not set' 
+                                },
                                 { label: 'Gender', value: baby?.gender === 'male' ? 'Male' : baby?.gender === 'female' ? 'Female' : 'Not set' },
                                 { label: 'Birth Weight', value: baby?.birthWeight ? `${baby.birthWeight} g` : 'Not set' },
                                 { label: 'Birth Height', value: baby?.birthHeight ? `${baby.birthHeight} cm` : 'Not set' }
@@ -327,6 +379,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             }}>
                 <Button
                     fullWidth
+                    onClick={handleEditClick}
                     sx={{
                         height: 48,
                         bgcolor: '#13a4ec',
@@ -343,6 +396,75 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     Edit Profile
                 </Button>
             </Box>
+
+            {/* Edit Profile Dialog */}
+            <Dialog open={isEditing} onClose={() => setIsEditing(false)}>
+                <DialogTitle>Edit Baby Profile</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <TextField
+                            label="Name"
+                            variant="outlined"
+                            value={editData.name}
+                            onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Date of Birth"
+                            variant="outlined"
+                            type="date"
+                            value={editData.birthDate}
+                            onChange={(e) => setEditData({ ...editData, birthDate: e.target.value })}
+                            InputLabelProps={{ shrink: true }}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Due Date"
+                            variant="outlined"
+                            type="date"
+                            value={editData.dueDate}
+                            onChange={(e) => setEditData({ ...editData, dueDate: e.target.value })}
+                            InputLabelProps={{ shrink: true }}
+                            fullWidth
+                        />
+                        <FormControl fullWidth>
+                            <InputLabel>Gender</InputLabel>
+                            <Select
+                                value={editData.gender}
+                                onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
+                                label="Gender"
+                            >
+                                <MenuItem value="male">Male</MenuItem>
+                                <MenuItem value="female">Female</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <TextField
+                            label="Birth Weight (g)"
+                            variant="outlined"
+                            type="number"
+                            value={editData.birthWeight}
+                            onChange={(e) => setEditData({ ...editData, birthWeight: e.target.value })}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Birth Height (cm)"
+                            variant="outlined"
+                            type="number"
+                            value={editData.birthHeight}
+                            onChange={(e) => setEditData({ ...editData, birthHeight: e.target.value })}
+                            fullWidth
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsEditing(false)} color="primary">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSave} color="primary">
+                        Save
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

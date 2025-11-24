@@ -2,6 +2,7 @@ export interface Baby {
     id: string;
     name: string;
     birthDate: Date;
+    dueDate?: Date; // Expected date of birth, important for Wonder Weeks
     gender: 'male' | 'female';
     birthWeight: number; // in grams
     birthHeight: number; // in centimeters

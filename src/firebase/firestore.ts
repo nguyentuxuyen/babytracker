@@ -42,6 +42,7 @@ export const firestore = {
                         id: doc.id,
                         name: data.name || '',
                         birthDate: data.birthDate ? data.birthDate.toDate() : new Date(),
+                        dueDate: data.dueDate ? data.dueDate.toDate() : undefined,
                         gender: data.gender || 'male',
                         birthWeight: data.birthWeight || 0,
                         birthHeight: data.birthHeight || 0,
@@ -73,6 +74,7 @@ export const firestore = {
                     id: docSnap.id,
                     name: data.name,
                     birthDate: data.birthDate.toDate(), // Convert Firestore Timestamp to Date
+                    dueDate: data.dueDate ? data.dueDate.toDate() : undefined,
                     gender: data.gender,
                     birthWeight: data.birthWeight,
                     birthHeight: data.birthHeight,
@@ -98,6 +100,7 @@ export const firestore = {
             await setDoc(docRef, {
                 name: babyData.name,
                 birthDate: babyData.birthDate,
+                dueDate: babyData.dueDate || null,
                 gender: babyData.gender,
                 birthWeight: babyData.birthWeight,
                 birthHeight: babyData.birthHeight,
@@ -152,6 +155,7 @@ export const firestore = {
             await setDoc(docRef, {
                 name: babyData.name,
                 birthDate: babyData.birthDate,
+                dueDate: babyData.dueDate || null,
                 gender: babyData.gender,
                 birthWeight: babyData.birthWeight,
                 birthHeight: babyData.birthHeight,

@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Typography, Box, Checkbox, FormControlLabel, Grid, Slider } from '@mui/material';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
+import { Card, CardContent, Typography, Box, Button, ButtonGroup, TextField, Grid } from '@mui/material';
+import LineChart from '../components/common/LineChart';
+import MultiLineChart from '../components/common/MultiLineChart';
+import { useBaby } from '../contexts/BabyContext';
 import { Activity } from '../types';
 import { firestore } from '../firebase/firestore';
 import { getCurrentUser } from '../firebase/auth';
-import { useBaby } from '../contexts/BabyContext';
-import GrowthChart from '../components/common/GrowthChart';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts';
 
 interface FilterType {
     period: 'day' | 'week' | 'month' | 'range';
@@ -477,6 +476,11 @@ const StatsPage: React.FC = () => {
         }
     }, [filter.period, sliderLimits.dayMax, sliderLimits.weekMax, sliderLimits.monthMax, filter.count]);
 
+    const latestMeasurement = useMemo(() => {
+        const withMeasurements = chartData.filter(d => d.weight || d.height);
+        return withMeasurements[withMeasurements.length - 1];
+    }, [chartData]);
+
     const handlePeriodChange = (period: 'day' | 'week' | 'month' | 'range') => {
         setFilter(prev => ({
             ...prev,
@@ -495,7 +499,7 @@ const StatsPage: React.FC = () => {
         return (
             <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
                 <Box sx={{ textAlign: 'center' }}>
-                    <ShowChartIcon sx={{ fontSize: 48, mb: 2, color: '#13a4ec' }} />
+                    <Box sx={{ fontSize: 48, mb: 2 }}>📊</Box>
                     <Typography color="text.primary" fontSize={16}>Đang tải thống kê...</Typography>
                 </Box>
             </Box>
@@ -943,23 +947,65 @@ const StatsPage: React.FC = () => {
                         </Card>
                     </Grid>
 
-                    {/* Growth Chart Card - Replaces old Weight & Height */}
-                    {baby && (
-                        <Grid item xs={12} lg={8}>
-                            <Card sx={{
-                                bgcolor: '#ffffff',
-                                borderRadius: '16px',
-                                border: '1px solid #e5e7eb',
-                                boxShadow: 'none',
-                                p: 3
-                            }}>
-                                <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 2 }}>
-                                    Growth Standards (WHO)
-                                </Typography>
-                                <GrowthChart baby={baby} activities={activities} />
-                            </Card>
-                        </Grid>
-                    )}
+                    {/* Weight & Height Card */}
+                    <Grid item xs={12} sm={6} lg={4}>
+                        <Card sx={{
+                            bgcolor: '#ffffff',
+                            borderRadius: '16px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: 'none',
+                            p: 3
+                        }}>
+                            <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
+                                Weight & Height
+                            </Typography>
+                            <Typography sx={{ fontSize: '32px', fontWeight: 700, color: '#101c22', mb: 0.5 }}>
+                                {latestMeasurement ? `${latestMeasurement.weight || 0} kg, ${latestMeasurement.height || 0} cm` : 'No data'}
+                            </Typography>
+                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                                {getPeriodLabel()}
+                            </Typography>
+
+                            {/* Chart Area */}
+                            <Box sx={{ minHeight: '220px' }}>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <AreaChart 
+                                        data={chartData.filter(d => d.weight || d.height)} 
+                                        margin={{ top: 10, right: 20, left: -10, bottom: 5 }}
+                                    >
+                                        <defs>
+                                            <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#13a4ec" stopOpacity={0.2} />
+                                                <stop offset="100%" stopColor="#13a4ec" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis 
+                                            dataKey="label" 
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: '#ffffff',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '8px',
+                                                fontSize: '12px'
+                                            }}
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="weight" 
+                                            stroke="#13a4ec" 
+                                            strokeWidth={3}
+                                            fill="url(#colorWeight)"
+                                            strokeLinecap="round"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </Box>
+                        </Card>
+                    </Grid>
                 </Grid>
             </Box>
         </Box>
