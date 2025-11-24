@@ -398,13 +398,17 @@ const ActivitiesPage: React.FC = () => {
             setLoading(true);
             
             // Create timestamp using selected date and form time
-            // If formData.timestamp exists (from sleep end time edit), use that
+            // If formData.timestamp exists (from sleep end time edit), use that as base date
             let timestamp: Date;
             if (formData.timestamp) {
                 timestamp = new Date(formData.timestamp);
             } else {
-                const [hours, minutes] = formData.time.split(':').map(Number);
                 timestamp = new Date(selectedDate);
+            }
+            
+            // Always update time from form data
+            if (formData.time) {
+                const [hours, minutes] = formData.time.split(':').map(Number);
                 timestamp.setHours(hours, minutes, 0, 0);
             }
             
@@ -1081,9 +1085,9 @@ const ActivitiesPage: React.FC = () => {
                         }}>
                             {[
                                 { value: 5, label: 'Tuyệt vời', color: '#10b981', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
-                                { value: 4, label: 'Tốt', color: '#3b82f6', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 3c-2.33 0-4.32 1.45-5.12 3.5h1.67c.69-1.19 1.97-2 3.45-2s2.75.81 3.45 2h1.67c-.8-2.05-2.79-3.5-5.12-3.5z' },
+                                { value: 4, label: 'Tốt', color: '#3b82f6', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 9c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
                                 { value: 3, label: 'Bình thường', color: '#f59e0b', icon: 'M9 14h6v1.5H9z M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11z' },
-                                { value: 2, label: 'Khó khăn', color: '#f97316', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 9c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
+                                { value: 2, label: 'Khó khăn', color: '#f97316', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 3c-2.33 0-4.32 1.45-5.12 3.5h1.67c.69-1.19 1.97-2 3.45-2s2.75.81 3.45 2h1.67c-.8-2.05-2.79-3.5-5.12-3.5z' },
                                 { value: 1, label: 'Vất vả', color: '#ef4444', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 9c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8-2.04-2.78-3.5-5.11-3.5z' }
                             ].map((emotion) => (
                                 <Box
@@ -1373,7 +1377,7 @@ const ActivitiesPage: React.FC = () => {
                         {/* Today */}
                         <Box sx={{ mb: 2 }}>
                             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#6b7f8a', mb: 1.5 }}>
-                                Today
+                                {new Date().toDateString() === selectedDate.toDateString() ? 'Today' : selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'nowrap', overflow: 'hidden' }}>
                                 {/* Milk */}
@@ -1453,7 +1457,7 @@ const ActivitiesPage: React.FC = () => {
                         {/* Yesterday */}
                         <Box sx={{ mb: 2 }}>
                             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#6b7f8a', mb: 1.5 }}>
-                                Yesterday
+                                {new Date().toDateString() === selectedDate.toDateString() ? 'Yesterday' : new Date(selectedDate.getTime() - 86400000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'nowrap', overflow: 'hidden' }}>
                                 {/* Milk */}

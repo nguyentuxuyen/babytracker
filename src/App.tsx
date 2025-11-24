@@ -74,9 +74,24 @@ const HeaderComponent: React.FC<{
                                         birthNorm.setHours(0,0,0,0);
                                         const nowNorm = new Date(now);
                                         nowNorm.setHours(0,0,0,0);
-                                        const diffMs = nowNorm.getTime() - birthNorm.getTime();
-                                        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                                        if (days >= 0) return `${days} days old`;
+                                        // Calculate months and days
+                                        let months = (nowNorm.getFullYear() - birthNorm.getFullYear()) * 12 + (nowNorm.getMonth() - birthNorm.getMonth());
+                                        if (nowNorm.getDate() < birthNorm.getDate()) {
+                                            months--;
+                                        }
+                                        
+                                        const tempDate = new Date(birthNorm);
+                                        tempDate.setMonth(tempDate.getMonth() + months);
+                                        const days = Math.floor((nowNorm.getTime() - tempDate.getTime()) / (1000 * 60 * 60 * 24));
+                                        
+                                        if (months > 0) {
+                                            if (days === 0) {
+                                                return `${months} tháng tuổi`;
+                                            }
+                                            return `${months} tháng ${days} ngày tuổi`;
+                                        } else {
+                                            return `${days} ngày tuổi`;
+                                        }
                                     }
                                 }
                             } catch (err) {
