@@ -169,7 +169,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                 </ToggleButtonGroup>
             </Box>
 
-            <Box sx={{ height: 300, width: '100%' }}>
+            <Box sx={{ height: 400, width: '100%' }}>
                 <ResponsiveContainer>
                     <ComposedChart margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -205,7 +205,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                         )}
 
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend verticalAlign="top" height={36} iconSize={10} />
+                        <Legend verticalAlign="top" height={80} iconSize={10} wrapperStyle={{ fontSize: '12px' }} />
 
                         {/* Weight Standards */}
                         {(viewMode === 'combined' || viewMode === 'weight') && (

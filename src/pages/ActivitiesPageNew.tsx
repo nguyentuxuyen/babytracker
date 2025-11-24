@@ -8,6 +8,17 @@ import { firestore } from '../firebase/firestore';
 import { getCurrentUser } from '../firebase/auth';
 import { generateDailySummary, analyzeActivities, DailySummary, AnalyzeResult } from '../services/aiService';
 
+// 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
+const liquidGlassStyle = {
+    background: 'rgba(255, 255, 255, 0.9)', // Tăng độ đục lên để dễ đọc hơn
+    backdropFilter: 'blur(20px) saturate(180%)', // Blur mạnh hơn
+    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+    border: '1px solid rgba(255, 255, 255, 0.5)', // Viền trắng phát sáng nhẹ
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)', // Bóng đổ màu xanh tím nhẹ tạo chiều sâu
+    borderRadius: '24px', // Bo góc lớn mềm mại
+    transition: 'all 0.3s ease', // Hiệu ứng chuyển động mượt như nước
+};
+
 interface Activity {
     id: string;
     type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
@@ -841,16 +852,52 @@ const ActivitiesPage: React.FC = () => {
             minHeight: '100vh',
             p: 0,
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            // 2. TẠO NỀN FLUID (QUAN TRỌNG ĐỂ THẤY HIỆU ỨNG KÍNH)
+            background: '#f0f4f8',
+            position: 'relative',
+            overflow: 'hidden',
+            // Blob 1: Màu xanh
+            '&::before': {
+                content: '""',
+                position: 'fixed',
+                top: '-10%',
+                left: '-10%',
+                width: '60%',
+                height: '60%',
+                borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%', // Hình dáng méo mó tự nhiên
+                background: 'linear-gradient(135deg, #a5f3fc 0%, #3b82f6 100%)',
+                filter: 'blur(60px)',
+                opacity: 0.6,
+                zIndex: 0,
+                animation: 'float 10s infinite ease-in-out'
+            },
+            // Blob 2: Màu cam/hồng
+            '&::after': {
+                content: '""',
+                position: 'fixed',
+                bottom: '-10%',
+                right: '-10%',
+                width: '60%',
+                height: '60%',
+                borderRadius: '60% 40% 30% 70% / 60% 50% 40% 50%',
+                background: 'linear-gradient(135deg, #fde68a 0%, #f472b6 100%)',
+                filter: 'blur(60px)',
+                opacity: 0.5,
+                zIndex: 0,
+                animation: 'float 12s infinite ease-in-out reverse'
+            },
+            '@keyframes float': {
+                '0%': { transform: 'translate(0, 0) rotate(0deg)' },
+                '50%': { transform: 'translate(20px, 20px) rotate(5deg)' },
+                '100%': { transform: 'translate(0, 0) rotate(0deg)' }
+            }
         }}>
-            <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2 }}>
-                {/* Calendar Card - Simplified Date Picker */}
+            <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
+                {/* Calendar Card - Liquid Glass */}
                 <Card sx={{ 
                     mb: 3, 
                     mx: 0,
-                    borderRadius: '16px', 
-                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                    background: '#ffffff',
-                    border: '1px solid #e5e7eb'
+                    ...liquidGlassStyle
                 }}>
                     <CardContent sx={{ p: '12px 16px', '&:last-child': { pb: '12px' } }}>
                         {!isCalendarExpanded ? (
@@ -1056,14 +1103,11 @@ const ActivitiesPage: React.FC = () => {
                     </CardContent>
                 </Card>
 
-                {/* Daily Rating Card */}
+                {/* Daily Rating Card - Liquid Glass */}
                 <Card sx={{ 
                     mb: 3, 
                     mx: 0,
-                    borderRadius: '16px', 
-                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                    background: '#ffffff',
-                    border: '1px solid #e5e7eb'
+                    ...liquidGlassStyle
                 }}>
                     <CardContent sx={{ p: '16px' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -1087,7 +1131,7 @@ const ActivitiesPage: React.FC = () => {
                                 { value: 5, label: 'Tuyệt vời', color: '#10b981', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
                                 { value: 4, label: 'Tốt', color: '#3b82f6', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 9c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
                                 { value: 3, label: 'Bình thường', color: '#f59e0b', icon: 'M9 14h6v1.5H9z M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11z' },
-                                { value: 2, label: 'Khó khăn', color: '#f97316', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 3c-2.33 0-4.32 1.45-5.12 3.5h1.67c.69-1.19 1.97-2 3.45-2s2.75.81 3.45 2h1.67c-.8-2.05-2.79-3.5-5.12-3.5z' },
+                                { value: 2, label: 'Khó khăn', color: '#f97316', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 3c-2.33 0-4.32 1.45-5.12 3.5h1.67c.69-1.19 1.97-2 3.45-2s2.75.81 3.45,2h1.67c-.8-2.05-2.79-3.5-5.12-3.5z' },
                                 { value: 1, label: 'Vất vả', color: '#ef4444', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 9c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8-2.04-2.78-3.5-5.11-3.5z' }
                             ].map((emotion) => (
                                 <Box
@@ -1307,6 +1351,7 @@ const ActivitiesPage: React.FC = () => {
                                                 isStool: false,
                                                 stoolColor: ['vàng'],
                                                 stoolConsistency: 'bình thường'
+                                           
                                             });
                                         } else {
                                             setFormData(baseForm);
@@ -1318,15 +1363,22 @@ const ActivitiesPage: React.FC = () => {
                                         flexDirection: 'column',
                                         gap: 1,
                                         p: 2,
-                                        bgcolor: (action as any).isSleepTimer && ongoingSleep ? '#fef3c7' : '#ffffff',
-                                        borderRadius: '16px',
-                                        border: (action as any).isSleepTimer && ongoingSleep ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                                        // Style kính trong cho nút bấm
+                                        bgcolor: (action as any).isSleepTimer && ongoingSleep 
+                                            ? 'rgba(254, 243, 199, 0.7)' 
+                                            : 'rgba(255, 255, 255, 0.5)',
+                                        backdropFilter: 'blur(8px)',
+                                        borderRadius: '20px',
+                                        border: (action as any).isSleepTimer && ongoingSleep 
+                                            ? '2px solid #f59e0b' 
+                                            : '1px solid rgba(255, 255, 255, 0.6)',
+                                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
                                         '&:hover': {
-                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                                            transform: 'translateY(-2px)'
+                                            bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.06)'
                                         }
                                     }}
                                 >
@@ -1368,10 +1420,7 @@ const ActivitiesPage: React.FC = () => {
                         Summary
                     </Typography>
                     <Box sx={{
-                        bgcolor: '#ffffff',
-                        borderRadius: '16px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        ...liquidGlassStyle, // Áp dụng style kính trong
                         p: 2
                     }}>
                         {/* Today */}
@@ -1387,8 +1436,9 @@ const ActivitiesPage: React.FC = () => {
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                    borderRadius: '12px',
                                     flex: '1 1 0',
                                     minWidth: 0
                                 }}>
@@ -1410,8 +1460,9 @@ const ActivitiesPage: React.FC = () => {
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                    borderRadius: '12px',
                                     flex: '1 1 0',
                                     minWidth: 0
                                 }}>
@@ -1433,8 +1484,9 @@ const ActivitiesPage: React.FC = () => {
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                    borderRadius: '12px',
                                     flex: '1 1 0',
                                     minWidth: 0
                                 }}>
@@ -1467,8 +1519,9 @@ const ActivitiesPage: React.FC = () => {
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                    borderRadius: '12px',
                                     flex: '1 1 0',
                                     minWidth: 0
                                 }}>
@@ -1490,8 +1543,9 @@ const ActivitiesPage: React.FC = () => {
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                    borderRadius: '12px',
                                     flex: '1 1 0',
                                     minWidth: 0
                                 }}>
@@ -1513,8 +1567,9 @@ const ActivitiesPage: React.FC = () => {
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
+                                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                    borderRadius: '12px',
                                     flex: '1 1 0',
                                     minWidth: 0
                                 }}>
@@ -1586,11 +1641,7 @@ const ActivitiesPage: React.FC = () => {
                     <Box>
                             {/* Activities Timeline - New Design */}
                             <Box sx={{
-                                background: '#ffffff',
-                                borderRadius: '16px',
-                                p: 2,
-                                border: '1px solid #e5e7eb',
-                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+                                mt: 1
                             }}>
                                 
                                 {(() => {
@@ -1738,11 +1789,12 @@ const ActivitiesPage: React.FC = () => {
                                                                         fontSize: '11px',
                                                                         fontWeight: 500,
                                                                         color: '#9ca3af',
-                                                                        backgroundColor: '#ffffff',
+                                                                        backgroundColor: 'rgba(255, 255, 255, 0.6)',
                                                                         padding: '2px 6px',
                                                                         borderRadius: '4px',
                                                                         whiteSpace: 'nowrap',
-                                                                        border: '1px solid #e5e7eb'
+                                                                        border: '1px solid rgba(255, 255, 255, 0.5)',
+                                                                        backdropFilter: 'blur(4px)'
                                                                     }}>
                                                                         {timeLabel}
                                                                     </div>
@@ -1774,11 +1826,13 @@ const ActivitiesPage: React.FC = () => {
                                                                 key={activity.id}
                                                                 style={{
                                                                     flex: 1,
-                                                                    background: '#ffffff',
+                                                                    background: 'rgba(255, 255, 255, 0.85)',
                                                                     padding: '12px',
                                                                     borderRadius: '12px',
-                                                                    border: '1px solid #e5e7eb',
-                                                                    position: 'relative'
+                                                                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                                                                    position: 'relative',
+                                                                    backdropFilter: 'blur(10px)',
+                                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                                                                 }}
                                                             >
                                                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -2137,7 +2191,8 @@ const ActivitiesPage: React.FC = () => {
                     <Box 
                         onClick={(e) => e.stopPropagation()}
                         sx={{
-                            bgcolor: '#ffffff',
+                            bgcolor: 'rgba(255, 255, 255, 0.9)',
+                            backdropFilter: 'blur(20px)',
                             borderRadius: { xs: '20px 20px 0 0', sm: '24px 24px 0 0' },
                             width: '100%',
                             maxWidth: { xs: '100%', sm: 600 },
@@ -2844,8 +2899,9 @@ const ActivitiesPage: React.FC = () => {
                                 sm: 3 
                             },
                             pt: 2,
-                            borderTop: '1px solid #e5e7eb',
-                            bgcolor: '#ffffff',
+                            borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+                            bgcolor: 'rgba(255, 255, 255, 0.8)',
+                            backdropFilter: 'blur(10px)',
                             flexShrink: 0,
                             position: 'sticky',
                             bottom: 0,
