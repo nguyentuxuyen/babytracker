@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, Component, ReactNode } from 'react';
+import ReactDOM from 'react-dom';
 import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Card, CardContent, Grid, Snackbar, Alert, Checkbox, FormControlLabel } from '@mui/material';
 
 import { calculateStatsForDate } from '../utils/dailyStats';
@@ -2167,7 +2168,7 @@ const ActivitiesPage: React.FC = () => {
             </Box>
 
             {/* Form Modal - Bottom Sheet Style */}
-            {showForm && (
+            {showForm && ReactDOM.createPortal(
                 <div 
                     style={{ 
                         position: 'fixed', 
@@ -2176,7 +2177,7 @@ const ActivitiesPage: React.FC = () => {
                         right: 0, 
                         bottom: 0, 
                         backgroundColor: 'rgba(0, 0, 0, 0.4)', 
-                        zIndex: 1300,
+                        zIndex: 9999, // Ensure modal is on top of BottomNav (z-index 1000)
                         display: 'flex',
                         alignItems: 'flex-end',
                         justifyContent: 'center',
@@ -2813,7 +2814,6 @@ const ActivitiesPage: React.FC = () => {
                                                     border: 'none'
                                                 },
                                                 '&:hover fieldset': {
-                                                    border: 'none'
                                                 },
                                                 '&.Mui-focused fieldset': {
                                                     border: '2px solid #13a4ec'
@@ -2967,7 +2967,8 @@ const ActivitiesPage: React.FC = () => {
                             </Box>
                         </Box>
                     </Box>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Snackbar for notifications */}
