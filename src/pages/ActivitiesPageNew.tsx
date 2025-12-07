@@ -418,10 +418,17 @@ const ActivitiesPage: React.FC = () => {
                 timestamp = new Date(selectedDate);
             }
             
-            // Always update time from form data
-            if (formData.time) {
+            // Always update time from form data, UNLESS it's a sleep activity where we handle timestamp manually via End Time field
+            if (formData.time && formData.type !== 'sleep') {
                 const [hours, minutes] = formData.time.split(':').map(Number);
                 timestamp.setHours(hours, minutes, 0, 0);
+            } else if (formData.type === 'sleep' && !formData.timestamp) {
+                // For new sleep activities where user didn't touch End Time (so formData.timestamp is undefined)
+                // We use formData.time (which defaults to now)
+                if (formData.time) {
+                    const [hours, minutes] = formData.time.split(':').map(Number);
+                    timestamp.setHours(hours, minutes, 0, 0);
+                }
             }
             
             // Create activity details based on type
@@ -1863,24 +1870,24 @@ const ActivitiesPage: React.FC = () => {
                                                                             </div>
                                                                             
                                                                             {/* Edit and Delete Buttons */}
-                                                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                                            <div style={{ display: 'flex', gap: '8px' }}>
                                                                                 <button
                                                                                     onClick={() => handleEditActivity(activity)}
                                                                                     style={{
                                                                                         background: 'transparent',
                                                                                         border: 'none',
                                                                                         cursor: 'pointer',
-                                                                                        padding: '4px',
+                                                                                        padding: '8px',
                                                                                         display: 'flex',
                                                                                         alignItems: 'center',
                                                                                         justifyContent: 'center',
-                                                                                        borderRadius: '6px',
+                                                                                        borderRadius: '8px',
                                                                                         transition: 'background 0.2s'
                                                                                     }}
                                                                                     onMouseEnter={(e) => e.currentTarget.style.background = '#f6f7f8'}
                                                                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                                                                 >
-                                                                                    <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
+                                                                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#13a4ec">
                                                                                         <path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM51.31,160,136,75.31,152.69,92,68,176.68ZM48,179.31,76.69,208H48Zm48,25.38L79.31,188,164,103.31,180.69,120Zm96-96L147.31,64l24-24L216,84.68Z"></path>
                                                                                     </svg>
                                                                                 </button>
@@ -1890,17 +1897,17 @@ const ActivitiesPage: React.FC = () => {
                                                                                         background: 'transparent',
                                                                                         border: 'none',
                                                                                         cursor: 'pointer',
-                                                                                        padding: '4px',
+                                                                                        padding: '8px',
                                                                                         display: 'flex',
                                                                                         alignItems: 'center',
                                                                                         justifyContent: 'center',
-                                                                                        borderRadius: '6px',
+                                                                                        borderRadius: '8px',
                                                                                         transition: 'background 0.2s'
                                                                                     }}
                                                                                     onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
                                                                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                                                                 >
-                                                                                    <svg width="16" height="16" viewBox="0 0 256 256" fill="#ef4444">
+                                                                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#ef4444">
                                                                                         <path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path>
                                                                                     </svg>
                                                                                 </button>
@@ -2342,7 +2349,7 @@ const ActivitiesPage: React.FC = () => {
                                 )}
 
                                 {/* Time Input - Single or Multiple */}
-                                {!isBulkMode ? (
+                                {formData.type !== 'sleep' && (!isBulkMode ? (
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a' }}>
                                             Time
@@ -2440,7 +2447,7 @@ const ActivitiesPage: React.FC = () => {
                                             + Add time
                                         </MuiButton>
                                     </Box>
-                                )}
+                                ))}
 
                                 {/* Diaper Checkboxes */}
                                 {formData.type === 'diaper' && (
@@ -2577,96 +2584,169 @@ const ActivitiesPage: React.FC = () => {
                                 {formData.type === 'sleep' && (
                                     <>
                                         <Box sx={{ display: 'flex', gap: 2 }}>
-                                            <TextField
-                                                label="Giờ bắt đầu"
-                                                type="time"
-                                                value={(() => {
-                                                    if (formData.notes && formData.notes.includes('Bắt đầu:')) {
-                                                        const match = formData.notes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
-                                                        if (match) {
-                                                            return `${match[1].padStart(2, '0')}:${match[2]}`;
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
+                                                    Giờ bắt đầu
+                                                </Typography>
+                                                <TextField
+                                                    type="time"
+                                                    value={(() => {
+                                                        if (formData.notes && formData.notes.includes('Bắt đầu:')) {
+                                                            const match = formData.notes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
+                                                            if (match) {
+                                                                return `${match[1].padStart(2, '0')}:${match[2]}`;
+                                                            }
                                                         }
-                                                    }
-                                                    // Default to current time minus duration
-                                                    const now = new Date();
-                                                    const durationMinutes = parseInt(formData.duration) || 0;
-                                                    const startTime = new Date(now.getTime() - durationMinutes * 60000);
-                                                    return startTime.toTimeString().slice(0, 5);
-                                                })()}
-                                                onChange={(e) => {
-                                                    const newStartTime = e.target.value; // HH:MM format
-                                                    // Update notes with new start time
-                                                    const newNotes = `Bắt đầu: ${newStartTime}:00`;
-                                                    setFormData({ ...formData, notes: newNotes });
-                                                }}
-                                                fullWidth
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': { border: 'none' },
-                                                        '&:hover fieldset': { border: 'none' },
-                                                        '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#ffffff',
-                                                        paddingLeft: '4px',
-                                                        paddingRight: '4px'
-                                                    }
-                                                }}
-                                            />
-                                            <TextField
-                                                label="Giờ kết thúc (dậy)"
-                                                type="time"
-                                                value={(() => {
-                                                    // Use the activity timestamp as end time
-                                                    if (editingActivity) {
-                                                        const endTime = new Date(editingActivity.timestamp);
-                                                        return endTime.toTimeString().slice(0, 5);
-                                                    }
-                                                    return new Date().toTimeString().slice(0, 5);
-                                                })()}
-                                                onChange={(e) => {
-                                                    // This will update the activity timestamp
-                                                    const newEndTime = e.target.value; // HH:MM format
-                                                    const [hours, minutes] = newEndTime.split(':');
-                                                    const newTimestamp = new Date(selectedDate);
-                                                    newTimestamp.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                                                    
-                                                    // Update formData timestamp internally
-                                                    // We'll handle this in the save function
-                                                    setFormData({ ...formData, timestamp: newTimestamp.toISOString() });
-                                                }}
-                                                fullWidth
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': { border: 'none' },
-                                                        '&:hover fieldset': { border: 'none' },
-                                                        '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#ffffff',
-                                                        paddingLeft: '4px',
-                                                        paddingRight: '4px'
-                                                    }
-                                                }}
-                                            />
+                                                        // Default to current time minus duration
+                                                        const now = new Date();
+                                                        const durationMinutes = parseInt(formData.duration) || 0;
+                                                        const startTime = new Date(now.getTime() - durationMinutes * 60000);
+                                                        return startTime.toTimeString().slice(0, 5);
+                                                    })()}
+                                                    onChange={(e) => {
+                                                        const newStartTime = e.target.value; // HH:MM format
+                                                        // Update notes with new start time
+                                                        let newNotes = formData.notes || '';
+                                                        if (newNotes.includes('Bắt đầu:')) {
+                                                            newNotes = newNotes.replace(/Bắt đầu: \d{1,2}:\d{2}:\d{2}/, `Bắt đầu: ${newStartTime}:00`);
+                                                        } else {
+                                                            newNotes = (newNotes ? newNotes.trim() + '\n' : '') + `Bắt đầu: ${newStartTime}:00`;
+                                                        }
+
+                                                        // Calculate new duration
+                                                        let newDuration = formData.duration;
+                                                        
+                                                        // Get End Time
+                                                        let endTimeStr = '';
+                                                        if (formData.timestamp) {
+                                                             endTimeStr = new Date(formData.timestamp).toTimeString().slice(0, 5);
+                                                        } else if (editingActivity) {
+                                                            endTimeStr = new Date(editingActivity.timestamp).toTimeString().slice(0, 5);
+                                                        } else {
+                                                            endTimeStr = new Date().toTimeString().slice(0, 5);
+                                                        }
+
+                                                        if (newStartTime && endTimeStr) {
+                                                            const [startH, startM] = newStartTime.split(':').map(Number);
+                                                            const [endH, endM] = endTimeStr.split(':').map(Number);
+                                                            
+                                                            let startMinutes = startH * 60 + startM;
+                                                            let endMinutes = endH * 60 + endM;
+                                                            
+                                                            // Handle overnight (if end time is earlier than start time, assume next day)
+                                                            if (endMinutes < startMinutes) {
+                                                                endMinutes += 24 * 60;
+                                                            }
+                                                            
+                                                            newDuration = (endMinutes - startMinutes).toString();
+                                                        }
+
+                                                        setFormData({ ...formData, notes: newNotes, duration: newDuration });
+                                                    }}
+                                                    fullWidth
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            bgcolor: '#e3e8eb',
+                                                            borderRadius: '12px',
+                                                            '& fieldset': { border: 'none' },
+                                                            '&:hover fieldset': { border: 'none' },
+                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
+                                                        }
+                                                    }}
+                                                />
+                                            </Box>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
+                                                    Giờ kết thúc (dậy)
+                                                </Typography>
+                                                <TextField
+                                                    type="time"
+                                                    value={(() => {
+                                                        // Use the activity timestamp as end time
+                                                        if (formData.timestamp) {
+                                                            return new Date(formData.timestamp).toTimeString().slice(0, 5);
+                                                        }
+                                                        if (editingActivity) {
+                                                            const endTime = new Date(editingActivity.timestamp);
+                                                            return endTime.toTimeString().slice(0, 5);
+                                                        }
+                                                        return new Date().toTimeString().slice(0, 5);
+                                                    })()}
+                                                    onChange={(e) => {
+                                                        // This will update the activity timestamp
+                                                        const newEndTime = e.target.value; // HH:MM format
+                                                        const [hours, minutes] = newEndTime.split(':');
+                                                        const newTimestamp = new Date(selectedDate);
+                                                        newTimestamp.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                                                        
+                                                        // Calculate new duration
+                                                        let newDuration = formData.duration;
+                                                        
+                                                        // Get Start Time
+                                                        let startTimeStr = '';
+                                                        let currentNotes = formData.notes || '';
+                                                        
+                                                        if (currentNotes.includes('Bắt đầu:')) {
+                                                            const match = currentNotes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
+                                                            if (match) {
+                                                                startTimeStr = `${match[1].padStart(2, '0')}:${match[2]}`;
+                                                            }
+                                                        } else {
+                                                            // Calculate implicit start time
+                                                            let oldEndTime;
+                                                            if (formData.timestamp) oldEndTime = new Date(formData.timestamp);
+                                                            else if (editingActivity) oldEndTime = new Date(editingActivity.timestamp);
+                                                            else oldEndTime = new Date();
+                                                            
+                                                            const durationMinutes = parseInt(formData.duration) || 0;
+                                                            const implicitStartTime = new Date(oldEndTime.getTime() - durationMinutes * 60000);
+                                                            startTimeStr = implicitStartTime.toTimeString().slice(0, 5);
+                                                        }
+                                                        
+                                                        if (startTimeStr && newEndTime) {
+                                                            const [startH, startM] = startTimeStr.split(':').map(Number);
+                                                            const [endH, endM] = newEndTime.split(':').map(Number);
+                                                            
+                                                            let startMinutes = startH * 60 + startM;
+                                                            let endMinutes = endH * 60 + endM;
+                                                            
+                                                            // Handle overnight
+                                                            if (endMinutes < startMinutes) {
+                                                                endMinutes += 24 * 60;
+                                                            }
+                                                            
+                                                            newDuration = (endMinutes - startMinutes).toString();
+                                                        }
+
+                                                        // Ensure start time is recorded in notes
+                                                        if (!currentNotes.includes('Bắt đầu:')) {
+                                                            currentNotes = (currentNotes ? currentNotes.trim() + '\n' : '') + `Bắt đầu: ${startTimeStr}:00`;
+                                                        }
+
+                                                        setFormData({ ...formData, timestamp: newTimestamp.toISOString(), duration: newDuration, notes: currentNotes });
+                                                    }}
+                                                    fullWidth
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            bgcolor: '#e3e8eb',
+                                                            borderRadius: '12px',
+                                                            '& fieldset': { border: 'none' },
+                                                            '&:hover fieldset': { border: 'none' },
+                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
+                                                        }
+                                                    }}
+                                                />
+                                            </Box>
                                         </Box>
                                         <TextField
                                             label="Thời lượng (phút)"
                                             type="number"
                                             value={formData.duration}
-                                            onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                                            disabled={true}
                                             fullWidth
                                             sx={{
                                                 '& .MuiOutlinedInput-root': {
-                                                    bgcolor: '#e3e8eb',
+                                                    bgcolor: '#f0f2f5',
                                                     borderRadius: '12px',
                                                     '& fieldset': {
                                                         border: 'none'
@@ -2675,12 +2755,12 @@ const ActivitiesPage: React.FC = () => {
                                                         border: 'none'
                                                     },
                                                     '&.Mui-focused fieldset': {
-                                                        border: '2px solid #13a4ec'
+                                                        border: 'none'
                                                     }
                                                 },
                                                 '& .MuiInputLabel-root': {
                                                     color: '#6b7f8a',
-                                                    backgroundColor: '#e3e8eb',
+                                                    backgroundColor: '#f0f2f5',
                                                     paddingRight: '4px',
                                                     '&.MuiInputLabel-shrink': {
                                                         backgroundColor: '#ffffff',
