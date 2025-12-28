@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, List, ListItem, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
 import { useAuth } from '../contexts/AuthContext';
 import { useBaby } from '../contexts/BabyContext';
 import { firestore } from '../firebase/firestore';
@@ -19,6 +22,55 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         birthWeight: '',
         birthHeight: ''
     });
+
+    // Food Menu State
+    const [isManagingFood, setIsManagingFood] = useState(false);
+    const [foodItems, setFoodItems] = useState<string[]>([]);
+    const [newFoodItem, setNewFoodItem] = useState('');
+    const [editingFoodItem, setEditingFoodItem] = useState<{ original: string, current: string } | null>(null);
+
+    useEffect(() => {
+        const loadFoodItems = async () => {
+            if (currentUser) {
+                const items = await firestore.getFoodItems(currentUser.uid);
+                setFoodItems(items);
+            }
+        };
+        loadFoodItems();
+    }, [currentUser]);
+
+    const handleAddFood = async () => {
+        if (currentUser && newFoodItem.trim()) {
+            const success = await firestore.addFoodItem(currentUser.uid, newFoodItem.trim());
+            if (success) {
+                setFoodItems([...foodItems, newFoodItem.trim()]);
+                setNewFoodItem('');
+            }
+        }
+    };
+
+    const handleDeleteFood = async (item: string) => {
+        if (currentUser) {
+            const success = await firestore.deleteFoodItem(currentUser.uid, item);
+            if (success) {
+                setFoodItems(foodItems.filter(i => i !== item));
+            }
+        }
+    };
+
+    const handleStartEditFood = (item: string) => {
+        setEditingFoodItem({ original: item, current: item });
+    };
+
+    const handleSaveEditFood = async () => {
+        if (currentUser && editingFoodItem && editingFoodItem.current.trim()) {
+            const success = await firestore.renameFoodItem(currentUser.uid, editingFoodItem.original, editingFoodItem.current.trim());
+            if (success) {
+                setFoodItems(foodItems.map(i => i === editingFoodItem.original ? editingFoodItem.current.trim() : i));
+                setEditingFoodItem(null);
+            }
+        }
+    };
 
     const handleEditClick = () => {
         if (baby) {
@@ -364,6 +416,65 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         </Box>
                     </Card>
                 </Box>
+
+                {/* Food Menu Management Card */}
+                <Box sx={{ mb: 3 }}>
+                    <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        mb: 1,
+                        px: 0.5
+                    }}>
+                        <Typography sx={{
+                            fontSize: '18px',
+                            fontWeight: 700,
+                            color: '#101c22'
+                        }}>
+                            Solid Food Menu
+                        </Typography>
+                        <Button 
+                            startIcon={<RestaurantIcon />}
+                            onClick={() => setIsManagingFood(true)}
+                            size="small"
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Manage Menu
+                        </Button>
+                    </Box>
+                    <Card sx={{
+                        bgcolor: '#ffffff',
+                        borderRadius: '16px',
+                        boxShadow: 'none',
+                        border: '1px solid #e5e7eb',
+                        p: 2
+                    }}>
+                        {foodItems.length > 0 ? (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {foodItems.map((item) => (
+                                    <Box
+                                        key={item}
+                                        sx={{
+                                            bgcolor: '#f0f9ff',
+                                            color: '#0284c7',
+                                            px: 1.5,
+                                            py: 0.5,
+                                            borderRadius: '16px',
+                                            fontSize: '13px',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        {item}
+                                    </Box>
+                                ))}
+                            </Box>
+                        ) : (
+                            <Typography sx={{ color: '#6b7f8a', fontSize: '14px', fontStyle: 'italic' }}>
+                                No food items added yet. Click "Manage Menu" to add foods.
+                            </Typography>
+                        )}
+                    </Card>
+                </Box>
             </Box>
 
             {/* Sticky Footer */}
@@ -463,6 +574,94 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <Button onClick={handleSave} color="primary">
                         Save
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Manage Food Menu Dialog */}
+            <Dialog open={isManagingFood} onClose={() => setIsManagingFood(false)} fullWidth maxWidth="xs">
+                <DialogTitle>Manage Food Menu</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2, mt: 1 }}>
+                        <TextField
+                            label="Add New Food"
+                            variant="outlined"
+                            size="small"
+                            fullWidth
+                            value={newFoodItem}
+                            onChange={(e) => setNewFoodItem(e.target.value)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleAddFood();
+                                }
+                            }}
+                        />
+                        <IconButton 
+                            onClick={handleAddFood}
+                            disabled={!newFoodItem.trim()}
+                            sx={{ 
+                                bgcolor: '#13a4ec', 
+                                color: 'white',
+                                borderRadius: '8px',
+                                '&:hover': { bgcolor: '#0e8fd4' },
+                                '&.Mui-disabled': { bgcolor: '#e5e7eb', color: '#9ca3af' }
+                            }}
+                        >
+                            <AddIcon />
+                        </IconButton>
+                    </Box>
+                    <List sx={{ 
+                        maxHeight: '300px', 
+                        overflow: 'auto',
+                        bgcolor: '#f9fafb',
+                        borderRadius: '8px'
+                    }}>
+                        {foodItems.length > 0 ? (
+                            foodItems.map((item) => (
+                                <ListItem key={item} divider>
+                                    {editingFoodItem?.original === item ? (
+                                        <Box sx={{ display: 'flex', width: '100%', gap: 1 }}>
+                                            <TextField
+                                                size="small"
+                                                fullWidth
+                                                value={editingFoodItem.current}
+                                                onChange={(e) => setEditingFoodItem({ ...editingFoodItem, current: e.target.value })}
+                                                autoFocus
+                                            />
+                                            <IconButton onClick={handleSaveEditFood} color="primary" size="small">
+                                                <AddIcon /> {/* Reuse AddIcon as Check/Save icon or use CheckIcon if available */}
+                                            </IconButton>
+                                            <IconButton onClick={() => setEditingFoodItem(null)} color="default" size="small">
+                                                <DeleteIcon sx={{ transform: 'rotate(45deg)' }} /> {/* Reuse DeleteIcon as Cancel/X */}
+                                            </IconButton>
+                                        </Box>
+                                    ) : (
+                                        <>
+                                            <ListItemText primary={item} />
+                                            <ListItemSecondaryAction>
+                                                <IconButton edge="end" onClick={() => handleStartEditFood(item)} size="small" sx={{ mr: 1 }}>
+                                                    <EditIcon fontSize="small" color="primary" />
+                                                </IconButton>
+                                                <IconButton edge="end" onClick={() => handleDeleteFood(item)} size="small">
+                                                    <DeleteIcon fontSize="small" color="error" />
+                                                </IconButton>
+                                            </ListItemSecondaryAction>
+                                        </>
+                                    )}
+                                </ListItem>
+                            ))
+                        ) : (
+                            <ListItem>
+                                <ListItemText 
+                                    primary="No items yet" 
+                                    secondary="Add foods like 'Porridge', 'Carrots', etc."
+                                    sx={{ textAlign: 'center', color: '#6b7f8a' }}
+                                />
+                            </ListItem>
+                        )}
+                    </List>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsManagingFood(false)}>Close</Button>
                 </DialogActions>
             </Dialog>
         </Box>

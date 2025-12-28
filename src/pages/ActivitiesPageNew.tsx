@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom';
-import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Card, CardContent, Grid, Snackbar, Alert, Checkbox, FormControlLabel } from '@mui/material';
+import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Card, CardContent, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete } from '@mui/material';
 
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
 import { firestore } from '../firebase/firestore';
-import { getCurrentUser } from '../firebase/auth';
+import { useAuth } from '../hooks/useAuth';
 import { generateDailySummary, analyzeActivities, DailySummary, AnalyzeResult } from '../services/aiService';
 
 // 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
@@ -70,7 +70,7 @@ const ActivitiesPage: React.FC = () => {
     const [activities, setActivities] = useState<Activity[]>();
     const [loading, setLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const { user: currentUser } = useAuth();
     
     // Sleep timer state
     const [ongoingSleep, setOngoingSleep] = useState<{ startTime: Date } | null>(null);
@@ -85,6 +85,10 @@ const ActivitiesPage: React.FC = () => {
     // Real-time update state for time since last activity
     const [currentTime, setCurrentTime] = useState(new Date());
 
+    // Food items state
+    const [foodItems, setFoodItems] = useState<string[]>([]);
+    const [foodMenuOpen, setFoodMenuOpen] = useState(false);
+
     // Update current time every 5 minutes for real-time display
     useEffect(() => {
         const interval = setInterval(() => {
@@ -94,11 +98,22 @@ const ActivitiesPage: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Get current user when component mounts
+    // Load food items
     useEffect(() => {
-        const user = getCurrentUser();
-        setCurrentUser(user);
-    }, []);
+        const loadFoodItems = async () => {
+            if (currentUser?.uid) {
+                try {
+                    const items = await firestore.getFoodItems(currentUser.uid);
+                    console.log('Loaded food items:', items);
+                    setFoodItems(items);
+                } catch (error) {
+                    console.error('Error loading food items:', error);
+                }
+            }
+        };
+        loadFoodItems();
+    }, [currentUser]);
+
     const [formData, setFormData] = useState<{
         type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo';
         time: string;
@@ -113,6 +128,10 @@ const ActivitiesPage: React.FC = () => {
     stoolColor?: Array<'vàng' | 'nâu' | 'xám'>;
         stoolConsistency?: 'lỏng' | 'bình thường' | 'khô';
         timestamp?: string;
+        foodType?: 'milk' | 'solid';
+        foodItem?: string;
+        isAllergic?: boolean;
+        foodPreference?: 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
     }>({
         type: 'feeding',
         time: new Date().toTimeString().slice(0, 5), // HH:MM format
@@ -124,11 +143,14 @@ const ActivitiesPage: React.FC = () => {
         temperature: '',
         isUrine: true,
         isStool: false,
-    stoolColor: [],
+        stoolColor: [],
         stoolConsistency: 'bình thường',
-        timestamp: undefined
+        timestamp: undefined,
+        foodType: 'milk',
+        foodItem: '',
+        isAllergic: false,
+        foodPreference: 'normal'
     });
-
 
     // States for edit and delete functionality
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -438,8 +460,22 @@ const ActivitiesPage: React.FC = () => {
                     details = {
                         time: timestamp,
                         amount: formData.amount ? Number(formData.amount) : 0,
-                        notes: formData.notes || ''
+                        notes: formData.notes || '',
+                        foodType: formData.foodType || 'milk',
+                        foodItem: formData.foodItem || '',
+                        isAllergic: !!formData.isAllergic,
+                        foodPreference: formData.foodPreference || 'normal'
                     };
+
+                    // Auto-save new food item to menu
+                    if (formData.foodType === 'solid' && formData.foodItem && !foodItems.includes(formData.foodItem)) {
+                        // Don't await this to keep UI responsive
+                        firestore.addFoodItem(currentUser.uid, formData.foodItem).then(success => {
+                            if (success) {
+                                setFoodItems(prev => [...prev, formData.foodItem!]);
+                            }
+                        });
+                    }
                     break;
                 case 'sleep':
                     details = {
@@ -836,15 +872,18 @@ const ActivitiesPage: React.FC = () => {
             height: activity.details?.height?.toString() || '',
             temperature: activity.details?.temperature?.toString() || '',
             isUrine: activity.details?.isUrine ?? true,
-            isStool: activity.details?.isStool ?? false
-            ,
+            isStool: activity.details?.isStool ?? false,
             stoolColor: Array.isArray(activity.details?.stoolColor)
                 ? activity.details.stoolColor
                 : activity.details?.stoolColor
                     ? [activity.details.stoolColor]
                     : [],
             stoolConsistency: activity.details?.stoolConsistency || 'bình thường',
-            timestamp: activity.timestamp.toISOString() // Store original timestamp for editing
+            timestamp: activity.timestamp.toISOString(), // Store original timestamp for editing
+            foodType: activity.details?.foodType || 'milk',
+            foodItem: activity.details?.foodItem || '',
+            isAllergic: activity.details?.isAllergic || false,
+            foodPreference: activity.details?.foodPreference || 'normal'
         });
         
         setEditingActivity(activity);
@@ -899,7 +938,8 @@ const ActivitiesPage: React.FC = () => {
                 '50%': { transform: 'translate(20px, 20px) rotate(5deg)' },
                 '100%': { transform: 'translate(0, 0) rotate(0deg)' }
             }
-        }}>
+        }}
+        >
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
                 {/* Calendar Card - Liquid Glass */}
                 <Card sx={{ 
@@ -1916,7 +1956,7 @@ const ActivitiesPage: React.FC = () => {
                                                                         
                                                                         {/* Activity Details - Compact */}
                                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                                            {activity.details && activity.details.amount && (
+                                                                            {activity.details && activity.type === 'feeding' && (
                                                                                 <span style={{ 
                                                                                     color: activityColor,
                                                                                     padding: '4px 10px', 
@@ -1924,7 +1964,42 @@ const ActivitiesPage: React.FC = () => {
                                                                                     fontSize: '12px',
                                                                                     fontWeight: 600
                                                                                 }}>
-                                                                                    {activity.details.amount}ml
+                                                                                    {activity.details.foodType === 'solid' 
+                                                                                        ? `${activity.details.foodItem || 'Solid Food'} (${activity.details.amount})`
+                                                                                        : `${activity.details.amount}ml`
+                                                                                    }
+                                                                                </span>
+                                                                            )}
+                                                                            {activity.details && activity.type === 'feeding' && activity.details.foodType === 'solid' && activity.details.foodPreference && (
+                                                                                <span style={{
+                                                                                    color: '#0f172a',
+                                                                                    padding: '4px 10px',
+                                                                                    borderRadius: '6px',
+                                                                                    fontSize: '12px',
+                                                                                    fontWeight: 600,
+                                                                                    backgroundColor: 'rgba(15,23,42,0.06)'
+                                                                                }}>
+                                                                                    {(() => {
+                                                                                        switch(activity.details.foodPreference) {
+                                                                                            case 'enthusiastic': return 'Hào hứng';
+                                                                                            case 'normal': return 'Bình thường';
+                                                                                            case 'dislike': return 'Không thích';
+                                                                                            case 'allergic': return 'Dị ứng';
+                                                                                            default: return activity.details.foodPreference;
+                                                                                        }
+                                                                                    })()}
+                                                                                </span>
+                                                                            )}
+                                                                            {activity.details && activity.type === 'feeding' && activity.details.foodType === 'solid' && activity.details.isAllergic && (
+                                                                                <span style={{
+                                                                                    color: '#ef4444',
+                                                                                    padding: '4px 10px',
+                                                                                    borderRadius: '6px',
+                                                                                    fontSize: '12px',
+                                                                                    fontWeight: 700,
+                                                                                    backgroundColor: 'rgba(239,68,68,0.08)'
+                                                                                }}>
+                                                                                    Dị ứng
                                                                                 </span>
                                                                             )}
                                                                             
@@ -2337,6 +2412,22 @@ const ActivitiesPage: React.FC = () => {
                                                     border: '2px solid #13a4ec'
                                                 }
                                             }}
+                                            MenuProps={{
+                                                disableScrollLock: true,
+                                                sx: { zIndex: 13000 },
+                                                PaperProps: {
+                                                    sx: { 
+                                                        borderRadius: '12px',
+                                                        marginTop: '8px'
+                                                    }
+                                                }
+                                            }}
+                                            MenuProps={{
+                                                disableScrollLock: true,
+                                                PaperProps: {
+                                                    sx: { zIndex: 13000, borderRadius: '12px' }
+                                                }
+                                            }}
                                         >
                                             <MenuItem value="feeding">🍼 Feeding</MenuItem>
                                             <MenuItem value="sleep">😴 Sleep</MenuItem>
@@ -2532,6 +2623,16 @@ const ActivitiesPage: React.FC = () => {
                                                                 border: '2px solid #13a4ec'
                                                             }
                                                         }}
+                                                        MenuProps={{
+                                                            disableScrollLock: true,
+                                                            sx: { zIndex: 13000 },
+                                                            PaperProps: {
+                                                                sx: { 
+                                                                    borderRadius: '12px',
+                                                                    marginTop: '8px'
+                                                                }
+                                                            }
+                                                        }}
                                                     >
                                                         <MenuItem value="lỏng">Lỏng</MenuItem>
                                                         <MenuItem value="bình thường">Bình thường</MenuItem>
@@ -2543,41 +2644,167 @@ const ActivitiesPage: React.FC = () => {
                                     </Box>
                                 )}
 
-                                {/* Feeding Amount */}
+                                {/* Feeding Type Tabs */}
                                 {formData.type === 'feeding' && (
-                                    <TextField
-                                        label="Lượng sữa (ml)"
-                                        type="number"
-                                        inputMode="decimal"
-                                        value={formData.amount}
-                                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                        fullWidth
-                                        sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                bgcolor: '#e3e8eb',
-                                                borderRadius: '12px',
-                                                '& fieldset': {
-                                                    border: 'none'
-                                                },
-                                                '&:hover fieldset': {
-                                                    border: 'none'
-                                                },
-                                                '&.Mui-focused fieldset': {
-                                                    border: '2px solid #13a4ec'
+                                    <Box sx={{ width: '100%', mb: 2 }}>
+                                        <Tabs
+                                            value={formData.foodType === 'solid' ? 1 : 0}
+                                            onChange={(_, newValue) => setFormData({ ...formData, foodType: newValue === 0 ? 'milk' : 'solid' })}
+                                            variant="fullWidth"
+                                            sx={{
+                                                mb: 2,
+                                                '& .MuiTab-root': {
+                                                    textTransform: 'none',
+                                                    fontWeight: 600,
+                                                    fontSize: '15px'
                                                 }
-                                            },
-                                            '& .MuiInputLabel-root': {
-                                                color: '#6b7f8a',
-                                                backgroundColor: '#e3e8eb',
-                                                paddingRight: '4px',
-                                                '&.MuiInputLabel-shrink': {
-                                                    backgroundColor: '#ffffff',
-                                                    paddingLeft: '4px',
-                                                    paddingRight: '4px'
-                                                }
-                                            }
-                                        }}
-                                    />
+                                            }}
+                                        >
+                                            <Tab label="Milk" />
+                                            <Tab label="Solid Food" />
+                                        </Tabs>
+
+                                        {formData.foodType !== 'solid' ? (
+                                            <TextField
+                                                label="Amount (ml)"
+                                                type="number"
+                                                inputMode="decimal"
+                                                value={formData.amount}
+                                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                                fullWidth
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        bgcolor: '#e3e8eb',
+                                                        borderRadius: '12px',
+                                                        '& fieldset': { border: 'none' },
+                                                        '&:hover fieldset': { border: 'none' },
+                                                        '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#6b7f8a',
+                                                        backgroundColor: '#e3e8eb',
+                                                        paddingRight: '4px',
+                                                        '&.MuiInputLabel-shrink': {
+                                                            backgroundColor: '#ffffff',
+                                                            paddingLeft: '4px',
+                                                            paddingRight: '4px'
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        ) : (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                <Autocomplete
+                                                    freeSolo
+                                                    disablePortal
+                                                    selectOnFocus
+                                                    clearOnBlur
+                                                    handleHomeEndKeys
+                                                    options={foodItems}
+                                                    value={formData.foodItem || ''}
+                                                    open={foodMenuOpen}
+                                                    onOpen={() => setFoodMenuOpen(true)}
+                                                    onClose={() => setFoodMenuOpen(false)}
+                                                    onChange={(_, newValue) => {
+                                                        setFormData(prev => ({ ...prev, foodItem: newValue || '' }));
+                                                    }}
+                                                    onInputChange={(_, newInputValue) => {
+                                                        setFormData(prev => ({ ...prev, foodItem: newInputValue }));
+                                                        setFoodMenuOpen(true);
+                                                    }}
+                                                    filterOptions={(options) => options}
+                                                    slotProps={{
+                                                        popper: {
+                                                            sx: { zIndex: 13000 }
+                                                        }
+                                                    }}
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            label="Food Item"
+                                                            placeholder="e.g., Porridge, Carrots"
+                                                            onFocus={() => setFoodMenuOpen(true)}
+                                                            sx={{
+                                                                '& .MuiOutlinedInput-root': {
+                                                                    bgcolor: '#e3e8eb',
+                                                                    borderRadius: '12px',
+                                                                    '& fieldset': { border: 'none' },
+                                                                    '&:hover fieldset': { border: 'none' },
+                                                                    '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
+                                                                },
+                                                                '& .MuiInputLabel-root': {
+                                                                    color: '#6b7f8a',
+                                                                    backgroundColor: '#e3e8eb',
+                                                                    paddingRight: '4px',
+                                                                    '&.MuiInputLabel-shrink': {
+                                                                        backgroundColor: '#ffffff',
+                                                                        paddingLeft: '4px',
+                                                                        paddingRight: '4px'
+                                                                    }
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                />
+                                                <TextField
+                                                    label="Amount (e.g., 1 bowl, 50g)"
+                                                    value={formData.amount}
+                                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                                    fullWidth
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            bgcolor: '#e3e8eb',
+                                                            borderRadius: '12px',
+                                                            '& fieldset': { border: 'none' },
+                                                            '&:hover fieldset': { border: 'none' },
+                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
+                                                        },
+                                                        '& .MuiInputLabel-root': {
+                                                            color: '#6b7f8a',
+                                                            backgroundColor: '#e3e8eb',
+                                                            paddingRight: '4px',
+                                                            '&.MuiInputLabel-shrink': {
+                                                                backgroundColor: '#ffffff',
+                                                                paddingLeft: '4px',
+                                                                paddingRight: '4px'
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                                <FormControl fullWidth>
+                                                    <InputLabel id="food-preference-label">Phản ứng của bé</InputLabel>
+                                                    <Select
+                                                        labelId="food-preference-label"
+                                                        id="food-preference-select"
+                                                        value={formData.foodPreference ?? 'normal'}
+                                                        label="Phản ứng của bé"
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, foodPreference: (e.target.value as 'enthusiastic' | 'normal' | 'dislike' | 'allergic') || 'normal' }))}
+                                                        sx={{
+                                                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: '2px solid #13a4ec' },
+                                                            bgcolor: '#e3e8eb',
+                                                            borderRadius: '12px'
+                                                        }}
+                                                        MenuProps={{
+                                                            disableScrollLock: true,
+                                                            sx: { zIndex: 13000 },
+                                                            PaperProps: {
+                                                                sx: { 
+                                                                    borderRadius: '12px',
+                                                                    marginTop: '8px'
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        <MenuItem value="enthusiastic" sx={{ color: '#101c22' }}>Hào hứng</MenuItem>
+                                                        <MenuItem value="normal" sx={{ color: '#101c22' }}>Bình thường</MenuItem>
+                                                        <MenuItem value="dislike" sx={{ color: '#101c22' }}>Không thích</MenuItem>
+                                                        <MenuItem value="allergic" sx={{ color: '#d32f2f' }}>Dị ứng</MenuItem>
+                                                    </Select>
+                                                </FormControl>
+                                            </Box>
+                                        )}
+                                    </Box>
                                 )}
 
                                 {/* Sleep Duration and Time Fields */}

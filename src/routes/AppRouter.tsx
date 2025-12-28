@@ -6,6 +6,7 @@ import BabyInfoPageNew from '../pages/BabyInfoPageNew';
 import StatsPageNewGlass from '../pages/StatsPageNewGlass';
 import MilestonesPage from '../pages/MilestonesPage';
 import WonderWeeksPage from '../pages/WonderWeeksPage';
+import FoodHistoryPage from '../pages/FoodHistoryPage';
 import LoginPage from '../pages/LoginPage';
 import BottomNav from '../components/layout/BottomNav';
 import PrivateRoute from '../components/PrivateRoute';
@@ -27,6 +28,7 @@ const AppRouter: React.FC = () => {
                             <PrivateRoute path="/statistics" component={StatsPageNewGlass} />
                             <PrivateRoute path="/milestones" component={MilestonesPage} />
                             <PrivateRoute path="/wonder-weeks" component={WonderWeeksPage} />
+                            <PrivateRoute path="/food-history" component={FoodHistoryPage} />
                         </Switch>
                     </Box>
                     <BottomNav />

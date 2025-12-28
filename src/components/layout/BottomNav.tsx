@@ -5,6 +5,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import StarIcon from '@mui/icons-material/Star'; // Import a new icon
+import RestaurantIcon from '@mui/icons-material/Restaurant';
 
 const BottomNav: React.FC = () => {
     const history = useHistory();
@@ -16,6 +17,7 @@ const BottomNav: React.FC = () => {
         if (path === '/statistics') return 1;
         if (path === '/milestones') return 2;
         if (path === '/wonder-weeks') return 3; // Add new value
+        if (path === '/food-history') return 4;
         return 0;
     };
 
@@ -47,6 +49,9 @@ const BottomNav: React.FC = () => {
                             break;
                         case 3:
                             history.push('/wonder-weeks'); // Add new case
+                            break;
+                        case 4:
+                            history.push('/food-history');
                             break;
                     }
                 }}
@@ -110,6 +115,21 @@ const BottomNav: React.FC = () => {
                 <BottomNavigationAction 
                     label="WW" 
                     icon={<StarIcon />}
+                    sx={{
+                        '& .MuiBottomNavigationAction-label': {
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            marginTop: '4px',
+                            opacity: 1,
+                            '&.Mui-selected': {
+                                fontSize: '12px'
+                            }
+                        }
+                    }}
+                />
+                <BottomNavigationAction 
+                    label="Food" 
+                    icon={<RestaurantIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
                             fontSize: '12px',

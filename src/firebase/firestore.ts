@@ -402,5 +402,97 @@ export const firestore = {
             console.error('Error getting daily ratings for range:', error);
             return new Map();
         }
+    },
+
+    // --- Solid Food Menu Management ---
+
+    // Get list of saved food items
+    getFoodItems: async (userId: string): Promise<string[]> => {
+        try {
+            // Store in babies collection to reuse existing permissions
+            const docRef = doc(db, 'babies', userId);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                return docSnap.data().foodMenu || [];
+            }
+            return [];
+        } catch (error) {
+            console.error('Error getting food items:', error);
+            return [];
+        }
+    },
+
+    // Add a new food item
+    addFoodItem: async (userId: string, foodName: string): Promise<boolean> => {
+        try {
+            const docRef = doc(db, 'babies', userId);
+            const docSnap = await getDoc(docRef);
+            
+            let currentItems: string[] = [];
+            if (docSnap.exists()) {
+                currentItems = docSnap.data().foodMenu || [];
+            }
+
+            // Avoid duplicates
+            if (!currentItems.includes(foodName)) {
+                await setDoc(docRef, {
+                    foodMenu: [...currentItems, foodName],
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+            }
+            return true;
+        } catch (error) {
+            console.error('Error adding food item:', error);
+            return false;
+        }
+    },
+
+    // Delete a food item
+    deleteFoodItem: async (userId: string, foodName: string): Promise<boolean> => {
+        try {
+            const docRef = doc(db, 'babies', userId);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const currentItems = docSnap.data().foodMenu || [];
+                const newItems = currentItems.filter((item: string) => item !== foodName);
+                
+                await setDoc(docRef, {
+                    foodMenu: newItems,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+            }
+            return true;
+        } catch (error) {
+            console.error('Error deleting food item:', error);
+            return false;
+        }
+    },
+
+    // Rename a food item
+    renameFoodItem: async (userId: string, oldName: string, newName: string): Promise<boolean> => {
+        try {
+            const docRef = doc(db, 'babies', userId);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const currentItems = docSnap.data().foodMenu || [];
+                // Remove old, add new, keep unique
+                const newItems = currentItems.filter((item: string) => item !== oldName);
+                if (!newItems.includes(newName)) {
+                    newItems.push(newName);
+                }
+                
+                await setDoc(docRef, {
+                    foodMenu: newItems,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+            }
+            return true;
+        } catch (error) {
+            console.error('Error renaming food item:', error);
+            return false;
+        }
     }
 };
