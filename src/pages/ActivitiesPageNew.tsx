@@ -2422,12 +2422,6 @@ const ActivitiesPage: React.FC = () => {
                                                     }
                                                 }
                                             }}
-                                            MenuProps={{
-                                                disableScrollLock: true,
-                                                PaperProps: {
-                                                    sx: { zIndex: 13000, borderRadius: '12px' }
-                                                }
-                                            }}
                                         >
                                             <MenuItem value="feeding">🍼 Feeding</MenuItem>
                                             <MenuItem value="sleep">😴 Sleep</MenuItem>
