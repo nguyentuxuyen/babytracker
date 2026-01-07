@@ -8,6 +8,7 @@ interface Activity {
 
 interface Stats {
     feeding: { count: number; totalAmount: number };
+    solid: { count: number; totalAmount: number };
     urine: { count: number };
     stool: { count: number };
     sleep: { count: number; totalDuration: number };
@@ -16,6 +17,7 @@ interface Stats {
 export function calculateStatsForDate(activities: Activity[], date: Date): Stats {
     const stats = {
         feeding: { count: 0, totalAmount: 0 },
+        solid: { count: 0, totalAmount: 0 },
         urine: { count: 0 },
         stool: { count: 0 },
         sleep: { count: 0, totalDuration: 0 }
@@ -28,8 +30,13 @@ export function calculateStatsForDate(activities: Activity[], date: Date): Stats
             actDate.getDate() === date.getDate()
         ) {
             if (activity.type === 'feeding') {
-                stats.feeding.count++;
-                if (activity.details && activity.details.amount) stats.feeding.totalAmount += activity.details.amount;
+                if (activity.details?.foodType === 'solid') {
+                    stats.solid.count++;
+                    if (activity.details.amount) stats.solid.totalAmount += Number(activity.details.amount);
+                } else {
+                    stats.feeding.count++;
+                    if (activity.details && activity.details.amount) stats.feeding.totalAmount += Number(activity.details.amount);
+                }
             } else if (activity.type === 'sleep') {
                 stats.sleep.count++;
                 if (activity.details && activity.details.duration) stats.sleep.totalDuration += activity.details.duration;

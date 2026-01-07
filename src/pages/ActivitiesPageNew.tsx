@@ -786,6 +786,7 @@ const ActivitiesPage: React.FC = () => {
     const todayStats = useMemo(() => {
         const defaultStats = {
             feeding: { count: 0, totalAmount: 0 },
+            solid: { count: 0, totalAmount: 0 },
             urine: { count: 0 },
             stool: { count: 0 },
             sleep: { count: 0, totalDuration: 0 }
@@ -813,6 +814,7 @@ const ActivitiesPage: React.FC = () => {
         } catch (err) {
             return {
                 feeding: { count: 0, totalAmount: 0 },
+                solid: { count: 0, totalAmount: 0 },
                 urine: { count: 0 },
                 stool: { count: 0 },
                 sleep: { count: 0, totalDuration: 0 }
@@ -1476,27 +1478,41 @@ const ActivitiesPage: React.FC = () => {
                             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#6b7f8a', mb: 1.5 }}>
                                 {new Date().toDateString() === selectedDate.toDateString() ? 'Today' : selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                                {/* Milk */}
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                {/* Milk & Solid Merged */}
                                 <Box sx={{ 
                                     display: 'flex', 
-                                    alignItems: 'center', 
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
                                     bgcolor: 'rgba(255, 255, 255, 0.8)',
                                     border: '1px solid rgba(255, 255, 255, 0.6)',
                                     borderRadius: '12px',
-                                    flex: '1 1 0',
+                                    flex: 1.2,
                                     minWidth: 0
                                 }}>
-                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
-                                    </svg>
-                                    <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>Milk</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap', mb: 0.5 }}>Milk & Ăn dặm</Typography>
+                                    
+                                    {/* Line 1: Milk */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
+                                            <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
+                                        </svg>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {todayStats.feeding.count}x • {todayStats.feeding.totalAmount}ml
+                                        </Typography>
+                                    </Box>
+
+                                    {/* Line 2: Solid */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
+                                            <path d="M224,112H32a16,16,0,0,0-16,16v32a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V128A16,16,0,0,0,224,112ZM32,160V128H224v32Z" opacity="0.2"></path>
+                                            <path d="M224,104H32a24,24,0,0,0-24,24v32a24,24,0,0,0,24,24H224a24,24,0,0,0,24-24V128A24,24,0,0,0,224,104Zm8,56a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V128a8,8,0,0,1,8-8H224a8,8,0,0,1,8,8ZM176,80a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,80Z"></path>
+                                        </svg>
+                                        <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {todayStats.solid?.count || 0}x • {todayStats.solid?.totalAmount || 0}g
                                         </Typography>
                                     </Box>
                                 </Box>
@@ -1511,7 +1527,7 @@ const ActivitiesPage: React.FC = () => {
                                     bgcolor: 'rgba(255, 255, 255, 0.8)',
                                     border: '1px solid rgba(255, 255, 255, 0.6)',
                                     borderRadius: '12px',
-                                    flex: '1 1 0',
+                                    flex: 1,
                                     minWidth: 0
                                 }}>
                                     <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
@@ -1535,7 +1551,7 @@ const ActivitiesPage: React.FC = () => {
                                     bgcolor: 'rgba(255, 255, 255, 0.8)',
                                     border: '1px solid rgba(255, 255, 255, 0.6)',
                                     borderRadius: '12px',
-                                    flex: '1 1 0',
+                                    flex: 1,
                                     minWidth: 0
                                 }}>
                                     <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
@@ -1559,27 +1575,41 @@ const ActivitiesPage: React.FC = () => {
                             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#6b7f8a', mb: 1.5 }}>
                                 {new Date().toDateString() === selectedDate.toDateString() ? 'Yesterday' : new Date(selectedDate.getTime() - 86400000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'nowrap', overflow: 'hidden' }}>
-                                {/* Milk */}
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                {/* Milk & Solid Merged */}
                                 <Box sx={{ 
                                     display: 'flex', 
-                                    alignItems: 'center', 
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
                                     gap: 0.5,
                                     px: 1,
                                     py: 1,
                                     bgcolor: 'rgba(255, 255, 255, 0.8)',
                                     border: '1px solid rgba(255, 255, 255, 0.6)',
                                     borderRadius: '12px',
-                                    flex: '1 1 0',
+                                    flex: 1.2,
                                     minWidth: 0
                                 }}>
-                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
-                                    </svg>
-                                    <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>Milk</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap', mb: 0.5 }}>Milk & Ăn dặm</Typography>
+                                    
+                                    {/* Line 1: Milk */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
+                                            <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
+                                        </svg>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {yesterdayStats.feeding.count}x • {yesterdayStats.feeding.totalAmount}ml
+                                        </Typography>
+                                    </Box>
+
+                                    {/* Line 2: Solid */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
+                                            <path d="M224,112H32a16,16,0,0,0-16,16v32a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V128A16,16,0,0,0,224,112ZM32,160V128H224v32Z" opacity="0.2"></path>
+                                            <path d="M224,104H32a24,24,0,0,0-24,24v32a24,24,0,0,0,24,24H224a24,24,0,0,0,24-24V128A24,24,0,0,0,224,104Zm8,56a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V128a8,8,0,0,1,8-8H224a8,8,0,0,1,8,8ZM176,80a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,80Z"></path>
+                                        </svg>
+                                        <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {yesterdayStats.solid?.count || 0}x • {yesterdayStats.solid?.totalAmount || 0}g
                                         </Typography>
                                     </Box>
                                 </Box>
@@ -1594,7 +1624,7 @@ const ActivitiesPage: React.FC = () => {
                                     bgcolor: 'rgba(255, 255, 255, 0.8)',
                                     border: '1px solid rgba(255, 255, 255, 0.6)',
                                     borderRadius: '12px',
-                                    flex: '1 1 0',
+                                    flex: 1,
                                     minWidth: 0
                                 }}>
                                     <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
@@ -1618,7 +1648,7 @@ const ActivitiesPage: React.FC = () => {
                                     bgcolor: 'rgba(255, 255, 255, 0.8)',
                                     border: '1px solid rgba(255, 255, 255, 0.6)',
                                     borderRadius: '12px',
-                                    flex: '1 1 0',
+                                    flex: 1,
                                     minWidth: 0
                                 }}>
                                     <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
