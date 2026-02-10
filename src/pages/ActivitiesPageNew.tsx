@@ -2747,7 +2747,16 @@ const ActivitiesPage: React.FC = () => {
                                                             {...params}
                                                             label="Food Item"
                                                             placeholder="e.g., Porridge, Carrots"
-                                                            onFocus={() => setFoodMenuOpen(true)}
+                                                            onFocus={() => {
+                                                                setFoodMenuOpen(true);
+                                                                // Scroll the Autocomplete element into view, aligning it to the top or center of viewport
+                                                                setTimeout(() => {
+                                                                    const element = document.activeElement;
+                                                                    if (element) {
+                                                                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                    }
+                                                                }, 300); // Slight delay to allow keyboard to appear
+                                                            }}
                                                             sx={{
                                                                 '& .MuiOutlinedInput-root': {
                                                                     bgcolor: '#e3e8eb',
