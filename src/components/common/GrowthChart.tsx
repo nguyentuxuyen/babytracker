@@ -101,16 +101,27 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                     date: date.toLocaleDateString()
                 };
             })
-            .filter(m => m.age >= 0);
+            .filter(m => m.age >= 0)
+            .sort((a, b) => a.age - b.age);
 
         // Add birth measurements if available
         if (baby.birthWeight || baby.birthHeight) {
-            measurements.unshift({
+            // Check if there is already a measurement at age 0 (or very close to it)
+            // If so, we might not want to add birth measurement if it duplicates, 
+            // OR we add it and sort again. 
+            // Safest: Add to array then sort.
+            
+            const birthData = {
                 age: 0,
                 weight: (baby.birthWeight && baby.birthWeight > 0) ? baby.birthWeight / 1000 : null,
                 height: (baby.birthHeight && baby.birthHeight > 0) ? baby.birthHeight : null,
                 date: birthDate.toLocaleDateString()
-            });
+            };
+
+            // Only add if we don't have a 0 age point or to ensure birth data is included
+            // But simply pushing and sorting is the most robust way to handle the line drawing.
+            measurements.push(birthData);
+            measurements.sort((a, b) => a.age - b.age);
         }
 
         return { standards: data, measurements };
