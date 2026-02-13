@@ -934,6 +934,12 @@ const StatsPage: React.FC = () => {
                                             axisLine={false}
                                             tickLine={false}
                                         />
+                                        <YAxis 
+                                            tick={{ fontSize: 12, fill: '#6b7f8a' }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            width={35}
+                                        />
                                         <Tooltip 
                                             contentStyle={{
                                                 backgroundColor: '#ffffff',
