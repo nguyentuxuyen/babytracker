@@ -236,9 +236,9 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     data={chartData.standards}
                                     type="monotone"
                                     dataKey="wMedian"
-                                    stroke="#4fc3f7"
-                                    strokeDasharray="5 5"
-                                    strokeWidth={2}
+                                    stroke="#13a4ec"
+                                    strokeDasharray="3 3"
+                                    strokeOpacity={0.5}
                                     dot={false}
                                     name="Weight Median"
                                 />
@@ -247,9 +247,9 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     data={chartData.measurements}
                                     type="monotone"
                                     dataKey="weight"
-                                    stroke="#01579b"
-                                    strokeWidth={3}
-                                    dot={{ r: 4, fill: '#01579b', strokeWidth: 2, stroke: '#fff' }}
+                                    stroke="#13a4ec"
+                                    strokeWidth={2}
+                                    dot={{ r: 4, fill: '#13a4ec', strokeWidth: 2, stroke: '#fff' }}
                                     name="My Baby's Weight"
                                     connectNulls
                                 />
@@ -274,9 +274,9 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     data={chartData.standards}
                                     type="monotone"
                                     dataKey="hMedian"
-                                    stroke="#a5d6a7"
-                                    strokeDasharray="5 5"
-                                    strokeWidth={2}
+                                    stroke="#10b981"
+                                    strokeDasharray="3 3"
+                                    strokeOpacity={0.5}
                                     dot={false}
                                     name="Height Median"
                                 />
@@ -285,9 +285,9 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     data={chartData.measurements}
                                     type="monotone"
                                     dataKey="height"
-                                    stroke="#1b5e20"
-                                    strokeWidth={3}
-                                    dot={{ r: 4, fill: '#1b5e20', strokeWidth: 2, stroke: '#fff' }}
+                                    stroke="#10b981"
+                                    strokeWidth={2}
+                                    dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
                                     name="My Baby's Height"
                                     connectNulls
                                 />
