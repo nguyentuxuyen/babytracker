@@ -19,6 +19,8 @@ interface ChartData {
     date: string;
     label: string;
     feeding: number;
+    milk: number;     // Add milk count
+    solid: number;    // Add solid count
     feedingAmount: number;
     diaper: number;
     urine: number;
@@ -45,7 +47,8 @@ const StatsPage: React.FC = () => {
 
     // Chart visibility states for multi-line chart
     const [chartVisibility, setChartVisibility] = useState({
-        feeding: true,
+        milk: true,
+        solid: true,
         diaper: true,
         urine: true,
         stool: true
@@ -167,7 +170,12 @@ const StatsPage: React.FC = () => {
                     switch (activityType) {
                         case 'feeding':
                             acc.feeding += 1;
-                            acc.feedingAmount += details.amount || 0;
+                            if (details.foodType === 'solid') {
+                                acc.solid += 1;
+                            } else {
+                                acc.milk += 1;
+                                acc.feedingAmount += details.amount || 0;
+                            }
                             break;
                         case 'diaper':
                         case 'diaperChange':
@@ -192,6 +200,8 @@ const StatsPage: React.FC = () => {
                     date: label,
                     label: label,
                     feeding: 0,
+                    milk: 0,
+                    solid: 0,
                     feedingAmount: 0,
                     diaper: 0,
                     urine: 0,
@@ -241,7 +251,12 @@ const StatsPage: React.FC = () => {
                     switch (activityType) {
                         case 'feeding':
                             acc.feeding += 1;
-                            acc.feedingAmount += details.amount || 0;
+                            if (details.foodType === 'solid') {
+                                acc.solid += 1;
+                            } else {
+                                acc.milk += 1;
+                                acc.feedingAmount += details.amount || 0;
+                            }
                             break;
                         case 'diaper':
                         case 'diaperChange':
@@ -266,6 +281,8 @@ const StatsPage: React.FC = () => {
                     date: label,
                     label: label,
                     feeding: 0,
+                    milk: 0,
+                    solid: 0,
                     feedingAmount: 0,
                     diaper: 0,
                     urine: 0,
@@ -329,7 +346,12 @@ const StatsPage: React.FC = () => {
                     switch (activityType) {
                         case 'feeding':
                             acc.feeding += 1;
-                            acc.feedingAmount += details.amount || 0;
+                            if (details.foodType === 'solid') {
+                                acc.solid += 1;
+                            } else {
+                                acc.milk += 1;
+                                acc.feedingAmount += details.amount || 0;
+                            }
                             break;
                         case 'diaper':
                         case 'diaperChange':
@@ -354,6 +376,8 @@ const StatsPage: React.FC = () => {
                     date: label,
                     label: label,
                     feeding: 0,
+                    milk: 0,
+                    solid: 0,
                     feedingAmount: 0,
                     diaper: 0,
                     urine: 0,
@@ -400,7 +424,12 @@ const StatsPage: React.FC = () => {
                     switch (activityType) {
                         case 'feeding':
                             acc.feeding += 1;
-                            acc.feedingAmount += details.amount || 0;
+                            if (details.foodType === 'solid') {
+                                acc.solid += 1;
+                            } else {
+                                acc.milk += 1;
+                                acc.feedingAmount += details.amount || 0;
+                            }
                             break;
                         case 'diaper':
                         case 'diaperChange':
@@ -425,6 +454,8 @@ const StatsPage: React.FC = () => {
                     date: label,
                     label: label,
                     feeding: 0,
+                    milk: 0,
+                    solid: 0,
                     feedingAmount: 0,
                     diaper: 0,
                     urine: 0,
@@ -751,11 +782,21 @@ const StatsPage: React.FC = () => {
                                                 fontSize: '12px'
                                             }}
                                         />
-                                        {chartVisibility.feeding && (
+                                        {chartVisibility.milk && (
                                             <Line 
                                                 type="monotone" 
-                                                dataKey="feeding" 
+                                                dataKey="milk" 
                                                 stroke="#13a4ec" 
+                                                strokeWidth={3}
+                                                dot={false}
+                                                strokeLinecap="round"
+                                            />
+                                        )}
+                                        {chartVisibility.solid && (
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="solid" 
+                                                stroke="#9c27b0" 
                                                 strokeWidth={3}
                                                 dot={false}
                                                 strokeLinecap="round"
@@ -798,7 +839,8 @@ const StatsPage: React.FC = () => {
                             {/* Checkboxes for toggling lines */}
                             <Grid container spacing={2}>
                                 {[
-                                    { key: 'feeding', label: 'Feeding', color: '#13a4ec' },
+                                    { key: 'milk', label: 'Milk', color: '#13a4ec' },
+                                    { key: 'solid', label: 'Solid Food', color: '#9c27b0' },
                                     { key: 'diaper', label: 'Diaper', color: '#f59e0b' },
                                     { key: 'urine', label: 'Urination', color: '#10b981' },
                                     { key: 'stool', label: 'Defecation', color: '#ef4444' }
