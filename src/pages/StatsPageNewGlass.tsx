@@ -22,6 +22,7 @@ interface ChartData {
     milk: number;     // Add milk count
     solid: number;    // Add solid count
     feedingAmount: number;
+    solidAmount: number; // Add solid amount
     diaper: number;
     urine: number;
     stool: number;
@@ -172,6 +173,7 @@ const StatsPage: React.FC = () => {
                             acc.feeding += 1;
                             if (details.foodType === 'solid') {
                                 acc.solid += 1;
+                                acc.solidAmount += details.amount || 0;
                             } else {
                                 acc.milk += 1;
                                 acc.feedingAmount += details.amount || 0;
@@ -203,6 +205,7 @@ const StatsPage: React.FC = () => {
                     milk: 0,
                     solid: 0,
                     feedingAmount: 0,
+                    solidAmount: 0,
                     diaper: 0,
                     urine: 0,
                     stool: 0,
@@ -253,6 +256,7 @@ const StatsPage: React.FC = () => {
                             acc.feeding += 1;
                             if (details.foodType === 'solid') {
                                 acc.solid += 1;
+                                acc.solidAmount += details.amount || 0;
                             } else {
                                 acc.milk += 1;
                                 acc.feedingAmount += details.amount || 0;
@@ -284,6 +288,7 @@ const StatsPage: React.FC = () => {
                     milk: 0,
                     solid: 0,
                     feedingAmount: 0,
+                    solidAmount: 0,
                     diaper: 0,
                     urine: 0,
                     stool: 0,
@@ -348,6 +353,7 @@ const StatsPage: React.FC = () => {
                             acc.feeding += 1;
                             if (details.foodType === 'solid') {
                                 acc.solid += 1;
+                                acc.solidAmount += details.amount || 0;
                             } else {
                                 acc.milk += 1;
                                 acc.feedingAmount += details.amount || 0;
@@ -379,6 +385,7 @@ const StatsPage: React.FC = () => {
                     milk: 0,
                     solid: 0,
                     feedingAmount: 0,
+                    solidAmount: 0,
                     diaper: 0,
                     urine: 0,
                     stool: 0,
@@ -426,6 +433,7 @@ const StatsPage: React.FC = () => {
                             acc.feeding += 1;
                             if (details.foodType === 'solid') {
                                 acc.solid += 1;
+                                acc.solidAmount += details.amount || 0;
                             } else {
                                 acc.milk += 1;
                                 acc.feedingAmount += details.amount || 0;
@@ -457,6 +465,7 @@ const StatsPage: React.FC = () => {
                     milk: 0,
                     solid: 0,
                     feedingAmount: 0,
+                    solidAmount: 0,
                     diaper: 0,
                     urine: 0,
                     stool: 0,
@@ -476,6 +485,10 @@ const StatsPage: React.FC = () => {
     // Calculate aggregates for summary cards
     const totalMilk = useMemo(() => {
         return chartData.reduce((sum, day) => sum + day.feedingAmount, 0);
+    }, [chartData]);
+
+    const totalSolid = useMemo(() => {
+        return chartData.reduce((sum, day) => sum + day.solidAmount, 0);
     }, [chartData]);
 
     const totalSleep = useMemo(() => {
@@ -871,7 +884,7 @@ const StatsPage: React.FC = () => {
                         </Card>
                     </Grid>
 
-                    {/* Milk Intake Card */}
+                    {/* Milk & Solid Intake Card */}
                     <Grid item xs={12} sm={6} lg={4}>
                         <Card sx={{
                             bgcolor: '#ffffff',
@@ -881,11 +894,22 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                Milk Intake
+                                Nutrition Intake
                             </Typography>
-                            <Typography sx={{ fontSize: '32px', fontWeight: 700, color: '#101c22', mb: 0.5 }}>
-                                {totalMilk} ml
-                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 3, mb: 0.5 }}>
+                                <Box>
+                                    <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#13a4ec' }}>
+                                        {totalMilk} ml
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>Milk</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#9c27b0' }}>
+                                        {totalSolid} g
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>Solid</Typography>
+                                </Box>
+                            </Box>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
                                 {getPeriodLabel()}
                             </Typography>
@@ -898,6 +922,10 @@ const StatsPage: React.FC = () => {
                                             <linearGradient id="colorMilk" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="0%" stopColor="#13a4ec" stopOpacity={0.2} />
                                                 <stop offset="100%" stopColor="#13a4ec" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorSolid" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#9c27b0" stopOpacity={0.2} />
+                                                <stop offset="100%" stopColor="#9c27b0" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
                                         <XAxis 
@@ -921,6 +949,16 @@ const StatsPage: React.FC = () => {
                                             strokeWidth={3}
                                             fill="url(#colorMilk)"
                                             strokeLinecap="round"
+                                            name="Milk (ml)"
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="solidAmount" 
+                                            stroke="#9c27b0" 
+                                            strokeWidth={3}
+                                            fill="url(#colorSolid)"
+                                            strokeLinecap="round"
+                                            name="Solid (g)"
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
