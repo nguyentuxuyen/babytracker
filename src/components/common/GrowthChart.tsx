@@ -96,8 +96,8 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                 const ageMonths = (date.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
                 return {
                     age: parseFloat(ageMonths.toFixed(1)),
-                    weight: a.details.weight ? a.details.weight / 1000 : null, // Convert g to kg
-                    height: a.details.height,
+                    weight: (a.details.weight && a.details.weight > 0) ? a.details.weight / 1000 : null, // Convert g to kg
+                    height: (a.details.height && a.details.height > 0) ? a.details.height : null,
                     date: date.toLocaleDateString()
                 };
             })
@@ -107,8 +107,8 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
         if (baby.birthWeight || baby.birthHeight) {
             measurements.unshift({
                 age: 0,
-                weight: baby.birthWeight ? baby.birthWeight / 1000 : null,
-                height: baby.birthHeight,
+                weight: (baby.birthWeight && baby.birthWeight > 0) ? baby.birthWeight / 1000 : null,
+                height: (baby.birthHeight && baby.birthHeight > 0) ? baby.birthHeight : null,
                 date: birthDate.toLocaleDateString()
             });
         }
