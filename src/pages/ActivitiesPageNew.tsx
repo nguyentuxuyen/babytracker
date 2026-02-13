@@ -2720,7 +2720,7 @@ const ActivitiesPage: React.FC = () => {
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                 <Autocomplete
                                                     freeSolo
-                                                    disablePortal
+                                                    disablePortal={false}
                                                     selectOnFocus
                                                     clearOnBlur
                                                     handleHomeEndKeys
@@ -2740,6 +2740,12 @@ const ActivitiesPage: React.FC = () => {
                                                     slotProps={{
                                                         popper: {
                                                             sx: { zIndex: 13000 }
+                                                        },
+                                                        listbox: {
+                                                            sx: {
+                                                                WebkitOverflowScrolling: 'touch', // Enable momentum scrolling on iOS
+                                                                maxHeight: '250px'
+                                                            }
                                                         }
                                                     }}
                                                     renderInput={(params) => (
