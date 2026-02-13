@@ -2737,15 +2737,15 @@ const ActivitiesPage: React.FC = () => {
                                                         setFoodMenuOpen(true);
                                                     }}
                                                     filterOptions={(options) => options}
+                                                    ListboxProps={{
+                                                        sx: {
+                                                            WebkitOverflowScrolling: 'touch',
+                                                            maxHeight: '250px'
+                                                        }
+                                                    }}
                                                     slotProps={{
                                                         popper: {
                                                             sx: { zIndex: 13000 }
-                                                        },
-                                                        listbox: {
-                                                            sx: {
-                                                                WebkitOverflowScrolling: 'touch', // Enable momentum scrolling on iOS
-                                                                maxHeight: '250px'
-                                                            }
                                                         }
                                                     }}
                                                     renderInput={(params) => (
