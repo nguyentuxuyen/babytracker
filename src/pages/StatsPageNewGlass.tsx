@@ -917,7 +917,7 @@ const StatsPage: React.FC = () => {
                             {/* Chart Area */}
                             <Box sx={{ minHeight: '220px' }}>
                                 <ResponsiveContainer width="100%" height={220}>
-                                    <AreaChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
+                                    <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
                                         <defs>
                                             <linearGradient id="colorMilk" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="0%" stopColor="#13a4ec" stopOpacity={0.2} />
