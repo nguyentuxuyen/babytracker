@@ -1,0 +1,51 @@
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </Box>
+                        </Box>
+                        
+                        {/* AI Insights Button */}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+                            <MuiButton
+                                variant="contained"
+                                size="small"
+                                onClick={() => {
+                                    try {
+                                        const filteredActivities = (activities || []).filter((activity) => {
+                                            try {
+                                                const actDate = new Date(activity.timestamp);
+                                                if (isNaN(actDate.getTime())) return false;
+                                                return (
+                                                    actDate.getFullYear() === selectedDate.getFullYear() &&
+                                                    actDate.getMonth() === selectedDate.getMonth() &&
+                                                    actDate.getDate() === selectedDate.getDate()
+                                                );
+                                            } catch (e) {
+                                                return false;
+                                            }
+                                        });
+                                        const summary: DailySummary = generateDailySummary(filteredActivities);
+                                        const result: AnalyzeResult = analyzeActivities(summary);
+                                        setSnackbar({ open: true, message: result.suggestions.join(' ; '), severity: 'info' });
+                                    } catch (err) {
+                                        setSnackbar({ open: true, message: 'Lỗi khi phân tích', severity: 'error' });
+                                    }
+                                }}
+                                sx={{
+                                    bgcolor: '#13a4ec',
+                                    color: '#ffffff',
+                                    fontSize: '14px',
+                                    fontWeight: 700,
+                                    textTransform: 'none',
+                                    px: 2,
+                                    py: 1,
+                                    borderRadius: '12px',
+                                    '&:hover': {
+                                        bgcolor: '#0e8fd4'
+                                    }
+                                }}
+                            >
+                                Get AI Insights
+                            </MuiButton>
+                        </Box>
+                    </Box>

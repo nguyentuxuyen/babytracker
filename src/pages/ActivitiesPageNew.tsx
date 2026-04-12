@@ -181,18 +181,16 @@ const ActivitiesPage: React.FC = () => {
                     const convertedActivities = userActivities.map((activity: any) => {
                         // Normalize activity types to handle legacy data
                         let normalizedType = activity.type;
-                        if (activity.type === 'diaperChange') {
+                        const lowerType = String(activity.type).toLowerCase();
+                        if (['diaperchange', 'thay tã', 'tã', 'đi tè', 'đi ị', 'diaper'].includes(lowerType)) {
                             normalizedType = 'diaper';
-                        } else if (activity.type === 'Sữa' || activity.type === 'Bú sữa') {
-                            // legacy Vietnamese value -> feeding
+                        } else if (['sữa', 'bú sữa', 'feeding'].includes(lowerType)) {
                             normalizedType = 'feeding';
-                        } else if (activity.type === 'Ngủ') {
+                        } else if (['ngủ', 'sleep'].includes(lowerType)) {
                             normalizedType = 'sleep';
-                        } else if (activity.type === 'Thay tã') {
-                            normalizedType = 'diaper';
-                        } else if (activity.type === 'Đo lường') {
+                        } else if (['đo lường', 'số đo', 'measurement'].includes(lowerType)) {
                             normalizedType = 'measurement';
-                        } else if (activity.type === 'Ghi chú') {
+                        } else if (['ghi chú', 'memo'].includes(lowerType)) {
                             normalizedType = 'memo';
                         }
                         
@@ -802,7 +800,8 @@ const ActivitiesPage: React.FC = () => {
             // Return default stats to prevent the UI from crashing
             return defaultStats;
         }
-    }, [activities, selectedDate]);
+    }, [activities?.length, selectedDate.getTime()]) // Deep optimized dependency to prevent React thrashing
+;
 
     // Compute yesterday's stats for a brief summary line
     const yesterdayStats = useMemo(() => {
@@ -820,7 +819,8 @@ const ActivitiesPage: React.FC = () => {
                 sleep: { count: 0, totalDuration: 0 }
             } as any;
         }
-    }, [activities, selectedDate]);
+    }, [activities?.length, selectedDate.getTime()]) // Deep optimized dependency to prevent React thrashing
+;
 
     // Handle delete activity
     const handleDeleteActivity = async (activityId: string) => {

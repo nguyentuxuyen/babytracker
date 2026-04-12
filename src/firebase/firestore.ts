@@ -173,7 +173,7 @@ export const firestore = {
     
     // Get activities for user (following security rules: /users/{userId}/activities)
     // Optimized: Load last 365 days by default to ensure history visibility
-    getActivities: async (userId: string, daysToLoad: number = 365): Promise<Activity[]> => {
+    getActivities: async (userId: string, daysToLoad: number = 90): Promise<Activity[]> => {
         try {
             const activitiesRef = collection(db, 'users', userId, 'activities');
             
@@ -185,7 +185,7 @@ export const firestore = {
                 activitiesRef, 
                 where('timestamp', '>=', Timestamp.fromDate(cutoffDate)),
                 orderBy('timestamp', 'desc'),
-                limit(3000) // Increased limit to prevent data loss in view
+                limit(500) // Optimize performance by reducing fetched nodes per request // Increased limit to prevent data loss in view
             );
             const querySnapshot = await getDocs(q);
             
