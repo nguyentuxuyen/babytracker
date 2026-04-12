@@ -895,6 +895,45 @@ const ActivitiesPage: React.FC = () => {
 
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
 
+    // TÍNH TOÁN CẢNH BÁO KHOẢNG THỨC (WAKE WINDOWS WARNING)
+    const wakeWindowWarning = useMemo(() => {
+        if (!activities || activities.length === 0 || ongoingSleep) return null;
+
+        // Chỉ hiển thị cảnh báo nếu đang xem ngày hôm nay
+        const today = new Date();
+        const isToday = selectedDate.getDate() === today.getDate() && 
+                        selectedDate.getMonth() === today.getMonth() && 
+                        selectedDate.getFullYear() === today.getFullYear();
+        if (!isToday) return null;
+
+        // Ưu tiên: nếu bé chưa có hoạt động ngủ nào hôm nay nhưng có từ hôm qua, thì list activities lấy All từ DB vẫn có data
+        const sortedActivities = [...activities].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        const lastSleep = sortedActivities.find(a => a.type === 'sleep');
+        
+        if (lastSleep) {
+            const wakeTime = new Date(lastSleep.timestamp);
+            const now = currentTime || new Date();
+            const diffMs = now.getTime() - wakeTime.getTime();
+            
+            // Nếu tương lai thì bỏ qua
+            if (diffMs < 0) return null;
+
+            const diffHours = diffMs / (1000 * 60 * 60);
+
+            // Bé bù sữa/tã ở giữa thì vẫn thức, cứ tính Wake Window
+            if (diffHours >= 2.5) {
+                const hours = Math.floor(diffHours);
+                const mins = Math.floor((diffHours - hours) * 60);
+                return `Bé đã thức ${hours > 0 ? `${hours} tiếng ` : ''}${mins > 0 ? `${mins} phút` : ''}, rất dễ bị quá giấc (overtired) và gắt ngủ. Mẹ nên dỗ bé ngủ nhé!`;
+            } else if (diffHours >= 2) {
+                const hours = Math.floor(diffHours);
+                const mins = Math.floor((diffHours - hours) * 60);
+                return `Bé đã thức ${hours > 0 ? `${hours} tiếng ` : ''}${mins > 0 ? `${mins} phút` : ''}. Sắp đến giờ giấc ngủ tiếp theo, mẹ lưu ý nha!`;
+            }
+        }
+        return null;
+    }, [activities, ongoingSleep, currentTime, selectedDate]);
+
     return (
         <ErrorBoundary>
         <Box sx={{
@@ -943,6 +982,14 @@ const ActivitiesPage: React.FC = () => {
         }}
         >
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
+                {/* WAKE WINDOWS WARNING BANNER */}
+                {wakeWindowWarning && (
+                    <Alert severity="warning" sx={{ mb: 3, ...liquidGlassStyle, borderRadius: '16px', '& .MuiAlert-message': { width: '100%' } }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Cảnh báo khấc thức (Wake Windows)</Typography>
+                        <Typography variant="body2">{wakeWindowWarning}</Typography>
+                    </Alert>
+                )}
+
                 {/* Calendar Card - Liquid Glass */}
                 <Card sx={{ 
                     mb: 3, 
