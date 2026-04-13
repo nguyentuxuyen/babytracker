@@ -221,6 +221,19 @@ const ActivitiesPage: React.FC = () => {
         };
 
         loadActivities();
+
+        // Thêm listener cho iOS/PWA: Khi mở lại app từ background, tự động tải lại dữ liệu mới nhất
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                loadActivities();
+                setCurrentTime(new Date()); // Cập nhật lại đồng hồ ngay lập tức
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [currentUser]);    
 
     // Load ongoing sleep session when component mounts
@@ -237,9 +250,20 @@ const ActivitiesPage: React.FC = () => {
         };
 
         loadOngoingSleep();
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                loadOngoingSleep();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+
     }, [currentUser, baby]);
 
-    // Update sleep elapsed time every 5 minutes when there's an ongoing sleep
     useEffect(() => {
         if (!ongoingSleep) {
             setSleepElapsedTime(0);
@@ -3382,7 +3406,7 @@ const ActivitiesPage: React.FC = () => {
 
             {/* Version Text */}
             <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 4, pb: 6, color: '#a0aec0' }}>
-                Deploy 13/04/2026 - Bản số 1 (Giai đoạn 2 - Sleep Analytics & Wake Windows)
+                Deploy 13/04/2026 - Bản số 2 (Giai đoạn 2 - Fix lỗi tải trang chậm trên iOS PWA)
             </Typography>
         </Box>
         </Box>
