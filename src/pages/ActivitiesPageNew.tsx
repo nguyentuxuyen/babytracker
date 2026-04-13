@@ -3379,6 +3379,11 @@ const ActivitiesPage: React.FC = () => {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
+            {/* Version Text */}
+            <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 4, pb: 6, color: '#a0aec0' }}>
+                Deploy 13/04/2026 - Bản số 1 (Giai đoạn 2 - Sleep Analytics & Wake Windows)
+            </Typography>
         </Box>
         </Box>
         </ErrorBoundary>
