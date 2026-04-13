@@ -800,8 +800,8 @@ const ActivitiesPage: React.FC = () => {
             // Return default stats to prevent the UI from crashing
             return defaultStats;
         }
-    }, [activities?.length, selectedDate.getTime()]) // Deep optimized dependency to prevent React thrashing
-;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activities?.length, selectedDate.getTime()]);
 
     // Compute yesterday's stats for a brief summary line
     const yesterdayStats = useMemo(() => {
@@ -819,8 +819,8 @@ const ActivitiesPage: React.FC = () => {
                 sleep: { count: 0, totalDuration: 0 }
             } as any;
         }
-    }, [activities?.length, selectedDate.getTime()]) // Deep optimized dependency to prevent React thrashing
-;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activities?.length, selectedDate.getTime()]);
 
     // Handle delete activity
     const handleDeleteActivity = async (activityId: string) => {
