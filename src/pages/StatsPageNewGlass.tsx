@@ -495,6 +495,79 @@ const StatsPage: React.FC = () => {
         return chartData.reduce((sum, day) => sum + day.sleep, 0);
     }, [chartData]);
 
+    const sleepAnalytics = useMemo(() => {
+        if (!activities || activities.length === 0 || chartData.length === 0) {
+            return { longestStretch: '0h', avgNightWakings: 0, avgTotalSleep: '0h 0m' };
+        }
+
+        // TỔNG SỐ GIỜ NGỦ TRUNG BÌNH (Avg Total Sleep per day)
+        const avgDailySleepMins = totalSleep / chartData.length;
+        const avgHrs = Math.floor(avgDailySleepMins / 60);
+        const avgMins = Math.floor(avgDailySleepMins % 60);
+        const avgTotalSleep = `${avgHrs}h ${avgMins}m`;
+
+        // LỌC VÀ TÍNH 2 THÔNG SỐ: Longest Stretch & Night Wakings
+        // Lấy danh sách ngày từ chartData (DD/MM) để khớp với Activity
+        const chartDates = new Set(chartData.map(d => d.date));
+        
+        let longestStretchMins = 0;
+        const nightSleepCounts = new Map<string, number>();
+
+        // Chỉ tính cho các Sleep Activities khớp với ngày có trong chartData
+        activities.forEach(activity => {
+            if (activity.type !== 'sleep') return;
+
+            const d = new Date(activity.timestamp);
+            const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+            
+            // Có nằm trong khoảng chọn không? (Ước lượng qua ngày/tháng để đơn giản)
+            // Nếu ngày thuộc khung/nhóm đang hiển thị, hoặc ngày trước đó 1 ngày (vì giấc ngủ đêm có thể vắt qua hôm sau)
+            const prevNight = new Date(d);
+            prevNight.setDate(prevNight.getDate() - 1);
+            const prevStr = prevNight.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+            if (chartDates.has(dateStr) || chartDates.has(prevStr)) {
+                const duration = Number(activity.details?.duration || 0);
+                if (duration > longestStretchMins) {
+                    longestStretchMins = duration;
+                }
+
+                // Night Waking: xét xem giấc ngủ rơi vào "đêm" nào (18h tối -> 06h sáng)
+                const h = d.getHours();
+                if (h >= 18 || h < 6) {
+                    // Nếu sau 18h, nó thuộc đêm của ngày `d`. Nếu trước 6h, nó thuộc đêm của ngày `d - 1`
+                    const nightRef = new Date(d);
+                    if (h < 6) {
+                        nightRef.setDate(nightRef.getDate() - 1);
+                    }
+                    const refStr = nightRef.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+                    nightSleepCounts.set(refStr, (nightSleepCounts.get(refStr) || 0) + 1);
+                }
+            }
+        });
+
+        // Tính trung bình số lần giật mình / thức dậy ban đêm
+        let totalWakings = 0;
+        nightSleepCounts.forEach(count => {
+            // VD đêm ngủ 3 giấc -> thức/giật mình xen giữa 2 lần
+            if (count > 1) {
+                totalWakings += (count - 1);
+            }
+        });
+        
+        const nightCount = nightSleepCounts.size || 1;
+        const avgNightWakings = Math.round((totalWakings / nightCount) * 10) / 10;
+        
+        const lsHrs = Math.floor(longestStretchMins / 60);
+        const lsMins = Math.floor(longestStretchMins % 60);
+
+        return {
+            longestStretch: `${lsHrs}h ${lsMins}m`,
+            avgNightWakings,
+            avgTotalSleep
+        };
+    }, [activities, chartData, totalSleep]);
+
     // Compute slider limits based on baby's birth date so user cannot select ranges before birth
     const sliderLimits = useMemo(() => {
         const today = new Date();
@@ -972,7 +1045,7 @@ const StatsPage: React.FC = () => {
                         </Card>
                     </Grid>
 
-                    {/* Sleep Duration Card */}
+                    {/* Sleep Analytics Card */}
                     <Grid item xs={12} sm={6} lg={4}>
                         <Card sx={{
                             bgcolor: '#ffffff',
@@ -982,13 +1055,36 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                Sleep Duration
+                                Sleep Analytics (Giấc Ngủ)
                             </Typography>
-                            <Typography sx={{ fontSize: '32px', fontWeight: 700, color: '#101c22', mb: 0.5 }}>
-                                {Math.floor(totalSleep / 60)} hours
-                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 3, mb: 1, mt: 2 }}>
+                                <Box>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
+                                        Avg Total Sleep
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
+                                        {sleepAnalytics.avgTotalSleep}
+                                    </Typography>
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
+                                        Longest Stretch
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
+                                        {sleepAnalytics.longestStretch}
+                                    </Typography>
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
+                                        Night Wakings
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
+                                        {sleepAnalytics.avgNightWakings} / night
+                                    </Typography>
+                                </Box>
+                            </Box>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
-                                {getPeriodLabel()}
+                                {getPeriodLabel()} - Tổng {Math.floor(totalSleep / 60)}h
                             </Typography>
 
                             {/* Chart Area */}
