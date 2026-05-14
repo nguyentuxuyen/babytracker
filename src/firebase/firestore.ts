@@ -172,12 +172,12 @@ export const firestore = {
     },
     
     // Get activities for user (following security rules: /users/{userId}/activities)
-    // Optimized: Load last 365 days by default to ensure history visibility
-    getActivities: async (userId: string, daysToLoad: number = 90): Promise<Activity[]> => {
+    // Load full history (10 years) to ensure all measurements are available for growth charts
+    getActivities: async (userId: string, daysToLoad: number = 3650): Promise<Activity[]> => {
         try {
             const activitiesRef = collection(db, 'users', userId, 'activities');
             
-            // Calculate date 365 days ago
+            // Calculate date N days ago
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - daysToLoad);
             
@@ -185,7 +185,7 @@ export const firestore = {
                 activitiesRef, 
                 where('timestamp', '>=', Timestamp.fromDate(cutoffDate)),
                 orderBy('timestamp', 'desc'),
-                limit(500) // Optimize performance by reducing fetched nodes per request // Increased limit to prevent data loss in view
+                limit(3000) // Load all historical data for growth charts and analytics
             );
             const querySnapshot = await getDocs(q);
             
