@@ -225,14 +225,33 @@ const ActivitiesPage: React.FC = () => {
         // Thêm listener cho iOS/PWA: Khi mở lại app từ background, tự động tải lại dữ liệu mới nhất
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                loadActivities();
-                setCurrentTime(new Date()); // Cập nhật lại đồng hồ ngay lập tức
+                // iOS PWA freezes rendering briefly, so delay reload slightly to avoid race conditions
+                const reloadDelay = navigator.userAgent.includes('iPad') || navigator.userAgent.includes('iPhone') ? 500 : 0;
+                setTimeout(() => {
+                    loadActivities();
+                    setCurrentTime(new Date()); // Cập nhật lại đồng hồ ngay lập tức
+                }, reloadDelay);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
+        const handleOfflineSyncComplete = (event: Event) => {
+            const syncEvent = event as CustomEvent<{ synced: number; failed: number }>;
+            const syncedCount = syncEvent.detail?.synced || 0;
+            if (syncedCount > 0) {
+                loadActivities();
+                setSnackbar({
+                    open: true,
+                    message: `Đã đồng bộ ${syncedCount} hoạt động đã lưu offline.`,
+                    severity: 'success'
+                });
+            }
+        };
+        window.addEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
+
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
         };
     }, [currentUser]);    
 
@@ -391,8 +410,10 @@ const ActivitiesPage: React.FC = () => {
                 setOngoingSleep(null);
                 setSnackbar({
                     open: true,
-                    message: `Đã ghi lại giấc ngủ: ${sleepData.duration} phút! 😴`,
-                    severity: 'success'
+                    message: savedActivity.id.startsWith('offline-')
+                        ? `Đã lưu offline giấc ngủ: ${sleepData.duration} phút. Sẽ tự đồng bộ khi có mạng.`
+                        : `Đã ghi lại giấc ngủ: ${sleepData.duration} phút! 😴`,
+                    severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                 });
             }
         } catch (error) {
@@ -559,8 +580,10 @@ const ActivitiesPage: React.FC = () => {
                 ) || []);
                 setSnackbar({
                     open: true,
-                    message: 'Hoạt động đã được cập nhật!',
-                    severity: 'success'
+                    message: savedActivity.id.startsWith('offline-')
+                        ? 'Đã cập nhật offline. Dữ liệu sẽ tự đồng bộ khi có mạng.'
+                        : 'Hoạt động đã được cập nhật!',
+                    severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                 });
                 setEditingActivity(null);
             } else {
@@ -644,13 +667,16 @@ const ActivitiesPage: React.FC = () => {
                     setActivities([...newActivities, ...(activities || [])]);
                     
                     const successCount = newActivities.length;
+                    const offlineCount = newActivities.filter(activity => activity.id.startsWith('offline-')).length;
                     const errorCount = validTimes.length - successCount;
                     
                     if (errorCount === 0) {
                         setSnackbar({
                             open: true,
-                            message: `Đã tạo thành công ${successCount} hoạt động!`,
-                            severity: 'success'
+                            message: offlineCount > 0
+                                ? `Đã tạo ${successCount} hoạt động (${offlineCount} lưu offline, sẽ tự đồng bộ).`
+                                : `Đã tạo thành công ${successCount} hoạt động!`,
+                            severity: offlineCount > 0 ? 'info' : 'success'
                         });
                     } else {
                         setSnackbar({
@@ -671,8 +697,10 @@ const ActivitiesPage: React.FC = () => {
                     setActivities([localActivity, ...(activities || [])]);
                     setSnackbar({
                         open: true,
-                        message: 'Hoạt động đã được lưu!',
-                        severity: 'success'
+                        message: savedActivity.id.startsWith('offline-')
+                            ? 'Đã lưu offline! Dữ liệu sẽ tự đồng bộ khi có mạng.'
+                            : 'Hoạt động đã được lưu!',
+                        severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                     });
                 }
             }

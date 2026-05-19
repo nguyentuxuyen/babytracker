@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme/theme';
@@ -7,11 +7,17 @@ import { BabyProvider, useBaby } from './contexts/BabyContext';
 import { DateProvider } from './contexts/DateContext';
 import AppRouter from './routes/AppRouter';
 import BabyInfoPage from './pages/BabyInfoPageNew';
+import { firestore } from './firebase/firestore';
+import { loadReminderSettings, saveReminderSettings } from './utils/reminderSettings';
+import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 
 import {
     AccountCircle as AccountCircleIcon,
     ChildCare as ChildCareIcon,
     Logout as LogoutIcon,
+    Notifications as NotificationsIcon,
+    NotificationsOff as NotificationsOffIcon,
+    Send as SendIcon
 } from '@mui/icons-material';
 import { Box } from '@mui/material';
 
@@ -20,7 +26,33 @@ const HeaderComponent: React.FC<{
     currentUser: any;
     logout: () => Promise<void>;
     onShowBabyInfo: () => void;
-}> = ({ currentUser, logout, onShowBabyInfo }) => {
+    isOnline: boolean;
+    pendingSyncCount: number;
+    isSyncing: boolean;
+    reminderEnabled: boolean;
+    reminderIntervalMinutes: number;
+    notificationPermission: NotificationPermission | 'unsupported';
+    pushSupported: boolean;
+    pushEnabled: boolean;
+    onToggleReminder: () => void;
+    onChangeReminderInterval: (minutes: number) => void;
+    onSendTestPush: () => void;
+}> = ({
+    currentUser,
+    logout,
+    onShowBabyInfo,
+    isOnline,
+    pendingSyncCount,
+    isSyncing,
+    reminderEnabled,
+    reminderIntervalMinutes,
+    notificationPermission,
+    pushSupported,
+    pushEnabled,
+    onToggleReminder,
+    onChangeReminderInterval,
+    onSendTestPush
+}) => {
     const { baby } = useBaby();
     const [showMenu, setShowMenu] = useState(false);
 
@@ -100,6 +132,68 @@ const HeaderComponent: React.FC<{
                             return '';
                         })()}
                     </div>
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                        {!isOnline && (
+                            <div style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#ffffff',
+                                backgroundColor: '#ef4444',
+                                borderRadius: '999px',
+                                padding: '2px 8px'
+                            }}>
+                                Offline mode
+                            </div>
+                        )}
+                        {isOnline && pendingSyncCount > 0 && (
+                            <div style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#ffffff',
+                                backgroundColor: '#f59e0b',
+                                borderRadius: '999px',
+                                padding: '2px 8px'
+                            }}>
+                                {pendingSyncCount} đang chờ đồng bộ
+                            </div>
+                        )}
+                        {isSyncing && (
+                            <div style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#ffffff',
+                                backgroundColor: '#13a4ec',
+                                borderRadius: '999px',
+                                padding: '2px 8px'
+                            }}>
+                                Đang đồng bộ...
+                            </div>
+                        )}
+                        {reminderEnabled && (
+                            <div style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#ffffff',
+                                backgroundColor: '#10b981',
+                                borderRadius: '999px',
+                                padding: '2px 8px'
+                            }}>
+                                Nhắc nhở mỗi {Math.round(reminderIntervalMinutes / 60)}h
+                            </div>
+                        )}
+                        {pushEnabled && (
+                            <div style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#ffffff',
+                                backgroundColor: '#0f766e',
+                                borderRadius: '999px',
+                                padding: '2px 8px'
+                            }}>
+                                Push server: bật
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Right side - Avatar */}
@@ -170,6 +264,85 @@ const HeaderComponent: React.FC<{
                                 Thông tin bé
                             </button>
                             <button
+                                onClick={onToggleReminder}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    background: 'none',
+                                    border: 'none',
+                                    borderTop: '1px solid #e5e7eb',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: '#101c22',
+                                    fontWeight: '500',
+                                    transition: 'background-color 0.2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
+                                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                            >
+                                {reminderEnabled ? (
+                                    <NotificationsIcon sx={{ fontSize: '20px', color: '#10b981' }} />
+                                ) : (
+                                    <NotificationsOffIcon sx={{ fontSize: '20px', color: '#6b7f8a' }} />
+                                )}
+                                {reminderEnabled ? 'Tắt nhắc nhở' : 'Bật nhắc nhở'}
+                            </button>
+                            <div style={{
+                                borderTop: '1px solid #e5e7eb',
+                                padding: '10px 16px',
+                                fontSize: '12px',
+                                color: '#6b7f8a'
+                            }}>
+                                Trạng thái thông báo: {notificationPermission}
+                                <div style={{ marginTop: '6px' }}>
+                                    Push server: {pushSupported ? (pushEnabled ? 'enabled' : 'disabled') : 'unsupported'}
+                                </div>
+                                <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                    {[60, 120, 180, 240].map((minutes) => (
+                                        <button
+                                            key={minutes}
+                                            onClick={() => onChangeReminderInterval(minutes)}
+                                            style={{
+                                                border: 'none',
+                                                borderRadius: '999px',
+                                                padding: '4px 8px',
+                                                fontSize: '11px',
+                                                cursor: 'pointer',
+                                                color: reminderIntervalMinutes === minutes ? '#ffffff' : '#334155',
+                                                backgroundColor: reminderIntervalMinutes === minutes ? '#13a4ec' : '#e5e7eb'
+                                            }}
+                                        >
+                                            {minutes / 60}h
+                                        </button>
+                                    ))}
+                                </div>
+                                {pushSupported && (
+                                    <button
+                                        onClick={onSendTestPush}
+                                        style={{
+                                            marginTop: '8px',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            padding: '6px 10px',
+                                            fontSize: '12px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            color: '#ffffff',
+                                            backgroundColor: '#0f766e'
+                                        }}
+                                    >
+                                        <SendIcon sx={{ fontSize: '16px' }} />
+                                        Gửi test push
+                                    </button>
+                                )}
+                            </div>
+                            <button
                                 onClick={async () => {
                                     try {
                                         await logout();
@@ -212,7 +385,209 @@ const HeaderComponent: React.FC<{
 // Main App Component
 const MainApp: React.FC = () => {
     const { currentUser, logout, loading } = useAuth();
+    const { baby } = useBaby();
     const [showBabyInfo, setShowBabyInfo] = useState(false);
+    const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [reminderEnabled, setReminderEnabled] = useState(false);
+    const [reminderIntervalMinutes, setReminderIntervalMinutes] = useState(180);
+    const [lastReminderAt, setLastReminderAt] = useState<string | null>(null);
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>(
+        typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+    );
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [pushSupported, setPushSupported] = useState(false);
+
+    const refreshPendingSyncCount = useCallback(async () => {
+        if (!currentUser?.uid) {
+            setPendingSyncCount(0);
+            return;
+        }
+        const count = await firestore.getPendingActivitiesCount(currentUser.uid);
+        setPendingSyncCount(count);
+    }, [currentUser?.uid]);
+
+    const syncPendingActivities = useCallback(async () => {
+        if (!currentUser?.uid) return;
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+        setIsSyncing(true);
+        try {
+            await firestore.syncPendingActivities(currentUser.uid);
+        } finally {
+            setIsSyncing(false);
+            await refreshPendingSyncCount();
+        }
+    }, [currentUser?.uid, refreshPendingSyncCount]);
+
+    useEffect(() => {
+        if (!currentUser?.uid) {
+            setPendingSyncCount(0);
+            return;
+        }
+
+        const handleOnline = () => {
+            setIsOnline(true);
+            void syncPendingActivities();
+        };
+
+        const handleOffline = () => {
+            setIsOnline(false);
+        };
+
+        const handleQueueUpdated = () => {
+            void refreshPendingSyncCount();
+        };
+
+        void refreshPendingSyncCount();
+        if (typeof navigator === 'undefined' || navigator.onLine) {
+            void syncPendingActivities();
+        }
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        window.addEventListener('offline-queue-updated', handleQueueUpdated as EventListener);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('offline-queue-updated', handleQueueUpdated as EventListener);
+        };
+    }, [currentUser?.uid, refreshPendingSyncCount, syncPendingActivities]);
+
+    useEffect(() => {
+        const settings = loadReminderSettings();
+        setReminderEnabled(settings.enabled);
+        setReminderIntervalMinutes(settings.intervalMinutes);
+        setLastReminderAt(settings.lastReminderAt);
+        setPushSupported(isPushSupported());
+        if (typeof Notification !== 'undefined') {
+            setNotificationPermission(Notification.permission);
+        }
+    }, []);
+
+    useEffect(() => {
+        saveReminderSettings({
+            enabled: reminderEnabled,
+            intervalMinutes: reminderIntervalMinutes,
+            lastReminderAt
+        });
+    }, [reminderEnabled, reminderIntervalMinutes, lastReminderAt]);
+
+    const onToggleReminder = useCallback(async () => {
+        if (typeof Notification === 'undefined') {
+            setNotificationPermission('unsupported');
+            return;
+        }
+
+        if (reminderEnabled) {
+            setReminderEnabled(false);
+            if (pushSupported && currentUser) {
+                try {
+                    await unsubscribeUserFromPush(currentUser);
+                } catch (error) {
+                    console.error('Failed to unsubscribe push:', error);
+                }
+            }
+            setPushEnabled(false);
+            return;
+        }
+
+        if (Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            setNotificationPermission(permission);
+            if (permission !== 'granted') {
+                setReminderEnabled(false);
+                return;
+            }
+        } else {
+            setNotificationPermission('granted');
+        }
+
+        setReminderEnabled(true);
+        if (pushSupported && currentUser) {
+            try {
+                await subscribeUserToPush(currentUser, reminderIntervalMinutes);
+                setPushEnabled(true);
+            } catch (error) {
+                console.error('Failed to subscribe push (fallback to local notifications):', error);
+                setPushEnabled(false);
+            }
+        }
+    }, [reminderEnabled, pushSupported, currentUser, reminderIntervalMinutes]);
+
+    const onChangeReminderInterval = useCallback(async (minutes: number) => {
+        setReminderIntervalMinutes(minutes);
+        if (reminderEnabled && pushSupported && currentUser) {
+            try {
+                await subscribeUserToPush(currentUser, minutes);
+                setPushEnabled(true);
+            } catch (error) {
+                console.error('Failed to update push interval:', error);
+            }
+        }
+    }, [reminderEnabled, pushSupported, currentUser]);
+
+    const onSendTestPush = useCallback(async () => {
+        if (!currentUser || !pushSupported) return;
+        try {
+            await sendTestPushNotification(currentUser);
+        } catch (error) {
+            console.error('Failed to send test push:', error);
+        }
+    }, [currentUser, pushSupported]);
+
+    useEffect(() => {
+        if (!reminderEnabled) return;
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
+        const timer = window.setInterval(() => {
+            const now = new Date();
+            const last = lastReminderAt ? new Date(lastReminderAt) : null;
+            const elapsedMinutes = last ? (now.getTime() - last.getTime()) / (1000 * 60) : Infinity;
+
+            if (elapsedMinutes < reminderIntervalMinutes) {
+                return;
+            }
+
+            const babyName = baby?.name ? ` cho ${baby.name}` : '';
+            new Notification('Baby Tracker Reminder', {
+                body: `Đã đến lúc cập nhật hoạt động${babyName} 👶`,
+                icon: `${process.env.PUBLIC_URL}/icon-192.svg`,
+                badge: `${process.env.PUBLIC_URL}/icon-192.svg`
+            });
+            setLastReminderAt(now.toISOString());
+        }, 60 * 1000);
+
+        return () => {
+            window.clearInterval(timer);
+        };
+    }, [reminderEnabled, reminderIntervalMinutes, lastReminderAt, baby?.name]);
+
+    useEffect(() => {
+        if (!pushSupported || !currentUser) {
+            setPushEnabled(false);
+            return;
+        }
+
+        let cancelled = false;
+        navigator.serviceWorker.ready
+            .then((registration) => registration.pushManager.getSubscription())
+            .then((subscription) => {
+                if (!cancelled) {
+                    setPushEnabled(Boolean(subscription));
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setPushEnabled(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [pushSupported, currentUser]);
 
     // Show loading spinner while checking auth
     if (loading) {
@@ -253,6 +628,17 @@ const MainApp: React.FC = () => {
                 currentUser={currentUser}
                 logout={logout}
                 onShowBabyInfo={() => setShowBabyInfo(true)}
+                isOnline={isOnline}
+                pendingSyncCount={pendingSyncCount}
+                isSyncing={isSyncing}
+                reminderEnabled={reminderEnabled}
+                reminderIntervalMinutes={reminderIntervalMinutes}
+                notificationPermission={notificationPermission}
+                pushSupported={pushSupported}
+                pushEnabled={pushEnabled}
+                onToggleReminder={onToggleReminder}
+                onChangeReminderInterval={onChangeReminderInterval}
+                onSendTestPush={onSendTestPush}
             />
 
             {/* Main content with router and bottom nav */}

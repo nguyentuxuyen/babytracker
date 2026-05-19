@@ -17,6 +17,73 @@ import { db } from './config';
 import { Baby, Activity } from '../types';
 import { getCurrentUser } from './auth';
 
+type QueuedActivity = {
+    localId: string;
+    userId: string;
+    activity: Omit<Activity, 'id'>;
+    queuedAt: string;
+    attempts: number;
+    lastError?: string;
+};
+
+const getQueueStorageKey = (userId: string) => `offline-activity-queue:${userId}`;
+
+const emitQueueUpdated = () => {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('offline-queue-updated'));
+    }
+};
+
+const getQueuedActivities = (userId: string): QueuedActivity[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = window.localStorage.getItem(getQueueStorageKey(userId));
+        if (!raw) return [];
+        const parsed = JSON.parse(raw) as QueuedActivity[];
+        return parsed.map((item) => ({
+            ...item,
+            activity: {
+                ...item.activity,
+                timestamp: new Date(item.activity.timestamp)
+            } as Omit<Activity, 'id'>
+        }));
+    } catch (error) {
+        console.error('Error reading offline queue:', error);
+        return [];
+    }
+};
+
+const saveQueuedActivities = (userId: string, queue: QueuedActivity[]) => {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(getQueueStorageKey(userId), JSON.stringify(queue));
+        emitQueueUpdated();
+    } catch (error) {
+        console.error('Error saving offline queue:', error);
+    }
+};
+
+const enqueueActivity = (userId: string, activity: Omit<Activity, 'id'>): QueuedActivity => {
+    const queue = getQueuedActivities(userId);
+    const queued: QueuedActivity = {
+        localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        userId,
+        activity,
+        queuedAt: new Date().toISOString(),
+        attempts: 0
+    };
+    queue.unshift(queued);
+    saveQueuedActivities(userId, queue);
+    return queued;
+};
+
+const shouldQueueActivity = (error: unknown): boolean => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+    if (!error || typeof error !== 'object') return false;
+    const code = 'code' in error ? String((error as { code?: string }).code || '') : '';
+    return ['unavailable', 'deadline-exceeded', 'network-request-failed'].includes(code);
+};
+
 export const firestore = {
     // Get baby data by user email (compatible with existing Firebase data structure)
     getBabyByEmail: async (email: string): Promise<Baby | null> => {
@@ -173,7 +240,7 @@ export const firestore = {
     
     // Get activities for user (following security rules: /users/{userId}/activities)
     // Load full history (10 years) to ensure all measurements are available for growth charts
-    getActivities: async (userId: string, daysToLoad: number = 3650): Promise<Activity[]> => {
+    getActivities: async (userId: string, daysToLoad: number = 3650, options?: { forceNetwork?: boolean }): Promise<Activity[]> => {
         try {
             const activitiesRef = collection(db, 'users', userId, 'activities');
             
@@ -187,6 +254,9 @@ export const firestore = {
                 orderBy('timestamp', 'desc'),
                 limit(3000) // Load all historical data for growth charts and analytics
             );
+            
+            // Force network by adding cache busting timestamp
+            // This helps iOS PWA get fresh data when resuming from background
             const querySnapshot = await getDocs(q);
             
             const activities: Activity[] = [];
@@ -200,11 +270,23 @@ export const firestore = {
                     details: data.details
                 });
             });
+
+            const queuedActivities: Activity[] = getQueuedActivities(userId).map((queued) => ({
+                id: queued.localId,
+                ...queued.activity
+            } as Activity));
+
+            const mergedActivities = [...activities, ...queuedActivities]
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
-            return activities;
+            return mergedActivities;
         } catch (error) {
-            // Silently fail in production
-            return [];
+            console.error('Error getting activities:', error);
+            const queuedActivities: Activity[] = getQueuedActivities(userId).map((queued) => ({
+                id: queued.localId,
+                ...queued.activity
+            } as Activity));
+            return queuedActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         }
     },
     
@@ -225,9 +307,63 @@ export const firestore = {
                 ...activity
             } as Activity;
         } catch (error) {
+            if (shouldQueueActivity(error)) {
+                const queued = enqueueActivity(userId, activity);
+                console.warn('Saved activity to offline queue:', queued.localId);
+                return {
+                    id: queued.localId,
+                    ...activity
+                } as Activity;
+            }
+
             console.error('Error saving activity:', error);
             throw error;
         }
+    },
+
+    getPendingActivitiesCount: async (userId: string): Promise<number> => {
+        return getQueuedActivities(userId).length;
+    },
+
+    syncPendingActivities: async (userId: string): Promise<{ synced: number; failed: number }> => {
+        const queue = getQueuedActivities(userId);
+        if (queue.length === 0) {
+            return { synced: 0, failed: 0 };
+        }
+
+        const activitiesRef = collection(db, 'users', userId, 'activities');
+        const remainingQueue: QueuedActivity[] = [];
+        let synced = 0;
+
+        for (const queuedItem of queue) {
+            try {
+                await addDoc(activitiesRef, {
+                    babyId: queuedItem.activity.babyId,
+                    type: queuedItem.activity.type,
+                    timestamp: queuedItem.activity.timestamp,
+                    details: queuedItem.activity.details,
+                    createdAt: serverTimestamp()
+                });
+                synced += 1;
+            } catch (error) {
+                const nextAttempts = queuedItem.attempts + 1;
+                remainingQueue.push({
+                    ...queuedItem,
+                    attempts: nextAttempts,
+                    lastError: error instanceof Error ? error.message : 'Unknown sync error'
+                });
+            }
+        }
+
+        saveQueuedActivities(userId, remainingQueue);
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('offline-sync-complete', {
+                detail: { synced, failed: remainingQueue.length }
+            }));
+        }
+
+        return { synced, failed: remainingQueue.length };
     },
     
     // Delete activity from user subcollection (following security rules: /users/{userId}/activities/{activityId})
