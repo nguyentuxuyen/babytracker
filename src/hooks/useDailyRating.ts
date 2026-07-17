@@ -1,2 +1,0 @@
-// useDailyRating hook - placeholder
-export {};

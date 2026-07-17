@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo, Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom';
 import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Card, CardContent, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
 import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
-import { generateDailySummary, analyzeActivities, DailySummary, AnalyzeResult } from '../services/aiService';
+import { AssistantComposer } from '../components/common/AssistantComposer';
 
 // 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
 const liquidGlassStyle = {
@@ -65,8 +66,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 }
 
 const ActivitiesPage: React.FC = () => {
-    const { baby } = useBaby();
+    const { baby, refreshActivities } = useBaby();
     const { selectedDate, setSelectedDate } = useDateContext();
+    const location = useLocation();
+    const isRecentActivitiesTab = location.pathname === '/recent-activities';
     const [activities, setActivities] = useState<Activity[]>();
     const [loading, setLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
@@ -76,12 +79,6 @@ const ActivitiesPage: React.FC = () => {
     const [ongoingSleep, setOngoingSleep] = useState<{ startTime: Date } | null>(null);
     const [sleepElapsedTime, setSleepElapsedTime] = useState<number>(0); // in seconds
 
-    // Daily rating state
-    const [dailyRating, setDailyRating] = useState<number>(0); // 0 = not rated, 1-5 = star rating
-    const [dailyRatingNotes, setDailyRatingNotes] = useState<string>('');
-    const [hoveredStar, setHoveredStar] = useState<number>(0);
-    const [monthRatings, setMonthRatings] = useState<Map<string, number>>(new Map()); // Map of date string to rating
-    
     // Real-time update state for time since last activity
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -304,49 +301,6 @@ const ActivitiesPage: React.FC = () => {
         return () => clearInterval(interval);
     }, [ongoingSleep]);
 
-    // Load daily rating when selectedDate changes
-    useEffect(() => {
-        const loadDailyRating = async () => {
-            if (currentUser?.uid && baby?.id && selectedDate) {
-                try {
-                    const rating = await firestore.getDailyRating(currentUser.uid, baby.id, selectedDate);
-                    if (rating) {
-                        setDailyRating(rating.rating);
-                        setDailyRatingNotes(rating.notes || '');
-                    } else {
-                        setDailyRating(0);
-                        setDailyRatingNotes('');
-                    }
-                } catch (error) {
-                    // Error loading daily rating - silently fail in production
-                }
-            }
-        };
-
-        loadDailyRating();
-    }, [currentUser, baby, selectedDate]);
-
-    // Load ratings for the current month (for calendar display)
-    useEffect(() => {
-        const loadMonthRatings = async () => {
-            if (currentUser?.uid && selectedDate) {
-                try {
-                    const year = selectedDate.getFullYear();
-                    const month = selectedDate.getMonth();
-                    const startDate = new Date(year, month, 1);
-                    const endDate = new Date(year, month + 1, 0);
-                    
-                    const ratings = await firestore.getDailyRatingsForRange(currentUser.uid, startDate, endDate);
-                    setMonthRatings(ratings);
-                } catch (error) {
-                    // Error loading month ratings - silently fail in production
-                }
-            }
-        };
-
-        loadMonthRatings();
-    }, [currentUser, selectedDate]);
-
     // Handle start sleep
     const handleStartSleep = async () => {
         if (!currentUser?.uid || !baby?.id) {
@@ -425,37 +379,6 @@ const ActivitiesPage: React.FC = () => {
             });
         } finally {
             setLoading(false);
-        }
-    };
-
-    // Handle save daily rating
-    const handleSaveDailyRating = async (rating: number) => {
-        if (!currentUser?.uid || !baby?.id) return;
-
-        try {
-            const success = await firestore.saveDailyRating(
-                currentUser.uid,
-                baby.id,
-                selectedDate,
-                rating,
-                dailyRatingNotes
-            );
-
-            if (success) {
-                setDailyRating(rating);
-                const label = rating === 5 ? 'Tuyệt vời' : rating === 4 ? 'Tốt' : rating === 3 ? 'Bình thường' : rating === 2 ? 'Khó khăn' : 'Vất vả';
-                setSnackbar({
-                    open: true,
-                    message: `Đã đánh giá: ${label}`,
-                    severity: 'success'
-                });
-            }
-        } catch (error) {
-            setSnackbar({
-                open: true,
-                message: 'Có lỗi khi lưu đánh giá!',
-                severity: 'error'
-            });
         }
     };
 
@@ -789,25 +712,25 @@ const ActivitiesPage: React.FC = () => {
 
     const getActivityLabel = (type: string) => {
         switch (type) {
-            case 'feeding': return 'Feeding';
-            case 'sleep': return 'Sleep';
-            case 'diaper': return 'Diaper change';
-            case 'measurement': return 'Measurement';
-            case 'bath': return 'Bath';
-            case 'memo': return 'Memo';
-            default: return 'Other';
+            case 'feeding': return '授乳';
+            case 'sleep': return '睡眠';
+            case 'diaper': return 'おむつ';
+            case 'measurement': return '計測';
+            case 'bath': return 'お風呂';
+            case 'memo': return 'メモ';
+            default: return 'その他';
         }
     };
 
     const getActivityTitle = (type: string) => {
         switch (type) {
-            case 'feeding': return 'Add Milk';
-            case 'sleep': return 'Add Sleep';
-            case 'diaper': return 'Add Diaper';
-            case 'measurement': return 'Add Measurement';
-            case 'bath': return 'Add Bath';
-            case 'memo': return 'Add Memo';
-            default: return 'Add activity';
+            case 'feeding': return '授乳を追加';
+            case 'sleep': return '睡眠を追加';
+            case 'diaper': return 'おむつを追加';
+            case 'measurement': return '計測を追加';
+            case 'bath': return 'お風呂を追加';
+            case 'memo': return 'メモを追加';
+            default: return 'アクティビティを追加';
         }
     };
 
@@ -1034,6 +957,7 @@ const ActivitiesPage: React.FC = () => {
         }}
         >
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: isRecentActivitiesTab ? 'none' : 'block' }}>
                 {/* WAKE WINDOWS WARNING BANNER */}
                 {wakeWindowWarning && (
                     <Alert severity="warning" sx={{ mb: 3, ...liquidGlassStyle, borderRadius: '16px', '& .MuiAlert-message': { width: '100%' } }}>
@@ -1041,6 +965,12 @@ const ActivitiesPage: React.FC = () => {
                         <Typography variant="body2">{wakeWindowWarning}</Typography>
                     </Alert>
                 )}
+
+                <AssistantComposer
+                    babyId={baby?.id}
+                    selectedDate={selectedDate}
+                    onCommitted={refreshActivities}
+                />
 
                 {/* Calendar Card - Liquid Glass */}
                 <Card sx={{ 
@@ -1174,10 +1104,6 @@ const ActivitiesPage: React.FC = () => {
                                     const isSelected = date.getTime() === selected.getTime();
                                     const isFuture = date > today;
                                     
-                                    // Get rating for this day
-                                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                    const dayRating = monthRatings.get(dateStr);
-                                    
                                     days.push(
                                         <Box
                                             key={day}
@@ -1208,22 +1134,6 @@ const ActivitiesPage: React.FC = () => {
                                             }}
                                         >
                                             <span style={{ fontSize: '14px' }}>{day}</span>
-                                            {dayRating && (
-                                                <Box sx={{ 
-                                                    position: 'absolute',
-                                                    bottom: 2,
-                                                    left: '50%',
-                                                    transform: 'translateX(-50%)',
-                                                    width: 6,
-                                                    height: 6,
-                                                    borderRadius: '50%',
-                                                    backgroundColor: 
-                                                        dayRating === 5 ? '#10b981' : 
-                                                        dayRating === 4 ? '#3b82f6' : 
-                                                        dayRating === 3 ? '#f59e0b' : 
-                                                        dayRating === 2 ? '#f97316' : '#ef4444'
-                                                }} />
-                                            )}
                                         </Box>
                                     );
                                 }
@@ -1248,125 +1158,6 @@ const ActivitiesPage: React.FC = () => {
                             </MuiButton>
                         </Box>
                         </>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Daily Rating Card - Liquid Glass */}
-                <Card sx={{ 
-                    mb: 3, 
-                    mx: 0,
-                    ...liquidGlassStyle
-                }}>
-                    <CardContent sx={{ p: '16px' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                            <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22' }}>
-                                Đánh giá ngày hôm nay
-                            </Typography>
-                            <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>
-                                {selectedDate.toLocaleDateString('vi-VN')}
-                            </Typography>
-                        </Box>
-                        
-                        {/* Emotion Rating */}
-                        <Box sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: 1.5,
-                            justifyContent: 'center',
-                            my: 2
-                        }}>
-                            {[
-                                { value: 5, label: 'Tuyệt vời', color: '#10b981', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
-                                { value: 4, label: 'Tốt', color: '#3b82f6', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 9c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
-                                { value: 3, label: 'Bình thường', color: '#f59e0b', icon: 'M9 14h6v1.5H9z M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11z' },
-                                { value: 2, label: 'Khó khăn', color: '#f97316', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 3c-2.33 0-4.32 1.45-5.12 3.5h1.67c.69-1.19 1.97-2 3.45-2s2.75.81 3.45,2h1.67c-.8-2.05-2.79-3.5-5.12-3.5z' },
-                                { value: 1, label: 'Vất vả', color: '#ef4444', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 9c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8-2.04-2.78-3.5-5.11-3.5z' }
-                            ].map((emotion) => (
-                                <Box
-                                    key={emotion.value}
-                                    onClick={() => handleSaveDailyRating(emotion.value)}
-                                    onMouseEnter={() => setHoveredStar(emotion.value)}
-                                    onMouseLeave={() => setHoveredStar(0)}
-                                    sx={{
-                                        cursor: 'pointer',
-                                        width: 48,
-                                        height: 48,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: '50%',
-                                        backgroundColor: (hoveredStar === emotion.value || dailyRating === emotion.value) 
-                                            ? emotion.color 
-                                            : dailyRating > 0 && dailyRating !== emotion.value 
-                                                ? '#f3f4f6' 
-                                                : '#f9fafb',
-                                        border: `2px solid ${emotion.color}`,
-                                        transition: 'all 0.2s',
-                                        transform: (hoveredStar === emotion.value || dailyRating === emotion.value) ? 'scale(1.15)' : 'scale(1)',
-                                        boxShadow: (hoveredStar === emotion.value || dailyRating === emotion.value) 
-                                            ? `0 4px 12px ${emotion.color}40` 
-                                            : 'none',
-                                        '&:hover': {
-                                            transform: 'scale(1.2)',
-                                            boxShadow: `0 6px 16px ${emotion.color}60`
-                                        }
-                                    }}
-                                >
-                                    <svg 
-                                        width="28" 
-                                        height="28" 
-                                        viewBox="0 0 24 24" 
-                                        fill={(hoveredStar === emotion.value || dailyRating === emotion.value) ? '#ffffff' : emotion.color}
-                                    >
-                                        <path d={emotion.icon} />
-                                    </svg>
-                                </Box>
-                            ))}
-                        </Box>
-
-                        {dailyRating > 0 && (
-                            <Typography sx={{ 
-                                textAlign: 'center', 
-                                fontSize: '14px', 
-                                fontWeight: 600,
-                                color: dailyRating === 5 ? '#10b981' : 
-                                       dailyRating === 4 ? '#3b82f6' : 
-                                       dailyRating === 3 ? '#f59e0b' : 
-                                       dailyRating === 2 ? '#f97316' : '#ef4444',
-                                mt: 1
-                            }}>
-                                {dailyRating === 5 && 'Ngày tuyệt vời!'}
-                                {dailyRating === 4 && 'Ngày tốt!'}
-                                {dailyRating === 3 && 'Ngày bình thường'}
-                                {dailyRating === 2 && 'Ngày khó khăn'}
-                                {dailyRating === 1 && 'Ngày vất vả'}
-                            </Typography>
-                        )}
-
-                        {/* Optional Notes */}
-                        {dailyRating > 0 && (
-                            <Box sx={{ mt: 2 }}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={2}
-                                    placeholder="Ghi chú về ngày hôm nay... (không bắt buộc)"
-                                    value={dailyRatingNotes}
-                                    onChange={(e) => setDailyRatingNotes(e.target.value)}
-                                    onBlur={() => {
-                                        if (dailyRating > 0) {
-                                            handleSaveDailyRating(dailyRating);
-                                        }
-                                    }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            fontSize: '14px',
-                                            borderRadius: '8px'
-                                        }
-                                    }}
-                                />
-                            </Box>
                         )}
                     </CardContent>
                 </Card>
@@ -1763,57 +1554,14 @@ const ActivitiesPage: React.FC = () => {
                             </Box>
                         </Box>
                         
-                        {/* AI Insights Button */}
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
-                            <MuiButton
-                                variant="contained"
-                                size="small"
-                                onClick={() => {
-                                    try {
-                                        const filteredActivities = (activities || []).filter((activity) => {
-                                            try {
-                                                const actDate = new Date(activity.timestamp);
-                                                if (isNaN(actDate.getTime())) return false;
-                                                return (
-                                                    actDate.getFullYear() === selectedDate.getFullYear() &&
-                                                    actDate.getMonth() === selectedDate.getMonth() &&
-                                                    actDate.getDate() === selectedDate.getDate()
-                                                );
-                                            } catch (e) {
-                                                return false;
-                                            }
-                                        });
-                                        const summary: DailySummary = generateDailySummary(filteredActivities);
-                                        const result: AnalyzeResult = analyzeActivities(summary);
-                                        setSnackbar({ open: true, message: result.suggestions.join(' ; '), severity: 'info' });
-                                    } catch (err) {
-                                        setSnackbar({ open: true, message: 'Lỗi khi phân tích', severity: 'error' });
-                                    }
-                                }}
-                                sx={{
-                                    bgcolor: '#13a4ec',
-                                    color: '#ffffff',
-                                    fontSize: '14px',
-                                    fontWeight: 700,
-                                    textTransform: 'none',
-                                    px: 2,
-                                    py: 1,
-                                    borderRadius: '12px',
-                                    '&:hover': {
-                                        bgcolor: '#0e8fd4'
-                                    }
-                                }}
-                            >
-                                Get AI Insights
-                            </MuiButton>
-                        </Box>
                     </Box>
                 </Box>
 
-                {/* Timeline - New Design */}
-                <Box sx={{ mb: 3 }}>
+                </Box>
+
+                <Box sx={{ mb: 3, display: isRecentActivitiesTab ? 'block' : 'none' }}>
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
-                        Recent activities
+                        最近の記録
                     </Typography>
                     <Box>
                             {/* Activities Timeline - New Design */}
@@ -2443,12 +2191,12 @@ const ActivitiesPage: React.FC = () => {
                         <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2, flexShrink: 0 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                 <Typography variant="h6" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, color: '#101c22' }}>
-                                    {editingActivity ? 'Edit activity' : getActivityTitle(formData.type)}
+                                    {editingActivity ? 'アクティビティを編集' : getActivityTitle(formData.type)}
                                 </Typography>
                                 {!editingActivity && (
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <Typography variant="caption" sx={{ color: '#6b7f8a', fontSize: { xs: '12px', sm: '13px' }, display: { xs: 'none', sm: 'block' } }}>
-                                            Bulk mode
+                                            一括入力
                                         </Typography>
                                         <MuiButton
                                             size="small"
@@ -2473,7 +2221,7 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            {isBulkMode ? 'ON' : 'OFF'}
+                                            {isBulkMode ? '有効' : '無効'}
                                         </MuiButton>
                                     </Box>
                                 )}
@@ -2508,11 +2256,11 @@ const ActivitiesPage: React.FC = () => {
                                 {/* Activity Type Select - Hidden when opened from quick action */}
                                 {!hideActivityType && (
                                     <FormControl fullWidth>
-                                        <InputLabel id="activity-type-label" sx={{ color: '#6b7f8a' }}>Activity type</InputLabel>
+                                        <InputLabel id="activity-type-label" sx={{ color: '#6b7f8a' }}>アクティビティ種別</InputLabel>
                                         <Select
                                             labelId="activity-type-label"
                                             value={formData.type}
-                                            label="Activity type"
+                                            label="アクティビティ種別"
                                             onChange={(e) => {
                                                 const newType = e.target.value as any;
                                                 if (newType === 'diaper') {
@@ -2552,12 +2300,12 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            <MenuItem value="feeding">🍼 Feeding</MenuItem>
-                                            <MenuItem value="sleep">😴 Sleep</MenuItem>
-                                            <MenuItem value="diaper">👶 Diaper change</MenuItem>
-                                            <MenuItem value="bath">🛁 Bath</MenuItem>
-                                            <MenuItem value="measurement">📏 Measurement</MenuItem>
-                                            <MenuItem value="memo">📝 Memo</MenuItem>
+                                            <MenuItem value="feeding">🍼 授乳</MenuItem>
+                                            <MenuItem value="sleep">😴 睡眠</MenuItem>
+                                            <MenuItem value="diaper">👶 おむつ交換</MenuItem>
+                                            <MenuItem value="bath">🛁 お風呂</MenuItem>
+                                            <MenuItem value="measurement">📏 計測</MenuItem>
+                                            <MenuItem value="memo">📝 メモ</MenuItem>
                                         </Select>
                                     </FormControl>
                                 )}
@@ -2566,7 +2314,7 @@ const ActivitiesPage: React.FC = () => {
                                 {formData.type !== 'sleep' && (!isBulkMode ? (
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a' }}>
-                                            Time
+                                            時間
                                         </Typography>
                                         <input
                                             type="time"
@@ -2588,7 +2336,7 @@ const ActivitiesPage: React.FC = () => {
                                 ) : (
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#101c22', fontSize: '14px' }}>
-                                            Time (Multiple)
+                                            時間（一括）
                                         </Typography>
                                         {bulkTimes.map((time, index) => (
                                             <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -2658,7 +2406,7 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            + Add time
+                                            + 時間を追加
                                         </MuiButton>
                                     </Box>
                                 ))}
@@ -2679,7 +2427,7 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                 />
                                             }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>Tè (urine)</Typography>}
+                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>おしっこ</Typography>}
                                         />
                                         <FormControlLabel
                                             control={
@@ -2694,7 +2442,7 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                 />
                                             }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>Ị (defecate)</Typography>}
+                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>うんち</Typography>}
                                         />
 
                                         {formData.isStool && (
@@ -2722,16 +2470,16 @@ const ActivitiesPage: React.FC = () => {
                                                                     }}
                                                                 />
                                                             }
-                                                            label={<Typography sx={{ fontSize: '13px', color: '#101c22' }}>{color === 'vàng' ? 'Vàng' : color === 'nâu' ? 'Nâu' : 'Xám'}</Typography>}
+                                                            label={<Typography sx={{ fontSize: '13px', color: '#101c22' }}>{color === 'vàng' ? '黄色' : color === 'nâu' ? '茶色' : '灰色'}</Typography>}
                                                         />
                                                     ))}
                                                 </Box>
                                                 <FormControl fullWidth>
-                                                    <InputLabel id="stool-consistency-label" sx={{ color: '#6b7f8a' }}>Hình thù</InputLabel>
+                                                    <InputLabel id="stool-consistency-label" sx={{ color: '#6b7f8a' }}>形状</InputLabel>
                                                     <Select
                                                         labelId="stool-consistency-label"
                                                         value={formData.stoolConsistency || 'bình thường'}
-                                                        label="Hình thù"
+                                                        label="形状"
                                                         onChange={(e) => setFormData({ ...formData, stoolConsistency: e.target.value as 'lỏng' | 'bình thường' | 'khô' })}
                                                         sx={{
                                                             bgcolor: '#e3e8eb',
@@ -2757,9 +2505,9 @@ const ActivitiesPage: React.FC = () => {
                                                             }
                                                         }}
                                                     >
-                                                        <MenuItem value="lỏng">Lỏng</MenuItem>
-                                                        <MenuItem value="bình thường">Bình thường</MenuItem>
-                                                        <MenuItem value="khô">Khô</MenuItem>
+                                                        <MenuItem value="lỏng">やわらかい</MenuItem>
+                                                        <MenuItem value="bình thường">普通</MenuItem>
+                                                        <MenuItem value="khô">かたい</MenuItem>
                                                     </Select>
                                                 </FormControl>
                                             </Box>
@@ -2783,13 +2531,13 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            <Tab label="Milk" />
-                                            <Tab label="Solid Food" />
+                                            <Tab label="ミルク" />
+                                            <Tab label="離乳食" />
                                         </Tabs>
 
                                         {formData.foodType !== 'solid' ? (
                                             <TextField
-                                                label="Amount (ml)"
+                                                label="量 (ml)"
                                                 type="number"
                                                 inputMode="decimal"
                                                 value={formData.amount}
@@ -2850,8 +2598,8 @@ const ActivitiesPage: React.FC = () => {
                                                     renderInput={(params) => (
                                                         <TextField
                                                             {...params}
-                                                            label="Food Item"
-                                                            placeholder="e.g., Porridge, Carrots"
+                                                            label="食品名"
+                                                            placeholder="例: おかゆ、にんじん"
                                                             onFocus={() => {
                                                                 setFoodMenuOpen(true);
                                                                 // Scroll the Autocomplete element into view, aligning it to the top or center of viewport
@@ -2885,7 +2633,7 @@ const ActivitiesPage: React.FC = () => {
                                                     )}
                                                 />
                                                 <TextField
-                                                    label="Amount (e.g., 1 bowl, 50g)"
+                                                    label="量（例: 1杯、50g）"
                                                     value={formData.amount}
                                                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                                     fullWidth
@@ -2910,12 +2658,12 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                 />
                                                 <FormControl fullWidth>
-                                                    <InputLabel id="food-preference-label">Phản ứng của bé</InputLabel>
+                                                    <InputLabel id="food-preference-label">赤ちゃんの反応</InputLabel>
                                                     <Select
                                                         labelId="food-preference-label"
                                                         id="food-preference-select"
                                                         value={formData.foodPreference ?? 'normal'}
-                                                        label="Phản ứng của bé"
+                                                        label="赤ちゃんの反応"
                                                         onChange={(e) => setFormData(prev => ({ ...prev, foodPreference: (e.target.value as 'enthusiastic' | 'normal' | 'dislike' | 'allergic') || 'normal' }))}
                                                         sx={{
                                                             '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
@@ -2934,10 +2682,10 @@ const ActivitiesPage: React.FC = () => {
                                                             }
                                                         }}
                                                     >
-                                                        <MenuItem value="enthusiastic" sx={{ color: '#101c22' }}>Hào hứng</MenuItem>
-                                                        <MenuItem value="normal" sx={{ color: '#101c22' }}>Bình thường</MenuItem>
-                                                        <MenuItem value="dislike" sx={{ color: '#101c22' }}>Không thích</MenuItem>
-                                                        <MenuItem value="allergic" sx={{ color: '#d32f2f' }}>Dị ứng</MenuItem>
+                                                        <MenuItem value="enthusiastic" sx={{ color: '#101c22' }}>よく食べる</MenuItem>
+                                                        <MenuItem value="normal" sx={{ color: '#101c22' }}>普通</MenuItem>
+                                                        <MenuItem value="dislike" sx={{ color: '#101c22' }}>嫌がる</MenuItem>
+                                                        <MenuItem value="allergic" sx={{ color: '#d32f2f' }}>アレルギー</MenuItem>
                                                     </Select>
                                                 </FormControl>
                                             </Box>
@@ -2951,7 +2699,7 @@ const ActivitiesPage: React.FC = () => {
                                         <Box sx={{ display: 'flex', gap: 2 }}>
                                             <Box sx={{ flex: 1 }}>
                                                 <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    Giờ bắt đầu
+                                                    開始時刻
                                                 </Typography>
                                                 <TextField
                                                     type="time"
@@ -3022,7 +2770,7 @@ const ActivitiesPage: React.FC = () => {
                                             </Box>
                                             <Box sx={{ flex: 1 }}>
                                                 <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    Giờ kết thúc (dậy)
+                                                    終了時刻（起床）
                                                 </Typography>
                                                 <TextField
                                                     type="time"
@@ -3104,7 +2852,7 @@ const ActivitiesPage: React.FC = () => {
                                             </Box>
                                         </Box>
                                         <TextField
-                                            label="Thời lượng (phút)"
+                                            label="睡眠時間（分）"
                                             type="number"
                                             value={formData.duration}
                                             disabled={true}
@@ -3143,7 +2891,7 @@ const ActivitiesPage: React.FC = () => {
                                     <>
                                         <Box sx={{ display: 'flex', gap: 2 }}>
                                             <TextField
-                                                label="Cân nặng (g)"
+                                                label="体重 (g)"
                                                 type="number"
                                                 value={formData.weight}
                                                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
@@ -3175,7 +2923,7 @@ const ActivitiesPage: React.FC = () => {
                                                 }}
                                             />
                                             <TextField
-                                                label="Chiều cao (cm)"
+                                                label="身長 (cm)"
                                                 type="number"
                                                 value={formData.height}
                                                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
@@ -3208,7 +2956,7 @@ const ActivitiesPage: React.FC = () => {
                                             />
                                         </Box>
                                         <TextField
-                                            label="Nhiệt độ (°C)"
+                                            label="体温 (°C)"
                                             type="number"
                                             value={formData.temperature}
                                             onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
@@ -3245,7 +2993,7 @@ const ActivitiesPage: React.FC = () => {
                                 {/* Notes Field */}
                                 {(formData.type === 'feeding' || formData.type === 'sleep' || formData.type === 'diaper' || formData.type === 'measurement' || formData.type === 'memo' || formData.type === 'bath') && (
                                     <TextField
-                                        label="Ghi chú"
+                                        label="メモ"
                                         value={formData.notes}
                                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                         fullWidth
@@ -3287,7 +3035,7 @@ const ActivitiesPage: React.FC = () => {
                                         border: '1px solid #e5e7eb' 
                                     }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#101c22', mb: 1.5, fontSize: '14px' }}>
-                                            Progress: {bulkProgress.completed}/{bulkProgress.total}
+                                            進捗: {bulkProgress.completed}/{bulkProgress.total}
                                         </Typography>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ flex: 1 }}>
@@ -3317,7 +3065,7 @@ const ActivitiesPage: React.FC = () => {
                                         {bulkProgress.errors.length > 0 && (
                                             <Box sx={{ mt: 1.5 }}>
                                                 <Typography variant="caption" sx={{ color: '#ff4444', display: 'block', fontWeight: 600 }}>
-                                                    ⚠️ Errors ({bulkProgress.errors.length}):
+                                                    ⚠️ エラー ({bulkProgress.errors.length}):
                                                 </Typography>
                                                 {bulkProgress.errors.slice(0, 3).map((error, index) => (
                                                     <Typography key={index} variant="caption" sx={{ color: '#ff4444', display: 'block', ml: 1, fontSize: '12px' }}>
@@ -3326,7 +3074,7 @@ const ActivitiesPage: React.FC = () => {
                                                 ))}
                                                 {bulkProgress.errors.length > 3 && (
                                                     <Typography variant="caption" sx={{ color: '#ff4444', display: 'block', ml: 1, fontSize: '12px' }}>
-                                                        • ... and {bulkProgress.errors.length - 3} more
+                                                        • ... 他 {bulkProgress.errors.length - 3} 件
                                                     </Typography>
                                                 )}
                                             </Box>
@@ -3374,7 +3122,7 @@ const ActivitiesPage: React.FC = () => {
                                         }
                                     }}
                                 >
-                                    Cancel
+                                    キャンセル
                                 </MuiButton>
                                 <MuiButton
                                     type="submit"
@@ -3401,12 +3149,12 @@ const ActivitiesPage: React.FC = () => {
                                     }}
                                 >
                                     {loading && isBulkMode 
-                                        ? `Creating ${bulkProgress.completed}/${bulkProgress.total}...`
+                                        ? `作成中 ${bulkProgress.completed}/${bulkProgress.total}...`
                                         : editingActivity 
-                                            ? 'Save' 
+                                            ? '保存' 
                                             : isBulkMode 
-                                                ? `Create ${bulkTimes.filter(t => t.trim()).length} activities`
-                                                : 'Save'
+                                                ? `${bulkTimes.filter(t => t.trim()).length}件を作成`
+                                                : '保存'
                                     }
                                 </MuiButton>
                             </Box>

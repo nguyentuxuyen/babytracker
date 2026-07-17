@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Checkbox, IconButton, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { useHistory } from 'react-router-dom';
 import { useBaby } from '../contexts/BabyContext';
-import { getCurrentUser } from '../firebase/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface MilestoneItem {
@@ -226,6 +226,7 @@ const defaultMilestones: Milestone[] = [
 const MilestonesPage: React.FC = () => {
     const history = useHistory();
     const { baby } = useBaby();
+    const { currentUser, loading: authLoading } = useAuth();
     
     const [milestonesData, setMilestonesData] = useState<Milestone[]>(defaultMilestones);
     const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -240,88 +241,134 @@ const MilestonesPage: React.FC = () => {
         setExpandedMonths(prev => ({ ...prev, [monthId]: !prev[monthId] }));
     };
 
+    const normalizeMilestonesData = React.useCallback((rawData: unknown): Milestone[] => {
+        if (!Array.isArray(rawData) || rawData.length === 0) {
+            return defaultMilestones;
+        }
+
+        const completionMap = new Map<string, boolean>();
+        const extrasByCategory = new Map<string, MilestoneItem[]>();
+
+        rawData.forEach((category: any) => {
+            if (!category || !Array.isArray(category.milestones)) return;
+            const categoryId = String(category.id || '');
+
+            category.milestones.forEach((item: any) => {
+                if (!item || !item.id) return;
+                const itemId = String(item.id);
+
+                if (item.completed) {
+                    completionMap.set(itemId, true);
+
+                    const match = itemId.match(/^(\d+)-(\d+)$/);
+                    if (match) {
+                        const oldMonth = parseInt(match[1], 10);
+                        const itemNum = match[2];
+                        completionMap.set(`${oldMonth + 1}-${itemNum}`, true);
+                    }
+                }
+
+                if (categoryId) {
+                    const existsInDefaults = defaultMilestones
+                        .find((c) => c.id === categoryId)
+                        ?.milestones.some((m) => m.id === itemId);
+
+                    if (!existsInDefaults) {
+                        const categoryExtras = extrasByCategory.get(categoryId) || [];
+                        categoryExtras.push({
+                            id: itemId,
+                            title: String(item.title || 'Untitled'),
+                            description: String(item.description || ''),
+                            completed: Boolean(item.completed)
+                        });
+                        extrasByCategory.set(categoryId, categoryExtras);
+                    }
+                }
+            });
+        });
+
+        return defaultMilestones.map((category) => {
+            const baseItems = category.milestones.map((item) => ({
+                ...item,
+                completed: completionMap.has(item.id) || item.completed
+            }));
+            const extras = extrasByCategory.get(category.id) || [];
+            return {
+                ...category,
+                milestones: [...baseItems, ...extras]
+            };
+        });
+    }, []);
+
     // Save milestones to Firebase
     const saveMilestones = React.useCallback(async (data: Milestone[]) => {
-        const currentUser = getCurrentUser();
-        if (!currentUser?.uid || !baby?.id) {
-            console.log('Cannot save milestones: missing user or baby', { uid: currentUser?.uid, babyId: baby?.id });
+        if (!currentUser?.uid) {
+            console.log('Cannot save milestones: missing user', { uid: currentUser?.uid });
             return;
         }
         
         try {
             const db = getFirestore();
-            const milestoneDocRef = doc(db, `users/${currentUser.uid}/babies/${baby.id}/milestones/data`);
-            await setDoc(milestoneDocRef, {
+            const payload = {
                 milestones: data,
                 updatedAt: new Date().toISOString()
-            });
+            };
+
+            // Always write a user-level fallback document to avoid data loss when baby context is not ready.
+            const writes: Promise<void>[] = [
+                setDoc(doc(db, 'users', currentUser.uid, 'milestones', 'data'), payload)
+            ];
+
+            if (baby?.id) {
+                writes.push(setDoc(doc(db, 'users', currentUser.uid, 'babies', baby.id, 'milestones', 'data'), payload));
+            }
+
+            await Promise.all(writes);
             console.log('Milestones saved successfully to Firebase');
         } catch (error) {
             console.error('Error saving milestones:', error);
         }
-    }, [baby?.id]);
+    }, [baby?.id, currentUser?.uid]);
 
     // Load milestones from Firebase
     useEffect(() => {
         const loadMilestones = async () => {
-            const currentUser = getCurrentUser();
-            if (!currentUser?.uid || !baby?.id) {
-                console.log('Cannot load milestones: missing user or baby', { uid: currentUser?.uid, babyId: baby?.id });
+            if (authLoading) {
+                return;
+            }
+
+            if (!currentUser?.uid) {
+                console.log('Cannot load milestones: missing user', { uid: currentUser?.uid, babyId: baby?.id });
                 return;
             }
             
             try {
                 const db = getFirestore();
-                const milestoneDocRef = doc(db, `users/${currentUser.uid}/babies/${baby.id}/milestones/data`);
-                const milestoneDoc = await getDoc(milestoneDocRef);
-                
-                if (milestoneDoc.exists()) {
-                    const data = milestoneDoc.data();
-                    if (data?.milestones) {
-                        const firebaseMilestones = data.milestones as Milestone[];
-                        
-                        // Check if migration is needed - look for month 0 in the data
-                        const hasMonth0 = firebaseMilestones.some(cat => cat.month === 0);
-                        
-                        if (hasMonth0) {
-                            console.log('Old milestone structure detected (month 0 found). Migrating to start from month 1...');
-                            
-                            // 1. Create a map of old milestone completions by checking both old and new ID formats
-                            const completionMap = new Map<string, boolean>();
-                            firebaseMilestones.forEach(category => {
-                                category.milestones.forEach(item => {
-                                    if (item.completed) {
-                                        // Store both the original ID and the migrated ID pattern
-                                        completionMap.set(item.id, true);
-                                        
-                                        // Also try to map old IDs (0-1) to new IDs (1-1) format
-                                        const match = item.id.match(/^(\d+)-(\d+)$/);
-                                        if (match) {
-                                            const oldMonth = parseInt(match[1]);
-                                            const itemNum = match[2];
-                                            const newId = `${oldMonth + 1}-${itemNum}`;
-                                            completionMap.set(newId, true);
-                                        }
-                                    }
-                                });
-                            });
+                const userLevelDocRef = doc(db, 'users', currentUser.uid, 'milestones', 'data');
+                const babyLevelDocRef = baby?.id
+                    ? doc(db, 'users', currentUser.uid, 'babies', baby.id, 'milestones', 'data')
+                    : null;
+                const legacyBabyDocRef = doc(db, 'babies', currentUser.uid);
 
-                            // 2. Create a new structure from default, preserving completed status
-                            const migratedData = defaultMilestones.map(newCategory => ({
-                                ...newCategory,
-                                milestones: newCategory.milestones.map(newItem => ({
-                                    ...newItem,
-                                    completed: completionMap.has(newItem.id) || newItem.completed
-                                }))
-                            }));
+                const [babyLevelDoc, userLevelDoc, legacyBabyDoc] = await Promise.all([
+                    babyLevelDocRef ? getDoc(babyLevelDocRef) : Promise.resolve(null),
+                    getDoc(userLevelDocRef),
+                    getDoc(legacyBabyDocRef)
+                ]);
 
-                            console.log('Migration complete. Migrated from month 0 to month 1:', migratedData);
-                            setMilestonesData(migratedData);
-                            saveMilestones(migratedData); // Save the migrated structure back to Firebase
-                        } else {
-                            console.log('Loaded milestones from Firebase:', firebaseMilestones);
-                            setMilestonesData(firebaseMilestones);
-                        }
+                const babyLevelData = babyLevelDoc?.exists() ? babyLevelDoc.data()?.milestones : null;
+                const userLevelData = userLevelDoc.exists() ? userLevelDoc.data()?.milestones : null;
+                const legacyData = legacyBabyDoc.exists() ? legacyBabyDoc.data()?.milestones : null;
+
+                const loadedRawData = babyLevelData || userLevelData || legacyData;
+
+                if (loadedRawData) {
+                    const normalizedData = normalizeMilestonesData(loadedRawData);
+                    setMilestonesData(normalizedData);
+
+                    // Backfill canonical paths when data came from fallback/legacy source.
+                    if (!babyLevelData || !userLevelData || legacyData) {
+                        saveMilestones(normalizedData);
                     }
                 } else {
                     console.log('No milestones document found, using defaults');
@@ -334,7 +381,7 @@ const MilestonesPage: React.FC = () => {
         };
         
         loadMilestones();
-    }, [baby?.id, saveMilestones]);
+    }, [authLoading, baby?.id, currentUser?.uid, normalizeMilestonesData, saveMilestones]);
 
     // Calculate baby's current age in months
     const calculateAgeInMonths = () => {

@@ -463,83 +463,6 @@ export const firestore = {
         }
     },
 
-    // Daily Rating functions
-    // Get daily rating for a specific date
-    getDailyRating: async (userId: string, babyId: string, date: Date): Promise<{ rating: number; notes?: string } | null> => {
-        try {
-            // Normalize date to start of day
-            const dateKey = new Date(date);
-            dateKey.setHours(0, 0, 0, 0);
-            const dateStr = dateKey.toISOString().split('T')[0]; // YYYY-MM-DD format
-            
-            const ratingDocRef = doc(db, 'users', userId, 'dailyRatings', dateStr);
-            const ratingDoc = await getDoc(ratingDocRef);
-            
-            if (ratingDoc.exists()) {
-                const data = ratingDoc.data();
-                return {
-                    rating: data.rating,
-                    notes: data.notes
-                };
-            }
-            
-            return null;
-        } catch (error) {
-            console.error('Error getting daily rating:', error);
-            return null;
-        }
-    },
-
-    // Save or update daily rating for a specific date
-    saveDailyRating: async (userId: string, babyId: string, date: Date, rating: number, notes?: string): Promise<boolean> => {
-        try {
-            // Normalize date to start of day
-            const dateKey = new Date(date);
-            dateKey.setHours(0, 0, 0, 0);
-            const dateStr = dateKey.toISOString().split('T')[0]; // YYYY-MM-DD format
-            
-            const ratingDocRef = doc(db, 'users', userId, 'dailyRatings', dateStr);
-            await setDoc(ratingDocRef, {
-                babyId: babyId,
-                rating: rating,
-                notes: notes || '',
-                date: dateKey,
-                updatedAt: serverTimestamp()
-            }, { merge: true });
-            
-            console.log('✅ Daily rating saved:', rating, 'stars for', dateStr);
-            return true;
-        } catch (error) {
-            console.error('Error saving daily rating:', error);
-            return false;
-        }
-    },
-
-    // Get all daily ratings for a date range (for calendar view)
-    getDailyRatingsForRange: async (userId: string, startDate: Date, endDate: Date): Promise<Map<string, number>> => {
-        try {
-            const ratingsRef = collection(db, 'users', userId, 'dailyRatings');
-            const querySnapshot = await getDocs(ratingsRef);
-            
-            const ratingsMap = new Map<string, number>();
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const dateStr = doc.id; // Document ID is the date string (YYYY-MM-DD)
-                const docDate = new Date(dateStr);
-                
-                // Only include ratings within the date range
-                if (docDate >= startDate && docDate <= endDate) {
-                    ratingsMap.set(dateStr, data.rating);
-                }
-            });
-            
-            return ratingsMap;
-        } catch (error) {
-            console.error('Error getting daily ratings for range:', error);
-            return new Map();
-        }
-    },
-
     // --- Solid Food Menu Management ---
 
     // Get list of saved food items
@@ -550,7 +473,8 @@ export const firestore = {
             const docSnap = await getDoc(docRef);
             
             if (docSnap.exists()) {
-                return docSnap.data().foodMenu || [];
+                const items = docSnap.data().foodMenu || [];
+                return Array.isArray(items) ? [...items].reverse() : [];
             }
             return [];
         } catch (error) {
