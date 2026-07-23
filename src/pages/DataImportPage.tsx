@@ -1,2 +1,0 @@
-// DataImportPage - placeholder
-export {};

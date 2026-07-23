@@ -53,10 +53,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
         if (this.state.hasError) {
             return (
                 <Box sx={{ p: 3, textAlign: 'center' }}>
-                    <Typography variant="h6" color="error">Có lỗi xảy ra</Typography>
-                    <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>Chi tiết: {this.state.errorMessage}</Typography>
+                    <Typography variant="h6" color="error">エラーが発生しました</Typography>
+                    <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>詳細: {this.state.errorMessage}</Typography>
                     <MuiButton onClick={() => this.setState({ hasError: false, errorMessage: '' })} variant="contained">
-                        Thử lại
+                        再試行
                     </MuiButton>
                 </Box>
             );
@@ -306,7 +306,7 @@ const ActivitiesPage: React.FC = () => {
         if (!currentUser?.uid || !baby?.id) {
             setSnackbar({
                 open: true,
-                message: 'Vui lòng đăng nhập và có thông tin bé trước!',
+                message: 'ログインし、赤ちゃん情報を設定してください。',
                 severity: 'warning'
             });
             return;
@@ -319,13 +319,13 @@ const ActivitiesPage: React.FC = () => {
             setOngoingSleep({ startTime });
             setSnackbar({
                 open: true,
-                message: 'Đã bắt đầu đếm giấc ngủ! ⏱️',
+                message: '睡眠タイマーを開始しました。⏱️',
                 severity: 'success'
             });
         } else {
             setSnackbar({
                 open: true,
-                message: 'Có lỗi khi bắt đầu đếm giờ ngủ!',
+                message: '睡眠タイマーの開始に失敗しました。',
                 severity: 'error'
             });
         }
@@ -348,7 +348,7 @@ const ActivitiesPage: React.FC = () => {
                     details: {
                         time: sleepData.endTime,
                         duration: sleepData.duration,
-                        notes: `Bắt đầu: ${sleepData.startTime.toLocaleTimeString('vi-VN')}`
+                        notes: `開始: ${sleepData.startTime.toLocaleTimeString('ja-JP')}`
                     }
                 };
 
@@ -365,8 +365,8 @@ const ActivitiesPage: React.FC = () => {
                 setSnackbar({
                     open: true,
                     message: savedActivity.id.startsWith('offline-')
-                        ? `Đã lưu offline giấc ngủ: ${sleepData.duration} phút. Sẽ tự đồng bộ khi có mạng.`
-                        : `Đã ghi lại giấc ngủ: ${sleepData.duration} phút! 😴`,
+                        ? `睡眠をオフライン保存しました: ${sleepData.duration}分。オンライン時に自動同期されます。`
+                        : `睡眠を記録しました: ${sleepData.duration}分 😴`,
                     severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                 });
             }
@@ -374,7 +374,7 @@ const ActivitiesPage: React.FC = () => {
             console.error('Error stopping sleep:', error);
             setSnackbar({
                 open: true,
-                message: 'Có lỗi khi dừng đếm giờ ngủ!',
+                message: '睡眠タイマーの停止に失敗しました。',
                 severity: 'error'
             });
         } finally {
@@ -388,7 +388,7 @@ const ActivitiesPage: React.FC = () => {
         if (!currentUser?.uid || !baby?.id) {
             setSnackbar({
                 open: true,
-                message: 'Vui lòng đăng nhập và có thông tin bé trước khi thêm hoạt động!',
+                message: 'アクティビティ追加前にログインし、赤ちゃん情報を設定してください。',
                 severity: 'warning'
             });
             return;
@@ -504,8 +504,8 @@ const ActivitiesPage: React.FC = () => {
                 setSnackbar({
                     open: true,
                     message: savedActivity.id.startsWith('offline-')
-                        ? 'Đã cập nhật offline. Dữ liệu sẽ tự đồng bộ khi có mạng.'
-                        : 'Hoạt động đã được cập nhật!',
+                        ? 'オフラインで更新しました。オンライン時に自動同期されます。'
+                        : 'アクティビティを更新しました。',
                     severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                 });
                 setEditingActivity(null);
@@ -517,7 +517,7 @@ const ActivitiesPage: React.FC = () => {
                     if (validTimes.length === 0) {
                         setSnackbar({
                             open: true,
-                            message: 'Vui lòng nhập ít nhất một thời gian!',
+                            message: '少なくとも1つの時刻を入力してください。',
                             severity: 'warning'
                         });
                         return;
@@ -528,7 +528,7 @@ const ActivitiesPage: React.FC = () => {
                     if (uniqueTimes.length !== validTimes.length) {
                         setSnackbar({
                             open: true,
-                            message: 'Có thời gian bị trùng lặp! Vui lòng kiểm tra lại.',
+                            message: '重複した時刻があります。確認してください。',
                             severity: 'warning'
                         });
                         return;
@@ -539,7 +539,7 @@ const ActivitiesPage: React.FC = () => {
                     if (invalidTimes.length > 0) {
                         setSnackbar({
                             open: true,
-                            message: `Thời gian không hợp lệ: ${invalidTimes.join(', ')}`,
+                            message: `無効な時刻: ${invalidTimes.join(', ')}`,
                             severity: 'warning'
                         });
                         return;
@@ -581,7 +581,7 @@ const ActivitiesPage: React.FC = () => {
                         } catch (error) {
                             setBulkProgress(prev => ({ 
                                 ...prev, 
-                                errors: [...prev.errors, `Lỗi tại ${time}: ${error instanceof Error ? error.message : 'Unknown error'}`]
+                                errors: [...prev.errors, `${time} でエラー: ${error instanceof Error ? error.message : 'Unknown error'}`]
                             }));
                         }
                     }
@@ -597,14 +597,14 @@ const ActivitiesPage: React.FC = () => {
                         setSnackbar({
                             open: true,
                             message: offlineCount > 0
-                                ? `Đã tạo ${successCount} hoạt động (${offlineCount} lưu offline, sẽ tự đồng bộ).`
-                                : `Đã tạo thành công ${successCount} hoạt động!`,
+                                ? `${successCount}件の記録を作成しました（${offlineCount}件はオフライン保存、後で自動同期）。`
+                                : `${successCount}件の記録を作成しました。`,
                             severity: offlineCount > 0 ? 'info' : 'success'
                         });
                     } else {
                         setSnackbar({
                             open: true,
-                            message: `Tạo thành công ${successCount}/${validTimes.length} hoạt động. ${errorCount} lỗi.`,
+                            message: `${validTimes.length}件中 ${successCount}件を作成、${errorCount}件でエラー。`,
                             severity: 'warning'
                         });
                     }
@@ -621,8 +621,8 @@ const ActivitiesPage: React.FC = () => {
                     setSnackbar({
                         open: true,
                         message: savedActivity.id.startsWith('offline-')
-                            ? 'Đã lưu offline! Dữ liệu sẽ tự đồng bộ khi có mạng.'
-                            : 'Hoạt động đã được lưu!',
+                            ? 'オフライン保存しました。オンライン時に自動同期されます。'
+                            : '記録を保存しました。',
                         severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                     });
                 }
@@ -657,7 +657,7 @@ const ActivitiesPage: React.FC = () => {
         } catch (error) {
             setSnackbar({
                 open: true,
-                message: 'Có lỗi khi lưu hoạt động. Vui lòng thử lại!',
+                message: '保存中にエラーが発生しました。もう一度お試しください。',
                 severity: 'error'
             });
         } finally {
@@ -802,7 +802,7 @@ const ActivitiesPage: React.FC = () => {
         if (!currentUser?.uid) return;
         
         // Confirm before deleting
-        if (!window.confirm('Bạn có chắc chắn muốn xóa hoạt động này?')) {
+        if (!window.confirm('この記録を削除しますか？')) {
             return;
         }
         
@@ -813,20 +813,20 @@ const ActivitiesPage: React.FC = () => {
                 setActivities(activities?.filter(activity => activity.id !== activityId) || []);
                 setSnackbar({
                     open: true,
-                    message: 'Hoạt động đã được xóa!',
+                    message: '記録を削除しました。',
                     severity: 'success'
                 });
             } else {
                 setSnackbar({
                     open: true,
-                    message: 'Có lỗi khi xóa hoạt động!',
+                    message: '削除に失敗しました。',
                     severity: 'error'
                 });
             }
         } catch (error) {
             setSnackbar({
                 open: true,
-                message: 'Có lỗi khi xóa hoạt động!',
+                message: '削除に失敗しました。',
                 severity: 'error'
             });
         } finally {
@@ -870,7 +870,7 @@ const ActivitiesPage: React.FC = () => {
 
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
 
-    // TÍNH TOÁN CẢNH BÁO KHOẢNG THỨC (WAKE WINDOWS WARNING)
+    // WAKE WINDOW warning
     const wakeWindowWarning = useMemo(() => {
         if (!activities || activities.length === 0 || ongoingSleep) return null;
 
@@ -899,11 +899,11 @@ const ActivitiesPage: React.FC = () => {
             if (diffHours >= 2.5) {
                 const hours = Math.floor(diffHours);
                 const mins = Math.floor((diffHours - hours) * 60);
-                return `Bé đã thức ${hours > 0 ? `${hours} tiếng ` : ''}${mins > 0 ? `${mins} phút` : ''}, rất dễ bị quá giấc (overtired) và gắt ngủ. Mẹ nên dỗ bé ngủ nhé!`;
+                return `${hours > 0 ? `${hours}時間` : ''}${mins > 0 ? `${mins}分` : ''}起きています。過覚醒になりやすい時間です。`;
             } else if (diffHours >= 2) {
                 const hours = Math.floor(diffHours);
                 const mins = Math.floor((diffHours - hours) * 60);
-                return `Bé đã thức ${hours > 0 ? `${hours} tiếng ` : ''}${mins > 0 ? `${mins} phút` : ''}. Sắp đến giờ giấc ngủ tiếp theo, mẹ lưu ý nha!`;
+                return `${hours > 0 ? `${hours}時間` : ''}${mins > 0 ? `${mins}分` : ''}起きています。そろそろ次の睡眠時間です。`;
             }
         }
         return null;
@@ -957,20 +957,22 @@ const ActivitiesPage: React.FC = () => {
         }}
         >
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
-                <Box sx={{ display: isRecentActivitiesTab ? 'none' : 'block' }}>
+                <Box>
                 {/* WAKE WINDOWS WARNING BANNER */}
-                {wakeWindowWarning && (
+                {!isRecentActivitiesTab && wakeWindowWarning && (
                     <Alert severity="warning" sx={{ mb: 3, ...liquidGlassStyle, borderRadius: '16px', '& .MuiAlert-message': { width: '100%' } }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Cảnh báo khấc thức (Wake Windows)</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>覚醒時間アラート</Typography>
                         <Typography variant="body2">{wakeWindowWarning}</Typography>
                     </Alert>
                 )}
 
-                <AssistantComposer
-                    babyId={baby?.id}
-                    selectedDate={selectedDate}
-                    onCommitted={refreshActivities}
-                />
+                {!isRecentActivitiesTab && (
+                    <AssistantComposer
+                        babyId={baby?.id}
+                        selectedDate={selectedDate}
+                        onCommitted={refreshActivities}
+                    />
+                )}
 
                 {/* Calendar Card - Liquid Glass */}
                 <Card sx={{ 
@@ -1164,9 +1166,12 @@ const ActivitiesPage: React.FC = () => {
 
                 {/* Quick Actions - New Design */}
                 <Box sx={{ mb: 3 }}>
+                    {!isRecentActivitiesTab && (
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
-                        Activities
+                        アクティビティ
                     </Typography>
+                    )}
+                    {!isRecentActivitiesTab && (
                     <Grid container spacing={2}>
                         {[
                             { 
@@ -1352,12 +1357,14 @@ const ActivitiesPage: React.FC = () => {
                             );
                         })}
                     </Grid>
+                    )}
                 </Box>
 
                 {/* Summary - New Design */}
+                {!isRecentActivitiesTab && (
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
-                        Summary
+                        サマリー
                     </Typography>
                     <Box sx={{
                         ...liquidGlassStyle, // Áp dụng style kính trong
@@ -1556,6 +1563,7 @@ const ActivitiesPage: React.FC = () => {
                         
                     </Box>
                 </Box>
+                )}
 
                 </Box>
 
@@ -1622,7 +1630,7 @@ const ActivitiesPage: React.FC = () => {
                                         return (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                                                 <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
-                                                Đang tải...
+                                                読み込み中...
                                             </div>
                                         );
                                     }
@@ -1631,10 +1639,10 @@ const ActivitiesPage: React.FC = () => {
                                         return (
                                             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                                                 <div style={{ fontSize: '16px', marginBottom: '8px', fontWeight: '500' }}>
-                                                    Chưa có hoạt động nào
+                                                    記録がありません
                                                 </div>
                                                 <div style={{ fontSize: '14px', color: '#999' }}>
-                                                    Chạm vào các nút hành động ở trên để bắt đầu ghi!
+                                                    上の操作から記録を開始してください。
                                                 </div>
                                             </div>
                                         );
@@ -1858,10 +1866,10 @@ const ActivitiesPage: React.FC = () => {
                                                                                 }}>
                                                                                     {(() => {
                                                                                         switch(activity.details.foodPreference) {
-                                                                                            case 'enthusiastic': return 'Hào hứng';
-                                                                                            case 'normal': return 'Bình thường';
-                                                                                            case 'dislike': return 'Không thích';
-                                                                                            case 'allergic': return 'Dị ứng';
+                                                                                            case 'enthusiastic': return 'よく食べる';
+                                                                                            case 'normal': return '普通';
+                                                                                            case 'dislike': return '嫌がる';
+                                                                                            case 'allergic': return 'アレルギー';
                                                                                             default: return activity.details.foodPreference;
                                                                                         }
                                                                                     })()}
@@ -1876,7 +1884,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                     fontWeight: 700,
                                                                                     backgroundColor: 'rgba(239,68,68,0.08)'
                                                                                 }}>
-                                                                                    Dị ứng
+                                                                                    アレルギー
                                                                                 </span>
                                                                             )}
                                                                             
@@ -1901,13 +1909,13 @@ const ActivitiesPage: React.FC = () => {
                                                                                                         color: '#f59e0b',
                                                                                                         fontWeight: 500
                                                                                                     }}>
-                                                                                                        (từ hôm qua)
+                                                                                                        （前日から）
                                                                                                     </span>
                                                                                                 );
                                                                                             }
 
                                                                                             if (activity.details.notes) {
-                                                                                                const startTimeMatch = activity.details.notes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
+                                                                                                const startTimeMatch = activity.details.notes.match(/(?:Bắt đầu|開始): (\d{1,2}):(\d{2}):(\d{2})/);
                                                                                                 if (startTimeMatch) {
                                                                                                     const endTime = new Date(activity.timestamp);
                                                                                                     const startHour = parseInt(startTimeMatch[1]);
@@ -1935,7 +1943,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                                                 color: '#f59e0b',
                                                                                                                 fontWeight: 500
                                                                                                             }}>
-                                                                                                                (qua đêm)
+                                                                                                                （夜間）
                                                                                                             </span>
                                                                                                         );
                                                                                                     }
@@ -2072,7 +2080,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                 {(() => {
                                                                                     // Check if this is a sleep activity with overnight info
                                                                                     if (activity.type === 'sleep' && activity.details.notes) {
-                                                                                        const startTimeMatch = activity.details.notes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
+                                                                                        const startTimeMatch = activity.details.notes.match(/(?:Bắt đầu|開始): (\d{1,2}):(\d{2}):(\d{2})/);
                                                                                         if (startTimeMatch) {
                                                                                             const endTime = new Date(activity.timestamp);
                                                                                             const startHour = parseInt(startTimeMatch[1]);
@@ -2095,19 +2103,19 @@ const ActivitiesPage: React.FC = () => {
                                                                                             if (isDifferentDay) {
                                                                                                 return (
                                                                                                     <>
-                                                                                                        😴 Ngủ qua đêm từ {possibleStartTime.toLocaleDateString('vi-VN', { 
+                                                                                                        😴 夜間睡眠: {possibleStartTime.toLocaleDateString('ja-JP', { 
                                                                                                             day: '2-digit', 
                                                                                                             month: '2-digit' 
-                                                                                                        })} lúc {startHour}:{startTimeMatch[2]} đến {endTime.toLocaleTimeString('vi-VN', {
+                                                                                                        })} {startHour}:{startTimeMatch[2]} - {endTime.toLocaleTimeString('ja-JP', {
                                                                                                             hour: '2-digit',
                                                                                                             minute: '2-digit'
-                                                                                                        })} sáng
+                                                                                                        })}
                                                                                                     </>
                                                                                                 );
                                                                                             }
                                                                                         }
                                                                                     }
-                                                                                    return <>{activity.details.notes.startsWith('Bắt đầu:') ? '😴 ' : '💭 '}{activity.details.notes}</>;
+                                                                                    return <>{/^(?:Bắt đầu|開始):/.test(activity.details.notes) ? '😴 ' : '💭 '}{activity.details.notes}</>;
                                                                                 })()}
                                                                             </div>
                                                                         )}
@@ -2704,8 +2712,8 @@ const ActivitiesPage: React.FC = () => {
                                                 <TextField
                                                     type="time"
                                                     value={(() => {
-                                                        if (formData.notes && formData.notes.includes('Bắt đầu:')) {
-                                                            const match = formData.notes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
+                                                        if (formData.notes && /(?:Bắt đầu|開始):/.test(formData.notes)) {
+                                                            const match = formData.notes.match(/(?:Bắt đầu|開始): (\d{1,2}):(\d{2}):(\d{2})/);
                                                             if (match) {
                                                                 return `${match[1].padStart(2, '0')}:${match[2]}`;
                                                             }
@@ -2720,10 +2728,10 @@ const ActivitiesPage: React.FC = () => {
                                                         const newStartTime = e.target.value; // HH:MM format
                                                         // Update notes with new start time
                                                         let newNotes = formData.notes || '';
-                                                        if (newNotes.includes('Bắt đầu:')) {
-                                                            newNotes = newNotes.replace(/Bắt đầu: \d{1,2}:\d{2}:\d{2}/, `Bắt đầu: ${newStartTime}:00`);
+                                                        if (/(?:Bắt đầu|開始):/.test(newNotes)) {
+                                                            newNotes = newNotes.replace(/(?:Bắt đầu|開始): \d{1,2}:\d{2}:\d{2}/, `開始: ${newStartTime}:00`);
                                                         } else {
-                                                            newNotes = (newNotes ? newNotes.trim() + '\n' : '') + `Bắt đầu: ${newStartTime}:00`;
+                                                            newNotes = (newNotes ? newNotes.trim() + '\n' : '') + `開始: ${newStartTime}:00`;
                                                         }
 
                                                         // Calculate new duration
@@ -2799,8 +2807,8 @@ const ActivitiesPage: React.FC = () => {
                                                         let startTimeStr = '';
                                                         let currentNotes = formData.notes || '';
                                                         
-                                                        if (currentNotes.includes('Bắt đầu:')) {
-                                                            const match = currentNotes.match(/Bắt đầu: (\d{1,2}):(\d{2}):(\d{2})/);
+                                                        if (/(?:Bắt đầu|開始):/.test(currentNotes)) {
+                                                            const match = currentNotes.match(/(?:Bắt đầu|開始): (\d{1,2}):(\d{2}):(\d{2})/);
                                                             if (match) {
                                                                 startTimeStr = `${match[1].padStart(2, '0')}:${match[2]}`;
                                                             }
@@ -2832,8 +2840,8 @@ const ActivitiesPage: React.FC = () => {
                                                         }
 
                                                         // Ensure start time is recorded in notes
-                                                        if (!currentNotes.includes('Bắt đầu:')) {
-                                                            currentNotes = (currentNotes ? currentNotes.trim() + '\n' : '') + `Bắt đầu: ${startTimeStr}:00`;
+                                                        if (!/(?:Bắt đầu|開始):/.test(currentNotes)) {
+                                                            currentNotes = (currentNotes ? currentNotes.trim() + '\n' : '') + `開始: ${startTimeStr}:00`;
                                                         }
 
                                                         setFormData({ ...formData, timestamp: newTimestamp.toISOString(), duration: newDuration, notes: currentNotes });

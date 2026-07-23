@@ -3,8 +3,6 @@ import { useHistory, useLocation } from 'react-router-dom';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
-import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
-import StarIcon from '@mui/icons-material/Star'; // Import a new icon
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
@@ -17,9 +15,7 @@ const BottomNav: React.FC = () => {
         if (path === '/' || path === '/activities') return 0;
         if (path === '/recent-activities') return 1;
         if (path === '/statistics') return 2;
-        if (path === '/milestones') return 3;
-        if (path === '/wonder-weeks') return 4;
-        if (path === '/food-history') return 5;
+        if (path === '/food-history') return 3;
         return 0;
     };
 
@@ -50,12 +46,6 @@ const BottomNav: React.FC = () => {
                             history.push('/statistics');
                             break;
                         case 3:
-                            history.push('/milestones');
-                            break;
-                        case 4:
-                            history.push('/wonder-weeks');
-                            break;
-                        case 5:
                             history.push('/food-history');
                             break;
                     }
@@ -105,36 +95,6 @@ const BottomNav: React.FC = () => {
                 <BottomNavigationAction 
                     label="成長" 
                     icon={<ShowChartIcon />}
-                    sx={{
-                        '& .MuiBottomNavigationAction-label': {
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginTop: '4px',
-                            opacity: 1,
-                            '&.Mui-selected': {
-                                fontSize: '12px'
-                            }
-                        }
-                    }}
-                />
-                <BottomNavigationAction 
-                    label="マイルストーン" 
-                    icon={<PhotoLibraryIcon />}
-                    sx={{
-                        '& .MuiBottomNavigationAction-label': {
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginTop: '4px',
-                            opacity: 1,
-                            '&.Mui-selected': {
-                                fontSize: '12px'
-                            }
-                        }
-                    }}
-                />
-                <BottomNavigationAction 
-                    label="ワンダー" 
-                    icon={<StarIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
                             fontSize: '12px',

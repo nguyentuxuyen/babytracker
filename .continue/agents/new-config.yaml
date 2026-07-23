@@ -1,0 +1,16 @@
+{
+  "models": [
+    {
+      "title": "LM Studio Qwen Coder",
+      "provider": "lmstudio",
+      "model": "Qwen2.5-Coder-7B-Instruct",
+      "apiBase": "http://localhost:1234/v1"
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "LM Studio Autocomplete",
+    "provider": "lmstudio",
+    "model": "Qwen2.5-Coder-7B-Instruct",
+    "apiBase": "http://localhost:1234/v1"
+  }
+}

@@ -1,4 +1,4 @@
-const { db, admin } = require('./_admin');
+const { db, admin, adminInitError } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
 
 const toDate = (value) => {
@@ -14,6 +14,14 @@ const sendError = (res, status, error, extra = {}) => {
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     sendError(res, 405, 'Method not allowed');
+    return;
+  }
+
+  if (!db) {
+    sendError(res, 500, 'Server Firebase is not configured', {
+      code: 'FIREBASE_ADMIN_NOT_CONFIGURED',
+      details: adminInitError ? adminInitError.message : 'Unknown Firebase Admin init error'
+    });
     return;
   }
 
@@ -85,6 +93,23 @@ module.exports = async function handler(req, res) {
     sendError(res, 400, `Unsupported tool: ${tool}`);
   } catch (error) {
     console.error('mcp handler error:', error);
-    sendError(res, 401, 'Unauthorized or invalid request');
+    const code = error && error.code ? error.code : '';
+    const authCodes = new Set([
+      'AUTH_HEADER_MISSING',
+      'auth/id-token-expired',
+      'auth/id-token-revoked',
+      'auth/argument-error',
+      'auth/invalid-id-token'
+    ]);
+
+    if (authCodes.has(code)) {
+      sendError(res, 401, 'Unauthorized or invalid token', { code });
+      return;
+    }
+
+    sendError(res, 500, 'Internal server error', {
+      code: code || 'MCP_INTERNAL_ERROR',
+      details: error && error.message ? error.message : String(error)
+    });
   }
 };

@@ -22,13 +22,13 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
         const input = text.trim();
         if (!input) {
             setSeverity('warning');
-            setMessage('Hãy nhập một câu lệnh ngắn, ví dụ: "Bé bú 120ml lúc 9h15".');
+            setMessage('短いコマンドを入力してください。例: "ミルク120ml 9:15"');
             return;
         }
 
         if (!currentUser) {
             setSeverity('warning');
-            setMessage('Bạn cần đăng nhập trước khi dùng assistant.');
+            setMessage('アシスタントを使うにはログインが必要です。');
             return;
         }
 
@@ -36,13 +36,13 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
 
         if (command.tool === 'unknown') {
             setSeverity('warning');
-            setMessage('Mình chưa hiểu rõ yêu cầu. Hãy thử nói theo mẫu: bú, ngủ, đánh giá hoặc thêm món mới.');
+            setMessage('内容を理解できませんでした。授乳・睡眠・新しい食品の追加の形式で入力してください。');
             return;
         }
 
         if (command.missingFields.length > 0) {
             setSeverity('warning');
-            setMessage(`Thiếu dữ liệu: ${command.missingFields.join(', ')}.`);
+            setMessage(`不足データ: ${command.missingFields.join(', ')}.`);
             return;
         }
 
@@ -50,7 +50,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             setLoading(true);
             const result = await executeAssistantCommand(command);
             setSeverity('success');
-            setMessage(result.message || 'Đã thực thi thành công.');
+            setMessage(result.message || '実行に成功しました。');
             setText('');
 
             if (onCommitted) {
@@ -58,7 +58,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             }
         } catch (error: any) {
             setSeverity('error');
-            setMessage(error?.message || 'Không thể xử lý lệnh AI.');
+            setMessage(error?.message || 'AIコマンドを処理できませんでした。');
         } finally {
             setLoading(false);
         }
@@ -70,13 +70,13 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
                     <AutoAwesomeIcon color="primary" />
                     <Typography variant="h6" fontWeight={700}>
-                        AI Assistant
+                        AIアシスタント
                     </Typography>
-                    <Chip label="Local AI → MCP" size="small" color="primary" variant="outlined" />
+                    <Chip label="ローカルAI → MCP" size="small" color="primary" variant="outlined" />
                 </Stack>
 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Gõ câu tự nhiên để ghi hoạt động, cập nhật đánh giá, hoặc thêm món vào menu.
+                    自然文で記録を追加したり、メニューに食品を追加できます。
                 </Typography>
 
                 <TextField
@@ -86,15 +86,15 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
                     maxRows={4}
                     value={text}
                     onChange={(event) => setText(event.target.value)}
-                    placeholder='Ví dụ: "Bé bú 120ml lúc 9h15"'
+                    placeholder='例: "ミルク120ml 9:15"'
                     sx={{ mb: 2 }}
                 />
 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                     <Button variant="contained" onClick={handleSubmit} disabled={loading} startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeIcon />}>
-                        {loading ? 'Đang ghi...' : 'Ghi bằng AI'}
+                        {loading ? '記録中...' : 'AIで記録'}
                     </Button>
-                    <Chip label="Supports feeding / rating / menu" size="small" />
+                    <Chip label="授乳/食品追加に対応" size="small" />
                 </Box>
 
                 {message && (

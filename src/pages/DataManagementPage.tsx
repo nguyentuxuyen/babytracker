@@ -1,2 +1,0 @@
-// DataManagementPage - placeholder
-export {};
