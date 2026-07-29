@@ -17,6 +17,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string>('');
     const [severity, setSeverity] = useState<'success' | 'info' | 'warning' | 'error'>('info');
+    const [executionSource, setExecutionSource] = useState<'local' | 'ai' | null>(null);
 
     const handleSubmit = async () => {
         const input = text.trim();
@@ -32,25 +33,17 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             return;
         }
 
+        // Build a minimal command so the local-fallback path on localhost still works.
+        // On production, executeAssistantCommand sends raw text to Gemini and ignores
+        // command.tool entirely — so we skip the 'unknown' guard here.
         const command = parseAssistantCommand(input, { selectedDate, babyId });
-
-        if (command.tool === 'unknown') {
-            setSeverity('warning');
-            setMessage('内容を理解できませんでした。授乳・睡眠・新しい食品の追加の形式で入力してください。');
-            return;
-        }
-
-        if (command.missingFields.length > 0) {
-            setSeverity('warning');
-            setMessage(`不足データ: ${command.missingFields.join(', ')}.`);
-            return;
-        }
 
         try {
             setLoading(true);
-            const result = await executeAssistantCommand(command);
-            setSeverity('success');
-            setMessage(result.message || '実行に成功しました。');
+            const result = await executeAssistantCommand(command, { selectedDate, babyId });
+            setSeverity(result.source === 'local' ? 'success' : 'info');
+            setExecutionSource(result.source);
+            setMessage(`${result.message || '実行に成功しました。'} (${result.source === 'local' ? 'Local parse' : 'AI fallback'})`);
             setText('');
 
             if (onCommitted) {
@@ -58,6 +51,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             }
         } catch (error: any) {
             setSeverity('error');
+            setExecutionSource('ai');
             setMessage(error?.message || 'AIコマンドを処理できませんでした。');
         } finally {
             setLoading(false);
@@ -72,7 +66,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
                     <Typography variant="h6" fontWeight={700}>
                         AIアシスタント
                     </Typography>
-                    <Chip label="ローカルAI → MCP" size="small" color="primary" variant="outlined" />
+                    <Chip label="Gemini AI" size="small" color="primary" variant="outlined" />
                 </Stack>
 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -86,7 +80,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
                     maxRows={4}
                     value={text}
                     onChange={(event) => setText(event.target.value)}
-                    placeholder='例: "ミルク120ml 9:15"'
+                    placeholder='例: "9時15分にミルク120ml"、"昼寝45分"、"おむつ交換"'
                     sx={{ mb: 2 }}
                 />
 
@@ -98,9 +92,19 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
                 </Box>
 
                 {message && (
-                    <Alert severity={severity} sx={{ mt: 2 }}>
-                        {message}
-                    </Alert>
+                    <Box sx={{ mt: 2 }}>
+                        <Alert severity={severity} sx={{ mb: 1 }}>
+                            {message}
+                        </Alert>
+                        {executionSource && (
+                            <Chip
+                                label={executionSource === 'local' ? 'Local parse' : 'AI fallback'}
+                                size="small"
+                                color={executionSource === 'local' ? 'success' : 'info'}
+                                variant="outlined"
+                            />
+                        )}
+                    </Box>
                 )}
             </CardContent>
         </Card>

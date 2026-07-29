@@ -1,4 +1,4 @@
-﻿// Simplified WHO Child Growth Standards (0-24 months)
+// Simplified WHO Child Growth Standards (0-24 months)
 // Source: WHO Multicentre Growth Reference Study Group
 
 export interface GrowthStandard {

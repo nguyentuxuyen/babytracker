@@ -87,14 +87,28 @@ export const parseAssistantCommand = (
     const normalized = normalizeText(rawText);
     const selectedDate = options?.selectedDate ? new Date(options.selectedDate) : new Date();
 
-    const feedingKeywords = ['bú', 'uống sữa', 'cho ăn', 'ăn sữa', 'feeding'];
-    const foodKeywords = ['món mới', 'thêm món', 'thêm thực phẩm', 'food'];
+    const feedingKeywords = ['bú', 'uống sữa', 'cho ăn', 'ăn sữa', 'feeding', 'bú sữa', 'sữa', 'ăn cháo', 'ăn cơm', 'ăn mì', 'ăn bánh'];
+    const foodKeywords = ['món mới', 'thêm món', 'thêm thực phẩm', 'food', 'thêm đồ ăn', 'thêm thức ăn', 'thức ăn', 'đồ ăn'];
+    const diaperKeywords = [
+        'đổi bỉm',
+        'thay bỉm',
+        'bỉm',
+        'đổi tã',
+        'thay tã',
+        'đổi tả',
+        'thay tả',
+        'tả',
+        'tã',
+        'diaper'
+    ];
+    const sleepKeywords = ['ngủ', 'sleep', 'ngu', 'đi ngủ', 'nghỉ', 'đi ngủ rồi'];
 
     const amountMatch = rawText.match(/(\d+(?:[.,]\d+)?)\s*ml\b/i);
+    const durationMatch = rawText.match(/(\d+)\s*(phút|min|mins|minutes|minute|p)/i);
 
     if (foodKeywords.some((keyword) => normalized.includes(keyword))) {
         const foodName = rawText
-            .replace(/(thêm món|thêm thực phẩm|món mới|food)/gi, '')
+            .replace(/(thêm món|thêm thực phẩm|món mới|thêm đồ ăn|thêm thức ăn|thức ăn|đồ ăn|food)/gi, '')
             .trim();
 
         return {
@@ -110,7 +124,55 @@ export const parseAssistantCommand = (
         };
     }
 
-    if (feedingKeywords.some((keyword) => normalized.includes(keyword)) || normalized.includes('ml')) {
+    if (diaperKeywords.some((keyword) => normalized.includes(keyword))) {
+        const parsedTime = parseClockTime(rawText);
+        const timestamp = buildTimestamp(selectedDate, parsedTime);
+        return {
+            rawText,
+            tool: 'create_activity',
+            confidence: 0.85,
+            needsConfirmation: false,
+            missingFields: [],
+            params: {
+                activityType: 'diaper',
+                babyId: options?.babyId,
+                timestamp: timestamp.toISOString(),
+                details: {
+                    notes: rawText
+                }
+            },
+            preview: 'Ghi thay bỉm mới'
+        };
+    }
+
+    if (sleepKeywords.some((keyword) => normalized.includes(keyword))) {
+        const parsedTime = parseClockTime(rawText);
+        const timestamp = buildTimestamp(selectedDate, parsedTime);
+        const durationMinutes = durationMatch ? Number(durationMatch[1]) : undefined;
+        return {
+            rawText,
+            tool: 'create_activity',
+            confidence: 0.83,
+            needsConfirmation: false,
+            missingFields: [],
+            params: {
+                activityType: 'sleep',
+                babyId: options?.babyId,
+                timestamp: timestamp.toISOString(),
+                details: {
+                    durationMinutes,
+                    notes: rawText
+                }
+            },
+            preview: durationMinutes ? `Ghi ngủ ${durationMinutes} phút` : 'Ghi ngủ mới'
+        };
+    }
+
+    if (
+        feedingKeywords.some((keyword) => normalized.includes(keyword)) ||
+        normalized.includes('ml') ||
+        /\b(sữa|cháo|cơm|mì|bánh)\b/.test(normalized)
+    ) {
         const parsedTime = parseClockTime(rawText);
         const timeLabel = parsedTime ? formatClockTime(parsedTime.hours, parsedTime.minutes) : '';
         const timestamp = buildTimestamp(selectedDate, parsedTime);

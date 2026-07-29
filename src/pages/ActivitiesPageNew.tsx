@@ -3188,10 +3188,6 @@ const ActivitiesPage: React.FC = () => {
                 </Alert>
             </Snackbar>
 
-            {/* Version Text */}
-            <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 4, pb: 6, color: '#a0aec0' }}>
-                Deploy 13/04/2026 - Bản số 2 (Giai đoạn 2 - Fix lỗi tải trang chậm trên iOS PWA)
-            </Typography>
         </Box>
         </Box>
         </ErrorBoundary>

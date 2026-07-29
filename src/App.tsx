@@ -19,7 +19,9 @@ import {
     NotificationsOff as NotificationsOffIcon,
     Send as SendIcon
 } from '@mui/icons-material';
-import { Box } from '@mui/material';
+import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
+import packageJson from '../package.json';
+import { changelogEntries } from './utils/changelog';
 
 // Header Component - New Design
 const HeaderComponent: React.FC<{
@@ -55,6 +57,30 @@ const HeaderComponent: React.FC<{
 }) => {
     const { baby } = useBaby();
     const [showMenu, setShowMenu] = useState(false);
+    const [showChangelog, setShowChangelog] = useState(false);
+
+    useEffect(() => {
+        const seenVersions = localStorage.getItem('babytracker.seenChangelogVersions') || '';
+        const currentVersion = process.env.REACT_APP_VERSION || packageJson.version;
+        const shouldShow = !seenVersions.split(',').includes(currentVersion);
+
+        if (shouldShow) {
+            const timer = window.setTimeout(() => setShowChangelog(true), 400);
+            return () => window.clearTimeout(timer);
+        }
+    }, []);
+
+    const handleCloseChangelog = () => {
+        const currentVersion = process.env.REACT_APP_VERSION || packageJson.version;
+        const seenVersions = (localStorage.getItem('babytracker.seenChangelogVersions') || '').split(',').filter(Boolean);
+        if (!seenVersions.includes(currentVersion)) {
+            seenVersions.push(currentVersion);
+            localStorage.setItem('babytracker.seenChangelogVersions', seenVersions.join(','));
+        }
+        setShowChangelog(false);
+    };
+
+    const versionLabel = process.env.REACT_APP_VERSION || packageJson.version;
 
     return (
         <div style={{
@@ -74,7 +100,6 @@ const HeaderComponent: React.FC<{
                 maxWidth: '1200px',
                 margin: '0 auto'
             }}>
-                {/* Left side - Name and age */}
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -106,24 +131,22 @@ const HeaderComponent: React.FC<{
                                         birthNorm.setHours(0,0,0,0);
                                         const nowNorm = new Date(now);
                                         nowNorm.setHours(0,0,0,0);
-                                        // Calculate months and days
                                         let months = (nowNorm.getFullYear() - birthNorm.getFullYear()) * 12 + (nowNorm.getMonth() - birthNorm.getMonth());
                                         if (nowNorm.getDate() < birthNorm.getDate()) {
                                             months--;
                                         }
-                                        
+
                                         const tempDate = new Date(birthNorm);
                                         tempDate.setMonth(tempDate.getMonth() + months);
                                         const days = Math.floor((nowNorm.getTime() - tempDate.getTime()) / (1000 * 60 * 60 * 24));
-                                        
+
                                         if (months > 0) {
                                             if (days === 0) {
                                                 return `${months} tháng tuổi`;
                                             }
                                             return `${months} tháng ${days} ngày tuổi`;
-                                        } else {
-                                            return `${days} ngày tuổi`;
                                         }
+                                        return `${days} ngày tuổi`;
                                     }
                                 }
                             } catch (err) {
@@ -196,188 +219,247 @@ const HeaderComponent: React.FC<{
                     </div>
                 </div>
 
-                {/* Right side - Avatar */}
                 {currentUser && (
-                    <div style={{ position: 'relative' }}>
-                        <button
-                            onClick={() => setShowMenu(!showMenu)}
-                            style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '24px',
-                                background: '#13a4ec',
-                                border: 'none',
-                                color: '#fff',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                transition: 'all 0.2s ease',
-                                boxShadow: '0 2px 8px rgba(19, 164, 236, 0.3)'
-                            }}
-                        >
-                            <AccountCircleIcon sx={{ fontSize: '28px' }} />
-                        </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                            <Chip
+                                label={`v${versionLabel}`}
+                                size="small"
+                                sx={{
+                                    bgcolor: '#e0f2fe',
+                                    color: '#0f766e',
+                                    fontWeight: 700,
+                                    borderRadius: '999px'
+                                }}
+                            />
+                            <MuiButton
+                                variant="text"
+                                size="small"
+                                onClick={() => setShowChangelog(true)}
+                                sx={{
+                                    minWidth: 'auto',
+                                    color: '#13a4ec',
+                                    textTransform: 'none',
+                                    fontSize: '12px',
+                                    p: 0,
+                                    fontWeight: 600
+                                }}
+                            >
+                                Changelog
+                            </MuiButton>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '24px',
+                                    background: '#13a4ec',
+                                    border: 'none',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 2px 8px rgba(19, 164, 236, 0.3)'
+                                }}
+                            >
+                                <AccountCircleIcon sx={{ fontSize: '28px' }} />
+                            </button>
 
-                        {showMenu && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '56px',
-                                right: '0',
-                                background: '#ffffff',
-                                borderRadius: '12px',
-                                border: '1px solid #e5e7eb',
-                                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-                                minWidth: '220px',
-                                zIndex: 1000,
-                                overflow: 'hidden'
-                            }}>
-                            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
-                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#101c22' }}>
-                                    {currentUser.email}
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    onShowBabyInfo();
-                                    setShowMenu(false);
-                                }}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    background: 'none',
-                                    border: 'none',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#101c22',
-                                    fontWeight: '500',
-                                    transition: 'background-color 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
-                                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                            >
-                                <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
-                                Thông tin bé
-                            </button>
-                            <button
-                                onClick={onToggleReminder}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    background: 'none',
-                                    border: 'none',
-                                    borderTop: '1px solid #e5e7eb',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#101c22',
-                                    fontWeight: '500',
-                                    transition: 'background-color 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
-                                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                            >
-                                {reminderEnabled ? (
-                                    <NotificationsIcon sx={{ fontSize: '20px', color: '#10b981' }} />
-                                ) : (
-                                    <NotificationsOffIcon sx={{ fontSize: '20px', color: '#6b7f8a' }} />
-                                )}
-                                {reminderEnabled ? 'Tắt nhắc nhở' : 'Bật nhắc nhở'}
-                            </button>
-                            <div style={{
-                                borderTop: '1px solid #e5e7eb',
-                                padding: '10px 16px',
-                                fontSize: '12px',
-                                color: '#6b7f8a'
-                            }}>
-                                Trạng thái thông báo: {notificationPermission}
-                                <div style={{ marginTop: '6px' }}>
-                                    Push server: {pushSupported ? (pushEnabled ? 'enabled' : 'disabled') : 'unsupported'}
-                                </div>
-                                <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                    {[60, 120, 180, 240].map((minutes) => (
-                                        <button
-                                            key={minutes}
-                                            onClick={() => onChangeReminderInterval(minutes)}
-                                            style={{
-                                                border: 'none',
-                                                borderRadius: '999px',
-                                                padding: '4px 8px',
-                                                fontSize: '11px',
-                                                cursor: 'pointer',
-                                                color: reminderIntervalMinutes === minutes ? '#ffffff' : '#334155',
-                                                backgroundColor: reminderIntervalMinutes === minutes ? '#13a4ec' : '#e5e7eb'
-                                            }}
-                                        >
-                                            {minutes / 60}h
-                                        </button>
-                                    ))}
-                                </div>
-                                {pushSupported && (
+                            {showMenu && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '56px',
+                                    right: '0',
+                                    background: '#ffffff',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e5e7eb',
+                                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                                    minWidth: '220px',
+                                    zIndex: 1000,
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#101c22' }}>
+                                            {currentUser.email}
+                                        </div>
+                                    </div>
                                     <button
-                                        onClick={onSendTestPush}
+                                        onClick={() => {
+                                            onShowBabyInfo();
+                                            setShowMenu(false);
+                                        }}
                                         style={{
-                                            marginTop: '8px',
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
                                             border: 'none',
-                                            borderRadius: '8px',
-                                            padding: '6px 10px',
-                                            fontSize: '12px',
+                                            textAlign: 'left',
                                             cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: '#101c22',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '6px',
-                                            color: '#ffffff',
-                                            backgroundColor: '#0f766e'
+                                            gap: '8px'
                                         }}
+                                        onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
+                                        onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                     >
-                                        <SendIcon sx={{ fontSize: '16px' }} />
-                                        Gửi test push
+                                        <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
+                                        Thông tin bé
                                     </button>
-                                )}
-                            </div>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        await logout();
-                                        setShowMenu(false);
-                                    } catch (error) {
-                                        console.error('Logout error:', error);
-                                    }
-                                }}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    background: 'none',
-                                    border: 'none',
-                                    borderTop: '1px solid #e5e7eb',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#ef4444',
-                                    fontWeight: '500',
-                                    transition: 'background-color 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#fef2f2'}
-                                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                            >
-                                <LogoutIcon sx={{ fontSize: '20px' }} />
-                                Đăng xuất
-                            </button>
+                                    <button
+                                        onClick={onToggleReminder}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            borderTop: '1px solid #e5e7eb',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: '#101c22',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                        onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
+                                        onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                                    >
+                                        {reminderEnabled ? (
+                                            <NotificationsIcon sx={{ fontSize: '20px', color: '#10b981' }} />
+                                        ) : (
+                                            <NotificationsOffIcon sx={{ fontSize: '20px', color: '#6b7f8a' }} />
+                                        )}
+                                        {reminderEnabled ? 'Tắt nhắc nhở' : 'Bật nhắc nhở'}
+                                    </button>
+                                    <div style={{
+                                        borderTop: '1px solid #e5e7eb',
+                                        padding: '10px 16px',
+                                        fontSize: '12px',
+                                        color: '#6b7f8a'
+                                    }}>
+                                        Trạng thái thông báo: {notificationPermission}
+                                        <div style={{ marginTop: '6px' }}>
+                                            Push server: {pushSupported ? (pushEnabled ? 'enabled' : 'disabled') : 'unsupported'}
+                                        </div>
+                                        <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            {[60, 120, 180, 240].map((minutes) => (
+                                                <button
+                                                    key={minutes}
+                                                    onClick={() => onChangeReminderInterval(minutes)}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: '999px',
+                                                        padding: '4px 8px',
+                                                        fontSize: '11px',
+                                                        cursor: 'pointer',
+                                                        color: reminderIntervalMinutes === minutes ? '#ffffff' : '#334155',
+                                                        backgroundColor: reminderIntervalMinutes === minutes ? '#13a4ec' : '#e5e7eb'
+                                                    }}
+                                                >
+                                                    {minutes / 60}h
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {pushSupported && (
+                                            <button
+                                                onClick={onSendTestPush}
+                                                style={{
+                                                    marginTop: '8px',
+                                                    border: 'none',
+                                                    borderRadius: '8px',
+                                                    padding: '6px 10px',
+                                                    fontSize: '12px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    color: '#ffffff',
+                                                    backgroundColor: '#0f766e'
+                                                }}
+                                            >
+                                                <SendIcon sx={{ fontSize: '16px' }} />
+                                                Gửi test push
+                                            </button>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await logout();
+                                                setShowMenu(false);
+                                            } catch (error) {
+                                                console.error('Logout error:', error);
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            borderTop: '1px solid #e5e7eb',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: '#ef4444',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                        onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#fef2f2'}
+                                        onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                                    >
+                                        <LogoutIcon sx={{ fontSize: '20px' }} />
+                                        Đăng xuất
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            )}
-        </div>
+                    </div>
+                )}
+            </div>
+
+            <Dialog open={showChangelog} onClose={handleCloseChangelog} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ pb: 1 }}>What’s new</DialogTitle>
+                <DialogContent dividers>
+                    {changelogEntries.map((entry) => (
+                        <Box key={entry.version} sx={{ mb: 2.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#101c22' }}>
+                                    {entry.title}
+                                </Typography>
+                                <Chip label={`v${entry.version}`} size="small" sx={{ bgcolor: '#f0fdf4', color: '#166534' }} />
+                            </Box>
+                            <Typography variant="body2" sx={{ color: '#6b7f8a', mb: 1 }}>
+                                {entry.date}
+                            </Typography>
+                            <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
+                                {entry.changes.map((change) => (
+                                    <Typography key={change} component="li" variant="body2" sx={{ color: '#334155', mb: 0.5 }}>
+                                        {change}
+                                    </Typography>
+                                ))}
+                            </Box>
+                        </Box>
+                    ))}
+                </DialogContent>
+                <DialogActions>
+                    <MuiButton onClick={handleCloseChangelog} variant="contained" sx={{ bgcolor: '#13a4ec' }}>
+                        Đóng
+                    </MuiButton>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 };
