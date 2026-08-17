@@ -10,6 +10,7 @@ import BabyInfoPage from './pages/BabyInfoPageNew';
 import { firestore } from './firebase/firestore';
 import { loadReminderSettings, saveReminderSettings } from './utils/reminderSettings';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
+import { ChangelogRelease } from './types';
 
 import {
     AccountCircle as AccountCircleIcon,
@@ -21,7 +22,7 @@ import {
 } from '@mui/icons-material';
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
 import packageJson from '../package.json';
-import { changelogEntries } from './utils/changelog';
+import { CHANGELOG_SEEN_STORAGE_KEY, fallbackChangelogReleases, formatChangelogDate } from './utils/changelog';
 
 // Header Component - New Design
 const HeaderComponent: React.FC<{
@@ -36,6 +37,10 @@ const HeaderComponent: React.FC<{
     notificationPermission: NotificationPermission | 'unsupported';
     pushSupported: boolean;
     pushEnabled: boolean;
+    versionLabel: string;
+    changelogReleases: ChangelogRelease[];
+    changelogReady: boolean;
+    changelogUsesFirebase: boolean;
     onToggleReminder: () => void;
     onChangeReminderInterval: (minutes: number) => void;
     onSendTestPush: () => void;
@@ -51,6 +56,10 @@ const HeaderComponent: React.FC<{
     notificationPermission,
     pushSupported,
     pushEnabled,
+    versionLabel,
+    changelogReleases,
+    changelogReady,
+    changelogUsesFirebase,
     onToggleReminder,
     onChangeReminderInterval,
     onSendTestPush
@@ -60,36 +69,36 @@ const HeaderComponent: React.FC<{
     const [showChangelog, setShowChangelog] = useState(false);
 
     useEffect(() => {
-        const seenVersions = localStorage.getItem('babytracker.seenChangelogVersions') || '';
-        const currentVersion = process.env.REACT_APP_VERSION || packageJson.version;
-        const shouldShow = !seenVersions.split(',').includes(currentVersion);
+        if (!changelogReady || changelogReleases.length === 0) {
+            return;
+        }
+
+        const seenVersions = localStorage.getItem(CHANGELOG_SEEN_STORAGE_KEY) || '';
+        const shouldShow = !seenVersions.split(',').includes(versionLabel);
 
         if (shouldShow) {
             const timer = window.setTimeout(() => setShowChangelog(true), 400);
             return () => window.clearTimeout(timer);
         }
-    }, []);
+    }, [changelogReady, changelogReleases.length, versionLabel]);
 
     const handleCloseChangelog = () => {
-        const currentVersion = process.env.REACT_APP_VERSION || packageJson.version;
-        const seenVersions = (localStorage.getItem('babytracker.seenChangelogVersions') || '').split(',').filter(Boolean);
-        if (!seenVersions.includes(currentVersion)) {
-            seenVersions.push(currentVersion);
-            localStorage.setItem('babytracker.seenChangelogVersions', seenVersions.join(','));
+        const seenVersions = (localStorage.getItem(CHANGELOG_SEEN_STORAGE_KEY) || '').split(',').filter(Boolean);
+        if (!seenVersions.includes(versionLabel)) {
+            seenVersions.push(versionLabel);
+            localStorage.setItem(CHANGELOG_SEEN_STORAGE_KEY, seenVersions.join(','));
         }
         setShowChangelog(false);
     };
-
-    const versionLabel = process.env.REACT_APP_VERSION || packageJson.version;
 
     return (
         <div style={{
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            backgroundColor: 'rgba(246, 247, 248, 0.8)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            backgroundColor: 'rgba(246, 247, 248, 0.94)',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
         }}>
             <div style={{
@@ -433,7 +442,10 @@ const HeaderComponent: React.FC<{
             <Dialog open={showChangelog} onClose={handleCloseChangelog} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ pb: 1 }}>What’s new</DialogTitle>
                 <DialogContent dividers>
-                    {changelogEntries.map((entry) => (
+                    <Typography variant="caption" sx={{ display: 'block', color: '#6b7f8a', mb: 2 }}>
+                        {changelogUsesFirebase ? 'Nguon du lieu: Firebase changelog' : 'Nguon du lieu: local fallback'}
+                    </Typography>
+                    {changelogReleases.map((entry) => (
                         <Box key={entry.version} sx={{ mb: 2.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#101c22' }}>
@@ -442,8 +454,13 @@ const HeaderComponent: React.FC<{
                                 <Chip label={`v${entry.version}`} size="small" sx={{ bgcolor: '#f0fdf4', color: '#166534' }} />
                             </Box>
                             <Typography variant="body2" sx={{ color: '#6b7f8a', mb: 1 }}>
-                                {entry.date}
+                                {formatChangelogDate(entry.releasedAt)}
                             </Typography>
+                            {entry.summary && (
+                                <Typography variant="body2" sx={{ color: '#475569', mb: 1 }}>
+                                    {entry.summary}
+                                </Typography>
+                            )}
                             <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
                                 {entry.changes.map((change) => (
                                     <Typography key={change} component="li" variant="body2" sx={{ color: '#334155', mb: 0.5 }}>
@@ -480,6 +497,10 @@ const MainApp: React.FC = () => {
     );
     const [pushEnabled, setPushEnabled] = useState(false);
     const [pushSupported, setPushSupported] = useState(false);
+    const [changelogReleases, setChangelogReleases] = useState<ChangelogRelease[]>(fallbackChangelogReleases);
+    const [versionLabel, setVersionLabel] = useState(process.env.REACT_APP_VERSION || packageJson.version);
+    const [changelogReady, setChangelogReady] = useState(false);
+    const [changelogUsesFirebase, setChangelogUsesFirebase] = useState(false);
 
     const refreshPendingSyncCount = useCallback(async () => {
         if (!currentUser?.uid) {
@@ -671,6 +692,55 @@ const MainApp: React.FC = () => {
         };
     }, [pushSupported, currentUser]);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadChangelog = async () => {
+            const localVersion = process.env.REACT_APP_VERSION || packageJson.version;
+
+            try {
+                const [config, releases] = await Promise.all([
+                    firestore.getChangelogConfig(),
+                    firestore.getPublishedChangelogReleases()
+                ]);
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (config?.currentVersion) {
+                    setVersionLabel(config.currentVersion);
+                } else {
+                    setVersionLabel(localVersion);
+                }
+
+                if (releases.length > 0) {
+                    setChangelogReleases(releases);
+                    setChangelogUsesFirebase(true);
+                } else {
+                    setChangelogReleases(fallbackChangelogReleases);
+                    setChangelogUsesFirebase(false);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setVersionLabel(localVersion);
+                    setChangelogReleases(fallbackChangelogReleases);
+                    setChangelogUsesFirebase(false);
+                }
+            } finally {
+                if (!cancelled) {
+                    setChangelogReady(true);
+                }
+            }
+        };
+
+        void loadChangelog();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     // Show loading spinner while checking auth
     if (loading) {
         console.log('[App] Loading auth state...');
@@ -718,6 +788,10 @@ const MainApp: React.FC = () => {
                 notificationPermission={notificationPermission}
                 pushSupported={pushSupported}
                 pushEnabled={pushEnabled}
+                versionLabel={versionLabel}
+                changelogReleases={changelogReleases}
+                changelogReady={changelogReady}
+                changelogUsesFirebase={changelogUsesFirebase}
                 onToggleReminder={onToggleReminder}
                 onChangeReminderInterval={onChangeReminderInterval}
                 onSendTestPush={onSendTestPush}

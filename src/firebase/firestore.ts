@@ -14,8 +14,20 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { db } from './config';
-import { Baby, Activity } from '../types';
+import { Baby, Activity, ChangelogConfig, ChangelogRelease } from '../types';
 import { getCurrentUser } from './auth';
+
+const changelogRootPath = ['app_meta', 'changelog'] as const;
+
+const toDateValue = (value: unknown): Date | undefined => {
+    if (!value) return undefined;
+    if (value instanceof Date) return value;
+    if (typeof value === 'object' && value !== null && 'toDate' in value && typeof (value as { toDate?: unknown }).toDate === 'function') {
+        return ((value as { toDate: () => Date }).toDate());
+    }
+    const parsed = new Date(String(value));
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+};
 
 type QueuedActivity = {
     localId: string;
@@ -27,6 +39,20 @@ type QueuedActivity = {
 };
 
 const getQueueStorageKey = (userId: string) => `offline-activity-queue:${userId}`;
+
+const normalizeFoodName = (value: unknown): string => String(value || '').trim();
+
+const mergeFoodItems = (items: unknown[]): string[] => {
+    const merged = new Map<string, string>();
+    items.forEach((item) => {
+        const name = normalizeFoodName(item);
+        const key = name.toLocaleLowerCase();
+        if (name && !merged.has(key)) {
+            merged.set(key, name);
+        }
+    });
+    return Array.from(merged.values());
+};
 
 const emitQueueUpdated = () => {
     if (typeof window !== 'undefined') {
@@ -235,6 +261,61 @@ export const firestore = {
         } catch (error) {
             console.error('Error saving baby data:', error);
             return false;
+        }
+    },
+
+    getChangelogConfig: async (): Promise<ChangelogConfig | null> => {
+        try {
+            const configRef = doc(db, changelogRootPath[0], changelogRootPath[1], 'meta', 'current');
+            const configSnap = await getDoc(configRef);
+
+            if (!configSnap.exists()) {
+                return null;
+            }
+
+            const data = configSnap.data();
+            if (!data.currentVersion) {
+                return null;
+            }
+
+            return {
+                currentVersion: String(data.currentVersion),
+                minSupportedVersion: data.minSupportedVersion ? String(data.minSupportedVersion) : undefined,
+                updatedAt: toDateValue(data.updatedAt)
+            };
+        } catch (error) {
+            console.error('Error getting changelog config:', error);
+            return null;
+        }
+    },
+
+    getPublishedChangelogReleases: async (maxItems: number = 10): Promise<ChangelogRelease[]> => {
+        try {
+            const releasesRef = collection(db, changelogRootPath[0], changelogRootPath[1], 'releases');
+            const q = query(releasesRef, where('isPublished', '==', true), orderBy('releasedAt', 'desc'), limit(maxItems));
+            const querySnapshot = await getDocs(q);
+
+            return querySnapshot.docs
+                .map((releaseDoc) => {
+                    const data = releaseDoc.data();
+                    const releasedAt = toDateValue(data.releasedAt);
+                    if (!data.version || !releasedAt || !data.title) {
+                        return null;
+                    }
+
+                    return {
+                        version: String(data.version),
+                        releasedAt,
+                        title: String(data.title),
+                        summary: data.summary ? String(data.summary) : undefined,
+                        changes: Array.isArray(data.changes) ? data.changes.map((item: unknown) => String(item)) : [],
+                        isPublished: Boolean(data.isPublished)
+                    } as ChangelogRelease;
+                })
+                .filter((release): release is ChangelogRelease => Boolean(release));
+        } catch (error) {
+            console.error('Error getting changelog releases:', error);
+            return [];
         }
     },
     
@@ -474,7 +555,11 @@ export const firestore = {
             
             if (docSnap.exists()) {
                 const items = docSnap.data().foodMenu || [];
-                return Array.isArray(items) ? [...items].reverse() : [];
+                const mergedItems = Array.isArray(items) ? mergeFoodItems(items) : [];
+                if (JSON.stringify(items) !== JSON.stringify(mergedItems)) {
+                    await setDoc(docRef, { foodMenu: mergedItems, updatedAt: serverTimestamp() }, { merge: true });
+                }
+                return [...mergedItems].reverse();
             }
             return [];
         } catch (error) {
@@ -489,18 +574,17 @@ export const firestore = {
             const docRef = doc(db, 'babies', userId);
             const docSnap = await getDoc(docRef);
             
-            let currentItems: string[] = [];
+            let currentItems: unknown[] = [];
             if (docSnap.exists()) {
                 currentItems = docSnap.data().foodMenu || [];
             }
 
-            // Avoid duplicates
-            if (!currentItems.includes(foodName)) {
-                await setDoc(docRef, {
-                    foodMenu: [...currentItems, foodName],
-                    updatedAt: serverTimestamp()
-                }, { merge: true });
-            }
+            const normalizedName = normalizeFoodName(foodName);
+            const mergedItems = mergeFoodItems([...currentItems, normalizedName]);
+            await setDoc(docRef, {
+                foodMenu: mergedItems,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
             return true;
         } catch (error) {
             console.error('Error adding food item:', error);

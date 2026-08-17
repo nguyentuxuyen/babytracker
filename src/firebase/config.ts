@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { enableMultiTabIndexedDbPersistence, getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -16,6 +16,13 @@ const firebaseApp = initializeApp(firebaseConfig);
 
 // Initialize Firestore
 export const db = getFirestore(firebaseApp);
+
+enableMultiTabIndexedDbPersistence(db).catch((error) => {
+    // Persistence is an enhancement; network reads remain available when unsupported.
+    if (error?.code !== 'failed-precondition' && error?.code !== 'unimplemented') {
+        console.warn('Firestore offline persistence unavailable:', error);
+    }
+});
 
 // Initialize Authentication
 export const auth = getAuth(firebaseApp);

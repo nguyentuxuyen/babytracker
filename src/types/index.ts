@@ -57,3 +57,18 @@ export type Activity =
     | { id: string; babyId: string; type: 'measurement'; timestamp: Date; details: MeasurementDetails }
     | { id: string; babyId: string; type: 'memo'; timestamp: Date; details: MemoDetails }
     | { id: string; babyId: string; type: 'dailyRating'; timestamp: Date; details: DailyRatingDetails };
+
+export interface ChangelogRelease {
+    version: string;
+    releasedAt: Date;
+    title: string;
+    summary?: string;
+    changes: string[];
+    isPublished: boolean;
+}
+
+export interface ChangelogConfig {
+    currentVersion: string;
+    minSupportedVersion?: string;
+    updatedAt?: Date;
+}

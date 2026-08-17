@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom';
 import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Card, CardContent, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete } from '@mui/material';
-import { useLocation } from 'react-router-dom';
 
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { useBaby } from '../contexts/BabyContext';
@@ -12,13 +11,27 @@ import { AssistantComposer } from '../components/common/AssistantComposer';
 
 // 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
 const liquidGlassStyle = {
-    background: 'rgba(255, 255, 255, 0.9)', // Tăng độ đục lên để dễ đọc hơn
-    backdropFilter: 'blur(20px) saturate(180%)', // Blur mạnh hơn
-    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+    background: 'rgba(255, 255, 255, 0.94)',
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
     border: '1px solid rgba(255, 255, 255, 0.5)', // Viền trắng phát sáng nhẹ
     boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)', // Bóng đổ màu xanh tím nhẹ tạo chiều sâu
     borderRadius: '24px', // Bo góc lớn mềm mại
     transition: 'all 0.3s ease', // Hiệu ứng chuyển động mượt như nước
+};
+
+const normalizeFoodName = (value: string) => value.trim();
+
+const mergeFoodItems = (items: string[]) => {
+    const merged = new Map<string, string>();
+    items.forEach((item) => {
+        const name = normalizeFoodName(item);
+        const key = name.toLocaleLowerCase();
+        if (name && !merged.has(key)) {
+            merged.set(key, name);
+        }
+    });
+    return Array.from(merged.values());
 };
 
 interface Activity {
@@ -66,10 +79,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 }
 
 const ActivitiesPage: React.FC = () => {
-    const { baby, refreshActivities } = useBaby();
+    const { baby, activities: contextActivities, refreshActivities } = useBaby();
     const { selectedDate, setSelectedDate } = useDateContext();
-    const location = useLocation();
-    const isRecentActivitiesTab = location.pathname === '/recent-activities';
     const [activities, setActivities] = useState<Activity[]>();
     const [loading, setLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
@@ -86,6 +97,38 @@ const ActivitiesPage: React.FC = () => {
     const [foodItems, setFoodItems] = useState<string[]>([]);
     const [foodMenuOpen, setFoodMenuOpen] = useState(false);
 
+    const normalizedActivities = useMemo(() => contextActivities.map((activity: any) => {
+        let normalizedType = activity.type;
+        const lowerType = String(activity.type).toLowerCase();
+        if (['diaperchange', 'thay tã', 'tã', 'đi tè', 'đi ị', 'diaper'].includes(lowerType)) {
+            normalizedType = 'diaper';
+        } else if (['sữa', 'bú sữa', 'feeding'].includes(lowerType)) {
+            normalizedType = 'feeding';
+        } else if (['ngủ', 'sleep'].includes(lowerType)) {
+            normalizedType = 'sleep';
+        } else if (['đo lường', 'số đo', 'measurement'].includes(lowerType)) {
+            normalizedType = 'measurement';
+        } else if (['ghi chú', 'memo'].includes(lowerType)) {
+            normalizedType = 'memo';
+        }
+
+        const normalizedDetails = activity.details ? { ...activity.details } : {};
+        if (normalizedType === 'feeding' && !normalizedDetails.amount && typeof activity.details?.time === 'number') {
+            normalizedDetails.amount = activity.details.time;
+        }
+
+        return {
+            id: activity.id,
+            type: normalizedType,
+            timestamp: activity.timestamp,
+            details: normalizedDetails
+        } as Activity;
+    }), [contextActivities]);
+
+    useEffect(() => {
+        setActivities(normalizedActivities);
+    }, [normalizedActivities]);
+
     // Update current time every 5 minutes for real-time display
     useEffect(() => {
         const interval = setInterval(() => {
@@ -101,15 +144,14 @@ const ActivitiesPage: React.FC = () => {
             if (currentUser?.uid) {
                 try {
                     const items = await firestore.getFoodItems(currentUser.uid);
-                    console.log('Loaded food items:', items);
-                    setFoodItems(items);
+                    setFoodItems(mergeFoodItems(items));
                 } catch (error) {
                     console.error('Error loading food items:', error);
                 }
             }
         };
         loadFoodItems();
-    }, [currentUser]);
+    }, [currentUser]);    
 
     const [formData, setFormData] = useState<{
         type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo';
@@ -167,48 +209,13 @@ const ActivitiesPage: React.FC = () => {
         errors: []
     });
 
-    // Load activities from Firebase when user is available
+    // Refresh activities through BabyContext to avoid a duplicate initial request.
     useEffect(() => {
         const loadActivities = async () => {
             if (currentUser?.uid) {
                 try {
                     setLoading(true);
-                    const userActivities = await firestore.getActivities(currentUser.uid);
-                    // Convert Firebase activities to local format and normalize types
-                    const convertedActivities = userActivities.map((activity: any) => {
-                        // Normalize activity types to handle legacy data
-                        let normalizedType = activity.type;
-                        const lowerType = String(activity.type).toLowerCase();
-                        if (['diaperchange', 'thay tã', 'tã', 'đi tè', 'đi ị', 'diaper'].includes(lowerType)) {
-                            normalizedType = 'diaper';
-                        } else if (['sữa', 'bú sữa', 'feeding'].includes(lowerType)) {
-                            normalizedType = 'feeding';
-                        } else if (['ngủ', 'sleep'].includes(lowerType)) {
-                            normalizedType = 'sleep';
-                        } else if (['đo lường', 'số đo', 'measurement'].includes(lowerType)) {
-                            normalizedType = 'measurement';
-                        } else if (['ghi chú', 'memo'].includes(lowerType)) {
-                            normalizedType = 'memo';
-                        }
-                        
-                        // Normalize details structure for feeding activities
-                        let normalizedDetails = activity.details ? { ...activity.details } : {};
-                        if (normalizedType === 'feeding' && activity.details) {
-                            // Keep existing amount if it exists and is valid
-                            if (!normalizedDetails.amount && activity.details.time && typeof activity.details.time === 'number') {
-                                // Only use time as amount if no amount exists and time looks like a number (old format)
-                                normalizedDetails.amount = activity.details.time;
-                            }
-                        }
-                        
-                        return {
-                            id: activity.id,
-                            type: normalizedType,
-                            timestamp: activity.timestamp,
-                            details: normalizedDetails
-                        };
-                    });
-                    setActivities(convertedActivities);
+                    await refreshActivities();
                 } catch (error) {
                     // Error loading activities - silently fail in production
                 } finally {
@@ -250,6 +257,8 @@ const ActivitiesPage: React.FC = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
         };
+        // refreshActivities is intentionally excluded because its context identity changes on render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser]);    
 
     // Load ongoing sleep session when component mounts
@@ -434,11 +443,12 @@ const ActivitiesPage: React.FC = () => {
                     };
 
                     // Auto-save new food item to menu
-                    if (formData.foodType === 'solid' && formData.foodItem && !foodItems.includes(formData.foodItem)) {
+                    const normalizedFoodItem = normalizeFoodName(formData.foodItem || '');
+                    if (formData.foodType === 'solid' && normalizedFoodItem) {
                         // Don't await this to keep UI responsive
-                        firestore.addFoodItem(currentUser.uid, formData.foodItem).then(success => {
+                        firestore.addFoodItem(currentUser.uid, normalizedFoodItem).then(success => {
                             if (success) {
-                                setFoodItems(prev => [...prev, formData.foodItem!]);
+                                setFoodItems(prev => mergeFoodItems([...prev, normalizedFoodItem]));
                             }
                         });
                     }
@@ -959,20 +969,18 @@ const ActivitiesPage: React.FC = () => {
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
                 <Box>
                 {/* WAKE WINDOWS WARNING BANNER */}
-                {!isRecentActivitiesTab && wakeWindowWarning && (
+                {wakeWindowWarning && (
                     <Alert severity="warning" sx={{ mb: 3, ...liquidGlassStyle, borderRadius: '16px', '& .MuiAlert-message': { width: '100%' } }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>覚醒時間アラート</Typography>
                         <Typography variant="body2">{wakeWindowWarning}</Typography>
                     </Alert>
                 )}
 
-                {!isRecentActivitiesTab && (
-                    <AssistantComposer
-                        babyId={baby?.id}
-                        selectedDate={selectedDate}
-                        onCommitted={refreshActivities}
-                    />
-                )}
+                <AssistantComposer
+                    babyId={baby?.id}
+                    selectedDate={selectedDate}
+                    onCommitted={refreshActivities}
+                />
 
                 {/* Calendar Card - Liquid Glass */}
                 <Card sx={{ 
@@ -1166,12 +1174,9 @@ const ActivitiesPage: React.FC = () => {
 
                 {/* Quick Actions - New Design */}
                 <Box sx={{ mb: 3 }}>
-                    {!isRecentActivitiesTab && (
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
                         アクティビティ
                     </Typography>
-                    )}
-                    {!isRecentActivitiesTab && (
                     <Grid container spacing={2}>
                         {[
                             { 
@@ -1312,7 +1317,7 @@ const ActivitiesPage: React.FC = () => {
                                         bgcolor: (action as any).isSleepTimer && ongoingSleep 
                                             ? 'rgba(254, 243, 199, 0.7)' 
                                             : 'rgba(255, 255, 255, 0.5)',
-                                        backdropFilter: 'blur(8px)',
+                                        backdropFilter: 'none',
                                         borderRadius: '20px',
                                         border: (action as any).isSleepTimer && ongoingSleep 
                                             ? '2px solid #f59e0b' 
@@ -1357,11 +1362,9 @@ const ActivitiesPage: React.FC = () => {
                             );
                         })}
                     </Grid>
-                    )}
                 </Box>
 
                 {/* Summary - New Design */}
-                {!isRecentActivitiesTab && (
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
                         サマリー
@@ -1563,11 +1566,10 @@ const ActivitiesPage: React.FC = () => {
                         
                     </Box>
                 </Box>
-                )}
 
                 </Box>
 
-                <Box sx={{ mb: 3, display: isRecentActivitiesTab ? 'block' : 'none' }}>
+                <Box sx={{ mb: 3 }}>
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
                         最近の記録
                     </Typography>
@@ -1727,7 +1729,7 @@ const ActivitiesPage: React.FC = () => {
                                                                         borderRadius: '4px',
                                                                         whiteSpace: 'nowrap',
                                                                         border: '1px solid rgba(255, 255, 255, 0.5)',
-                                                                        backdropFilter: 'blur(4px)'
+                                                                        backdropFilter: 'none'
                                                                     }}>
                                                                         {timeLabel}
                                                                     </div>
@@ -1764,7 +1766,7 @@ const ActivitiesPage: React.FC = () => {
                                                                     borderRadius: '12px',
                                                                     border: '1px solid rgba(255, 255, 255, 0.6)',
                                                                     position: 'relative',
-                                                                    backdropFilter: 'blur(10px)',
+                                                                    backdropFilter: 'none',
                                                                     boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                                                                 }}
                                                             >
@@ -2591,7 +2593,6 @@ const ActivitiesPage: React.FC = () => {
                                                         setFormData(prev => ({ ...prev, foodItem: newInputValue }));
                                                         setFoodMenuOpen(true);
                                                     }}
-                                                    filterOptions={(options) => options}
                                                     ListboxProps={{
                                                         sx: {
                                                             WebkitOverflowScrolling: 'touch',

@@ -1,28 +1,21 @@
-export interface ChangelogEntry {
-  version: string;
-  date: string;
-  title: string;
-  changes: string[];
-}
+import { ChangelogRelease } from '../types';
+import changelogSeed from '../config/changelogSeed.json';
 
-export const changelogEntries: ChangelogEntry[] = [
-  {
-    version: '1.0.1',
-    date: '2026-07-30',
-    title: 'Header changelog & version badge',
-    changes: [
-      'Thêm badge version và nút Changelog ở header để xem bản hiện tại và các cập nhật mới.',
-      'Tự động mở modal changelog khi app chạy với version mới lần đầu.',
-      'Tách dữ liệu release thành danh sách dễ mở rộng cho các bản cập nhật sau.'
-    ]
-  },
-  {
-    version: '1.0.0',
-    date: '2026-07-01',
-    title: 'Initial release',
-    changes: [
-      'Ra mắt app Baby Tracker với các màn hình theo dõi hoạt động, ngủ và thông tin bé.',
-      'Hỗ trợ sync dữ liệu và các tính năng nhắc nhở cơ bản.'
-    ]
-  }
-];
+export const CHANGELOG_SEEN_STORAGE_KEY = 'babytracker.seenChangelogVersions';
+
+export const fallbackChangelogReleases: ChangelogRelease[] = changelogSeed.releases.map((release) => ({
+  version: release.version,
+  releasedAt: new Date(release.releasedAt),
+  title: release.title,
+  summary: release.summary,
+  changes: release.changes,
+  isPublished: release.isPublished
+}));
+
+export const formatChangelogDate = (value: Date): string => {
+  return value.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};

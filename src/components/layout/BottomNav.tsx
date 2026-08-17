@@ -4,7 +4,6 @@ import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 const BottomNav: React.FC = () => {
     const history = useHistory();
@@ -13,9 +12,8 @@ const BottomNav: React.FC = () => {
     const getNavValue = () => {
         const path = location.pathname;
         if (path === '/' || path === '/activities') return 0;
-        if (path === '/recent-activities') return 1;
-        if (path === '/statistics') return 2;
-        if (path === '/food-history') return 3;
+        if (path === '/statistics') return 1;
+        if (path === '/food-history') return 2;
         return 0;
     };
 
@@ -40,12 +38,9 @@ const BottomNav: React.FC = () => {
                             history.push('/');
                             break;
                         case 1:
-                            history.push('/recent-activities');
-                            break;
-                        case 2:
                             history.push('/statistics');
                             break;
-                        case 3:
+                        case 2:
                             history.push('/food-history');
                             break;
                     }
@@ -67,20 +62,6 @@ const BottomNav: React.FC = () => {
                 <BottomNavigationAction 
                     label="ホーム" 
                     icon={<HomeIcon />}
-                    sx={{
-                        '& .MuiBottomNavigationAction-label': {
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginTop: '4px',
-                            '&.Mui-selected': {
-                                fontSize: '12px'
-                            }
-                        }
-                    }}
-                />
-                <BottomNavigationAction 
-                    label="履歴" 
-                    icon={<AccessTimeIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
                             fontSize: '12px',

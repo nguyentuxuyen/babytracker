@@ -1,0 +1,42 @@
+{
+  "currentVersion": "1.0.2",
+  "minSupportedVersion": "1.0.0",
+  "releases": [
+    {
+      "version": "1.0.2",
+      "releasedAt": "2026-08-17T00:00:00.000Z",
+      "title": "Faster PWA startup & solid food menu cleanup",
+      "summary": "Giảm tải khởi động PWA và loại bỏ các tên thức ăn bị trùng.",
+      "changes": [
+        "Chuẩn hóa và merge các tên thức ăn trùng nhau, kể cả khác khoảng trắng hoặc chữ hoa/chữ thường.",
+        "Bật lại tự động filter cho trường 食品名 và chống tạo thêm tên thức ăn đã tồn tại.",
+        "Loại bỏ request tải activities trùng từ trang Activities, đồng thời giảm hiệu ứng blur nặng trên giao diện chính.",
+        "Bật Firestore IndexedDB persistence để ưu tiên dữ liệu cache local khi PWA khởi động lại."
+      ],
+      "isPublished": true
+    },
+    {
+      "version": "1.0.1",
+      "releasedAt": "2026-07-30T00:00:00.000Z",
+      "title": "Header changelog & version badge",
+      "summary": "Thêm badge version và modal changelog trên header.",
+      "changes": [
+        "Thêm badge version và nút Changelog ở header để xem bản hiện tại và các cập nhật mới.",
+        "Tự động mở modal changelog khi app chạy với version mới lần đầu.",
+        "Tách dữ liệu release thành danh sách dễ mở rộng cho các bản cập nhật sau."
+      ],
+      "isPublished": true
+    },
+    {
+      "version": "1.0.0",
+      "releasedAt": "2026-07-01T00:00:00.000Z",
+      "title": "Initial release",
+      "summary": "Bản phát hành đầu tiên của Baby Tracker.",
+      "changes": [
+        "Ra mắt app Baby Tracker với các màn hình theo dõi hoạt động, ngủ và thông tin bé.",
+        "Hỗ trợ sync dữ liệu và các tính năng nhắc nhở cơ bản."
+      ],
+      "isPublished": true
+    }
+  ]
+}
