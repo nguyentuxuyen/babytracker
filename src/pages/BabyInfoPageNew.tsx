@@ -293,7 +293,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         mb: 1,
                         px: 0.5
                     }}>
-                        Basic Information
+                        基本情報
                     </Typography>
                     <Card sx={{
                         bgcolor: '#ffffff',
@@ -303,26 +303,26 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     }}>
                         <Box sx={{ py: 0.5 }}>
                             {[
-                                { label: 'Name', value: baby?.name || 'Not set' },
-                                { label: 'Date of Birth', value: baby?.birthDate 
+                                { label: '名前', value: baby?.name || '未設定' },
+                                { label: '生年月日', value: baby?.birthDate 
                                     ? new Date(baby.birthDate).toLocaleDateString('en-US', { 
                                         month: 'long', 
                                         day: 'numeric', 
                                         year: 'numeric' 
                                     }) 
-                                    : 'Not set' 
+                                    : '未設定' 
                                 },
-                                { label: 'Due Date', value: baby?.dueDate 
+                                { label: '出産予定日', value: baby?.dueDate 
                                     ? new Date(baby.dueDate).toLocaleDateString('en-US', { 
                                         month: 'long', 
                                         day: 'numeric', 
                                         year: 'numeric' 
                                     }) 
-                                    : 'Not set' 
+                                    : '未設定' 
                                 },
-                                { label: 'Gender', value: baby?.gender === 'male' ? 'Male' : baby?.gender === 'female' ? 'Female' : 'Not set' },
-                                { label: 'Birth Weight', value: baby?.birthWeight ? `${baby.birthWeight} g` : 'Not set' },
-                                { label: 'Birth Height', value: baby?.birthHeight ? `${baby.birthHeight} cm` : 'Not set' }
+                                { label: '性別', value: baby?.gender === 'male' ? '男の子' : baby?.gender === 'female' ? '女の子' : '未設定' },
+                                { label: '出生体重', value: baby?.birthWeight ? `${baby.birthWeight} g` : '未設定' },
+                                { label: '出生身長', value: baby?.birthHeight ? `${baby.birthHeight} cm` : '未設定' }
                             ].map((item, index, arr) => (
                                 <Box key={item.label}>
                                     <Box sx={{
@@ -368,7 +368,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         mb: 1,
                         px: 0.5
                     }}>
-                        Health Information
+                        健康情報
                     </Typography>
                     <Card sx={{
                         bgcolor: '#ffffff',
@@ -378,9 +378,9 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     }}>
                         <Box sx={{ py: 0.5 }}>
                             {[
-                                { label: 'Blood Type', value: 'O+' },
-                                { label: 'Allergies', value: 'None' },
-                                { label: 'Medications', value: 'None' }
+                                { label: '血液型', value: 'O+' },
+                                { label: 'アレルギー', value: 'なし' },
+                                { label: '服薬', value: 'なし' }
                             ].map((item, index, arr) => (
                                 <Box key={item.label}>
                                     <Box sx={{
@@ -514,14 +514,14 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <TextField
-                            label="Name"
+                            label="名前"
                             variant="outlined"
                             value={editData.name}
                             onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                             fullWidth
                         />
                         <TextField
-                            label="Date of Birth"
+                            label="生年月日"
                             variant="outlined"
                             type="date"
                             value={editData.birthDate}
@@ -530,7 +530,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fullWidth
                         />
                         <TextField
-                            label="Due Date"
+                            label="出産予定日"
                             variant="outlined"
                             type="date"
                             value={editData.dueDate}
@@ -539,18 +539,18 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fullWidth
                         />
                         <FormControl fullWidth>
-                            <InputLabel>Gender</InputLabel>
+                                <InputLabel>性別</InputLabel>
                             <Select
                                 value={editData.gender}
                                 onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
-                                label="Gender"
+                                label="性別"
                             >
                                 <MenuItem value="male">Male</MenuItem>
                                 <MenuItem value="female">Female</MenuItem>
                             </Select>
                         </FormControl>
                         <TextField
-                            label="Birth Weight (g)"
+                            label="出生体重 (g)"
                             variant="outlined"
                             type="number"
                             value={editData.birthWeight}
@@ -558,7 +558,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fullWidth
                         />
                         <TextField
-                            label="Birth Height (cm)"
+                            label="出生身長 (cm)"
                             variant="outlined"
                             type="number"
                             value={editData.birthHeight}

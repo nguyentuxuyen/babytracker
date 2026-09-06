@@ -22,15 +22,15 @@ const isSolidFeeding = (a: Activity): a is SolidFeedingActivity => {
 const preferenceLabel = (value?: string) => {
     switch (value) {
         case 'enthusiastic':
-            return 'Hào hứng';
+            return 'よく食べる';
         case 'normal':
-            return 'Bình thường';
+            return '普通';
         case 'dislike':
-            return 'Không thích';
+            return '嫌がる';
         case 'allergic':
-            return 'Dị ứng';
+            return 'アレルギー';
         default:
-            return 'Bình thường';
+            return '普通';
     }
 };
 
@@ -71,13 +71,13 @@ const FoodHistoryPage: React.FC = () => {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f6f7f8', p: 2, pb: 10 }}>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-                Lịch sử ăn dặm
+                離乳食の記録
             </Typography>
 
             <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <TextField
                     fullWidth
-                    placeholder="Tìm kiếm món ăn..."
+                    placeholder="料理を検索..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
@@ -93,18 +93,18 @@ const FoodHistoryPage: React.FC = () => {
                 />
                 
                 <FormControl fullWidth size="small">
-                    <InputLabel>Lọc theo phản ứng</InputLabel>
+                    <InputLabel>反応で絞り込む</InputLabel>
                     <Select
                         value={filterPreference}
-                        label="Lọc theo phản ứng"
+                        label="反応で絞り込む"
                         onChange={(e) => setFilterPreference(e.target.value)}
                         sx={{ borderRadius: '12px', bgcolor: 'white' }}
                     >
-                        <MenuItem value="all">Tất cả</MenuItem>
-                        <MenuItem value="enthusiastic">Hào hứng</MenuItem>
-                        <MenuItem value="normal">Bình thường</MenuItem>
-                        <MenuItem value="dislike">Không thích</MenuItem>
-                        <MenuItem value="allergic">Dị ứng</MenuItem>
+                        <MenuItem value="all">すべて</MenuItem>
+                        <MenuItem value="enthusiastic">よく食べる</MenuItem>
+                        <MenuItem value="normal">普通</MenuItem>
+                        <MenuItem value="dislike">嫌がる</MenuItem>
+                        <MenuItem value="allergic">アレルギー</MenuItem>
                     </Select>
                 </FormControl>
             </Box>
@@ -124,10 +124,10 @@ const FoodHistoryPage: React.FC = () => {
                                     {ts.toLocaleDateString('vi-VN')} • {ts.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                 </Typography>
                                 <Stack direction="row" spacing={1} flexWrap="wrap">
-                                    <Chip label={`Lượng: ${amount}`} size="small" />
+                                    <Chip label={`量: ${amount}`} size="small" />
                                     <Chip label={preferenceLabel(details.foodPreference)} size="small" color={details.foodPreference === 'allergic' ? 'error' : 'default'} />
                                     {details.isAllergic && (
-                                        <Chip label="Dị ứng" size="small" color="error" />
+                                        <Chip label="アレルギー" size="small" color="error" />
                                     )}
                                 </Stack>
                                 {details.notes && (
@@ -141,7 +141,7 @@ const FoodHistoryPage: React.FC = () => {
                 })}
                 {filteredFoods.length === 0 && (
                     <Typography sx={{ color: '#6b7f8a', fontSize: '14px', textAlign: 'center', mt: 4 }}>
-                        {foods.length === 0 ? 'Chưa có món ăn nào được ghi nhận.' : 'Không tìm thấy kết quả phù hợp.'}
+                        {foods.length === 0 ? '記録された料理はありません。' : '一致する記録が見つかりません。'}
                     </Typography>
                 )}
             </Stack>

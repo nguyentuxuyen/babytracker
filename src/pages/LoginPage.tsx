@@ -125,8 +125,8 @@ const LoginPage: React.FC = () => {
                             textAlign: 'center'
                         }}
                     >
-                        Track your baby's activities,<br />
-                        milestones, and growth journey
+                        赤ちゃんの記録、成長、発達を<br />
+                        ひとつのアプリで管理しましょう
                     </Typography>
 
                     {/* Mode Selector */}
@@ -180,7 +180,7 @@ const LoginPage: React.FC = () => {
                         <Box component="form" onSubmit={handleEmailLogin} sx={{ mb: 2 }}>
                             <TextField
                                 fullWidth
-                                label="Email"
+                                label="メールアドレス"
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -194,7 +194,7 @@ const LoginPage: React.FC = () => {
                             />
                             <TextField
                                 fullWidth
-                                label="Password"
+                                label="パスワード"
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -242,7 +242,7 @@ const LoginPage: React.FC = () => {
                                     }
                                 }}
                             >
-                                {loading ? <CircularProgress size={24} sx={{ color: '#ffffff' }} /> : 'Sign in with Email'}
+                                {loading ? <CircularProgress size={24} sx={{ color: '#ffffff' }} /> : 'メールでログイン'}
                             </Button>
                         </Box>
                     )}

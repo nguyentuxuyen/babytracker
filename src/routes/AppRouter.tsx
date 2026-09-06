@@ -13,6 +13,7 @@ const StatsPageNewGlass = lazy(() => import('../pages/StatsPageNewGlass'));
 const MilestonesPage = lazy(() => import('../pages/MilestonesPage'));
 const WonderWeeksPage = lazy(() => import('../pages/WonderWeeksPage'));
 const FoodHistoryPage = lazy(() => import('../pages/FoodHistoryPage'));
+const TimelinePage = lazy(() => import('../pages/TimelinePage'));
 
 // Fallback loader
 const FallbackLoader = () => (
@@ -36,6 +37,7 @@ const AppRouter: React.FC = () => {
                                 <PrivateRoute path="/" exact component={ActivitiesPageNew} />
                                 <PrivateRoute path="/baby-info" component={BabyInfoPageNew} />
                                 <PrivateRoute path="/activities" component={ActivitiesPageNew} />
+                                <PrivateRoute path="/timeline" component={TimelinePage} />
                                 <PrivateRoute path="/statistics" component={StatsPageNewGlass} />
                                 <PrivateRoute path="/milestones" component={MilestonesPage} />
                                 <PrivateRoute path="/wonder-weeks" component={WonderWeeksPage} />

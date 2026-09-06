@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Stack, TextField, Typography } from '@mui/material';
+import React, { useRef, useState } from 'react';
+import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, TextField, Tooltip } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import MicIcon from '@mui/icons-material/Mic';
+import StopIcon from '@mui/icons-material/Stop';
 import { useAuth } from '../../contexts/AuthContext';
 import { parseAssistantCommand } from '../../services/assistantCore';
 import { executeAssistantCommand } from '../../services/assistantApi';
@@ -17,7 +19,38 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string>('');
     const [severity, setSeverity] = useState<'success' | 'info' | 'warning' | 'error'>('info');
-    const [executionSource, setExecutionSource] = useState<'local' | 'ai' | null>(null);
+    const [listening, setListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
+
+    const toggleVoiceInput = () => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            setSeverity('warning');
+            setMessage('このブラウザでは音声入力を利用できません。');
+            return;
+        }
+        if (listening) {
+            recognitionRef.current?.stop();
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ja-JP';
+        recognition.interimResults = false;
+        recognition.continuous = false;
+        recognition.onresult = (event: any) => {
+            const transcript = event.results?.[0]?.[0]?.transcript || '';
+            setText((current) => `${current} ${transcript}`.trim());
+        };
+        recognition.onerror = () => {
+            setListening(false);
+            setMessage('音声を認識できませんでした。もう一度お試しください。');
+        };
+        recognition.onend = () => setListening(false);
+        recognitionRef.current = recognition;
+        setListening(true);
+        recognition.start();
+    };
 
     const handleSubmit = async () => {
         const input = text.trim();
@@ -42,8 +75,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             setLoading(true);
             const result = await executeAssistantCommand(command, { selectedDate, babyId });
             setSeverity(result.source === 'local' ? 'success' : 'info');
-            setExecutionSource(result.source);
-            setMessage(`${result.message || '実行に成功しました。'} (${result.source === 'local' ? 'Local parse' : 'AI fallback'})`);
+            setMessage(`${result.message || '記録を追加しました。'} (${result.source === 'local' ? 'ローカル解析' : 'AI解析'})`);
             setText('');
 
             if (onCommitted) {
@@ -51,7 +83,6 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             }
         } catch (error: any) {
             setSeverity('error');
-            setExecutionSource('ai');
             setMessage(error?.message || 'AIコマンドを処理できませんでした。');
         } finally {
             setLoading(false);
@@ -59,51 +90,46 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
     };
 
     return (
-        <Card sx={{ mb: 3, borderRadius: 3, boxShadow: '0 10px 30px rgba(37, 99, 235, 0.12)' }}>
-            <CardContent>
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                    <AutoAwesomeIcon color="primary" />
-                    <Typography variant="h6" fontWeight={700}>
-                        AIアシスタント
-                    </Typography>
-                    <Chip label="Gemini AI" size="small" color="primary" variant="outlined" />
-                </Stack>
-
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    自然文で記録を追加したり、メニューに食品を追加できます。
-                </Typography>
-
-                <TextField
-                    fullWidth
-                    multiline
-                    minRows={2}
-                    maxRows={4}
-                    value={text}
-                    onChange={(event) => setText(event.target.value)}
-                    placeholder='例: "9時15分にミルク120ml"、"昼寝45分"、"おむつ交換"'
-                    sx={{ mb: 2 }}
-                />
-
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Button variant="contained" onClick={handleSubmit} disabled={loading} startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeIcon />}>
-                        {loading ? '記録中...' : 'AIで記録'}
+        <Card sx={{ mb: 2, borderRadius: 2, boxShadow: '0 6px 18px rgba(37, 99, 235, 0.1)' }}>
+            <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                    <TextField
+                        value={text}
+                        onChange={(event) => setText(event.target.value)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                                event.preventDefault();
+                                void handleSubmit();
+                            }
+                        }}
+                        placeholder='例: ミルク120ml 9:15'
+                        size="small"
+                        InputProps={{
+                            startAdornment: <AutoAwesomeIcon color="primary" sx={{ mr: 1, fontSize: 20 }} />
+                        }}
+                        sx={{ flex: 1, minWidth: 0 }}
+                    />
+                    <Tooltip title={listening ? '音声入力を停止' : '音声入力'}>
+                        <IconButton onClick={toggleVoiceInput} color={listening ? 'error' : 'primary'} aria-label="音声入力">
+                            {listening ? <StopIcon /> : <MicIcon />}
+                        </IconButton>
+                    </Tooltip>
+                    <Button
+                        variant="contained"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        size="small"
+                        sx={{ minWidth: 92, minHeight: 40, whiteSpace: 'nowrap', flexShrink: 0 }}
+                    >
+                        {loading ? <CircularProgress size={16} color="inherit" /> : 'AIで記録'}
                     </Button>
-                    <Chip label="授乳/食品追加に対応" size="small" />
                 </Box>
 
                 {message && (
-                    <Box sx={{ mt: 2 }}>
-                        <Alert severity={severity} sx={{ mb: 1 }}>
+                    <Box sx={{ mt: 1 }}>
+                        <Alert severity={severity} sx={{ py: 0 }}>
                             {message}
                         </Alert>
-                        {executionSource && (
-                            <Chip
-                                label={executionSource === 'local' ? 'Local parse' : 'AI fallback'}
-                                size="small"
-                                color={executionSource === 'local' ? 'success' : 'info'}
-                                variant="outlined"
-                            />
-                        )}
                     </Box>
                 )}
             </CardContent>

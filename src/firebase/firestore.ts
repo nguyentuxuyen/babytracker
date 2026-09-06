@@ -6,6 +6,7 @@ import {
     addDoc, 
     getDocs, 
     deleteDoc, 
+    updateDoc,
     query, 
     orderBy,
     serverTimestamp,
@@ -116,39 +117,28 @@ export const firestore = {
         try {
             console.log('🔍 Searching for baby data with email:', email);
             
-            // Query the babies collection to find document where mail field equals user email
+            // Query only the legacy document matching this email.
             const babiesRef = collection(db, 'babies');
-            const q = query(babiesRef);
+            const q = query(babiesRef, where('mail', '==', email), limit(1));
             const querySnapshot = await getDocs(q);
-            
-            console.log('📊 Total documents in babies collection:', querySnapshot.size);
-            
-            let babyData: Baby | null = null;
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                console.log('📄 Document ID:', doc.id, 'Data:', data);
-                console.log('📧 Comparing emails:', data.mail, '===', email, '?', data.mail === email);
-                
-                if (data.mail === email) {
-                    console.log('✅ Found matching baby data!');
-                    babyData = {
-                        id: doc.id,
-                        name: data.name || '',
-                        birthDate: data.birthDate ? data.birthDate.toDate() : new Date(),
-                        dueDate: data.dueDate ? data.dueDate.toDate() : undefined,
-                        gender: data.gender || 'male',
-                        birthWeight: data.birthWeight || 0,
-                        birthHeight: data.birthHeight || 0,
-                        avatarUrl: data.avatarUrl || ''
-                    };
-                }
-            });
-            
-            if (!babyData) {
+
+            const matchingDoc = querySnapshot.docs[0];
+            if (!matchingDoc) {
                 console.log('❌ No baby data found for email:', email);
+                return null;
             }
-            
-            return babyData;
+
+            const data = matchingDoc.data();
+            return {
+                id: matchingDoc.id,
+                name: data.name || '',
+                birthDate: data.birthDate ? data.birthDate.toDate() : new Date(),
+                dueDate: data.dueDate ? data.dueDate.toDate() : undefined,
+                gender: data.gender || 'male',
+                birthWeight: data.birthWeight || 0,
+                birthHeight: data.birthHeight || 0,
+                avatarUrl: data.avatarUrl || ''
+            };
         } catch (error) {
             console.error('❌ Error getting baby data by email:', error);
             return null;
@@ -370,6 +360,114 @@ export const firestore = {
             return queuedActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         }
     },
+
+    getActivitiesByDate: async (userId: string, date: Date): Promise<Activity[]> => {
+        try {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(startOfDay);
+            endOfDay.setDate(endOfDay.getDate() + 1);
+
+            const activitiesRef = collection(db, 'users', userId, 'activities');
+            const q = query(
+                activitiesRef,
+                where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
+                where('timestamp', '<', Timestamp.fromDate(endOfDay)),
+                orderBy('timestamp', 'desc'),
+                limit(200)
+            );
+            const querySnapshot = await getDocs(q);
+            const activities = querySnapshot.docs.map((activityDoc) => {
+                const data = activityDoc.data();
+                return {
+                    id: activityDoc.id,
+                    babyId: data.babyId,
+                    type: data.type,
+                    timestamp: data.timestamp.toDate(),
+                    details: data.details
+                } as Activity;
+            });
+
+            const queuedActivities = getQueuedActivities(userId)
+                .filter((queued) => {
+                    const timestamp = new Date(queued.activity.timestamp);
+                    return timestamp >= startOfDay && timestamp < endOfDay;
+                })
+                .map((queued) => ({ id: queued.localId, ...queued.activity } as Activity));
+
+            return [...activities, ...queuedActivities].sort(
+                (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
+            );
+        } catch (error) {
+            console.error('Error getting activities by date:', error);
+            return getQueuedActivities(userId)
+                .filter((queued) => {
+                    const timestamp = new Date(queued.activity.timestamp);
+                    const startOfDay = new Date(date);
+                    startOfDay.setHours(0, 0, 0, 0);
+                    const endOfDay = new Date(startOfDay);
+                    endOfDay.setDate(endOfDay.getDate() + 1);
+                    return timestamp >= startOfDay && timestamp < endOfDay;
+                })
+                .map((queued) => ({ id: queued.localId, ...queued.activity } as Activity));
+        }
+    },
+
+    getActivitiesByDateRange: async (userId: string, date: Date, days: number = 2): Promise<Activity[]> => {
+        try {
+            const startOfRange = new Date(date);
+            startOfRange.setHours(0, 0, 0, 0);
+            startOfRange.setDate(startOfRange.getDate() - (days - 1));
+            const endOfRange = new Date(date);
+            endOfRange.setHours(0, 0, 0, 0);
+            endOfRange.setDate(endOfRange.getDate() + 1);
+
+            const activitiesRef = collection(db, 'users', userId, 'activities');
+            const q = query(
+                activitiesRef,
+                where('timestamp', '>=', Timestamp.fromDate(startOfRange)),
+                where('timestamp', '<', Timestamp.fromDate(endOfRange)),
+                orderBy('timestamp', 'desc'),
+                limit(400)
+            );
+            const querySnapshot = await getDocs(q);
+            const activities = querySnapshot.docs.map((activityDoc) => {
+                const data = activityDoc.data();
+                return {
+                    id: activityDoc.id,
+                    babyId: data.babyId,
+                    type: data.type,
+                    timestamp: data.timestamp.toDate(),
+                    details: data.details
+                } as Activity;
+            });
+
+            const queuedActivities = getQueuedActivities(userId)
+                .filter((queued) => {
+                    const timestamp = new Date(queued.activity.timestamp);
+                    return timestamp >= startOfRange && timestamp < endOfRange;
+                })
+                .map((queued) => ({ id: queued.localId, ...queued.activity } as Activity));
+
+            return [...activities, ...queuedActivities].sort(
+                (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
+            );
+        } catch (error) {
+            console.error('Error getting activities by date range:', error);
+            return getQueuedActivities(userId)
+                .filter((queued) => {
+                    const timestamp = new Date(queued.activity.timestamp);
+                    const startOfRange = new Date(date);
+                    startOfRange.setHours(0, 0, 0, 0);
+                    startOfRange.setDate(startOfRange.getDate() - (days - 1));
+                    const endOfRange = new Date(date);
+                    endOfRange.setHours(0, 0, 0, 0);
+                    endOfRange.setDate(endOfRange.getDate() + 1);
+                    return timestamp >= startOfRange && timestamp < endOfRange;
+                })
+                .map((queued) => ({ id: queued.localId, ...queued.activity } as Activity));
+        }
+    },
     
     // Save activity under user subcollection (following security rules: /users/{userId}/activities)
     saveActivity: async (userId: string, activity: Omit<Activity, 'id'>): Promise<Activity> => {
@@ -399,6 +497,25 @@ export const firestore = {
 
             console.error('Error saving activity:', error);
             throw error;
+        }
+    },
+
+    updateActivity: async (
+        userId: string,
+        activityId: string,
+        activity: { timestamp?: Date; details: Record<string, unknown> }
+    ): Promise<boolean> => {
+        try {
+            if (activityId.startsWith('offline-')) return false;
+            const activityRef = doc(db, 'users', userId, 'activities', activityId);
+            await updateDoc(activityRef, {
+                ...(activity.timestamp ? { timestamp: activity.timestamp } : {}),
+                details: activity.details
+            });
+            return true;
+        } catch (error) {
+            console.error('Error updating activity:', error);
+            return false;
         }
     },
 

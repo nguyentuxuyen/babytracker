@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useMemo, Component, ReactNode } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom';
-import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Card, CardContent, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete } from '@mui/material';
+import { useHistory, useLocation } from 'react-router-dom';
+import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Card, CardContent, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
-import { calculateStatsForDate } from '../utils/dailyStats';
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
 import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { AssistantComposer } from '../components/common/AssistantComposer';
+import RecentDaysStrip from '../components/common/RecentDaysStrip';
+import { useSleepTimer } from '../hooks/useSleepTimer';
 
 // 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
 const liquidGlassStyle = {
@@ -79,16 +81,17 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 }
 
 const ActivitiesPage: React.FC = () => {
+    const history = useHistory();
+    const location = useLocation();
     const { baby, activities: contextActivities, refreshActivities } = useBaby();
     const { selectedDate, setSelectedDate } = useDateContext();
     const [activities, setActivities] = useState<Activity[]>();
     const [loading, setLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [showAiComposer, setShowAiComposer] = useState(false);
     const { user: currentUser } = useAuth();
     
-    // Sleep timer state
-    const [ongoingSleep, setOngoingSleep] = useState<{ startTime: Date } | null>(null);
-    const [sleepElapsedTime, setSleepElapsedTime] = useState<number>(0); // in seconds
+    const { ongoingSleep, elapsedSeconds: sleepElapsedTime, setOngoingSleep } = useSleepTimer(currentUser?.uid, baby?.id);
 
     // Real-time update state for time since last activity
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -96,6 +99,17 @@ const ActivitiesPage: React.FC = () => {
     // Food items state
     const [foodItems, setFoodItems] = useState<string[]>([]);
     const [foodMenuOpen, setFoodMenuOpen] = useState(false);
+    const [showHomeDatePicker, setShowHomeDatePicker] = useState(false);
+    const hasLoadedInitialDate = useRef(false);
+    const selectedDateTime = selectedDate.getTime();
+
+    useEffect(() => {
+        if (new URLSearchParams(location.search).get('add') !== '1') return;
+        setEditingActivity(null);
+        setHideActivityType(false);
+        setShowAiComposer(true);
+        history.replace({ pathname: '/', search: '' });
+    }, [history, location.search]);
 
     const normalizedActivities = useMemo(() => contextActivities.map((activity: any) => {
         let normalizedType = activity.type;
@@ -128,6 +142,18 @@ const ActivitiesPage: React.FC = () => {
     useEffect(() => {
         setActivities(normalizedActivities);
     }, [normalizedActivities]);
+
+    useEffect(() => {
+        if (!hasLoadedInitialDate.current) {
+            hasLoadedInitialDate.current = true;
+            return;
+        }
+        if (currentUser?.uid) {
+            void refreshActivities(selectedDate);
+        }
+        // refreshActivities is intentionally excluded because its context identity changes on render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUser?.uid, selectedDateTime]);
 
     // Update current time every 5 minutes for real-time display
     useEffect(() => {
@@ -224,15 +250,15 @@ const ActivitiesPage: React.FC = () => {
             }
         };
 
-        loadActivities();
-
         // Thêm listener cho iOS/PWA: Khi mở lại app từ background, tự động tải lại dữ liệu mới nhất
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 // iOS PWA freezes rendering briefly, so delay reload slightly to avoid race conditions
                 const reloadDelay = navigator.userAgent.includes('iPad') || navigator.userAgent.includes('iPhone') ? 500 : 0;
                 setTimeout(() => {
-                    loadActivities();
+                    if (currentUser?.uid) {
+                        void refreshActivities(selectedDate);
+                    }
                     setCurrentTime(new Date()); // Cập nhật lại đồng hồ ngay lập tức
                 }, reloadDelay);
             }
@@ -257,58 +283,10 @@ const ActivitiesPage: React.FC = () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
         };
+        // Initial activities are loaded by BabyContext; refresh only on visibility changes here.
         // refreshActivities is intentionally excluded because its context identity changes on render.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser]);    
-
-    // Load ongoing sleep session when component mounts
-    useEffect(() => {
-        const loadOngoingSleep = async () => {
-            if (currentUser?.uid && baby?.id) {
-                try {
-                    const sleep = await firestore.getOngoingSleep(currentUser.uid, baby.id);
-                    setOngoingSleep(sleep);
-                } catch (error) {
-                    // Error loading ongoing sleep - silently fail in production
-                }
-            }
-        };
-
-        loadOngoingSleep();
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                loadOngoingSleep();
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-
-    }, [currentUser, baby]);
-
-    useEffect(() => {
-        if (!ongoingSleep) {
-            setSleepElapsedTime(0);
-            return;
-        }
-
-        const updateElapsedTime = () => {
-            const now = new Date();
-            const elapsed = Math.floor((now.getTime() - ongoingSleep.startTime.getTime()) / 1000);
-            setSleepElapsedTime(elapsed);
-        };
-
-        // Update immediately
-        updateElapsedTime();
-
-        // Then update every 5 minutes (300000ms) instead of every second
-        const interval = setInterval(updateElapsedTime, 300000);
-
-        return () => clearInterval(interval);
-    }, [ongoingSleep]);
 
     // Handle start sleep
     const handleStartSleep = async () => {
@@ -765,47 +743,16 @@ const ActivitiesPage: React.FC = () => {
         };
     }, []);
 
-    // Calculate daily statistics safely with useMemo and error handling
-    const todayStats = useMemo(() => {
-        const defaultStats = {
-            feeding: { count: 0, totalAmount: 0 },
-            solid: { count: 0, totalAmount: 0 },
-            urine: { count: 0 },
-            stool: { count: 0 },
-            sleep: { count: 0, totalDuration: 0 }
-        };
-
-        try {
-            // Ensure activities and selectedDate are valid before calculating
-            if (!activities || !selectedDate) {
-                return defaultStats;
-            }
-            return calculateStatsForDate(activities, selectedDate);
-        } catch (err) {
-            // Return default stats to prevent the UI from crashing
-            return defaultStats;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activities?.length, selectedDate.getTime()]);
-
-    // Compute yesterday's stats for a brief summary line
-    const yesterdayStats = useMemo(() => {
-        try {
-            const y = new Date(selectedDate);
-            y.setDate(y.getDate() - 1);
-            y.setHours(0, 0, 0, 0);
-            return calculateStatsForDate(activities || [], y);
-        } catch (err) {
-            return {
-                feeding: { count: 0, totalAmount: 0 },
-                solid: { count: 0, totalAmount: 0 },
-                urine: { count: 0 },
-                stool: { count: 0 },
-                sleep: { count: 0, totalDuration: 0 }
-            } as any;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activities?.length, selectedDate.getTime()]);
+    // Kept only for the non-rendered legacy block below; the live summary is on Timeline.
+    const emptyStats = {
+        feeding: { count: 0, totalAmount: 0 },
+        solid: { count: 0, totalAmount: 0 },
+        urine: { count: 0 },
+        stool: { count: 0 },
+        sleep: { count: 0, totalDuration: 0 }
+    };
+    const todayStats = emptyStats;
+    const yesterdayStats = emptyStats;
 
     // Handle delete activity
     const handleDeleteActivity = async (activityId: string) => {
@@ -922,7 +869,7 @@ const ActivitiesPage: React.FC = () => {
     return (
         <ErrorBoundary>
         <Box sx={{
-            minHeight: '100vh',
+            minHeight: 'auto',
             p: 0,
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             // 2. TẠO NỀN FLUID (QUAN TRỌNG ĐỂ THẤY HIỆU ỨNG KÍNH)
@@ -966,30 +913,58 @@ const ActivitiesPage: React.FC = () => {
             }
         }}
         >
+            <Dialog open={showAiComposer} onClose={() => setShowAiComposer(false)} fullWidth maxWidth="sm">
+                <DialogTitle>AIで記録</DialogTitle>
+                <DialogContent sx={{ pt: 1 }}>
+                    <AssistantComposer
+                        babyId={baby?.id}
+                        selectedDate={selectedDate}
+                        onCommitted={refreshActivities}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <MuiButton onClick={() => setShowAiComposer(false)}>閉じる</MuiButton>
+                </DialogActions>
+            </Dialog>
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
                 <Box>
                 {/* WAKE WINDOWS WARNING BANNER */}
                 {wakeWindowWarning && (
-                    <Alert severity="warning" sx={{ mb: 3, ...liquidGlassStyle, borderRadius: '16px', '& .MuiAlert-message': { width: '100%' } }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>覚醒時間アラート</Typography>
-                        <Typography variant="body2">{wakeWindowWarning}</Typography>
+                    <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.25, ...liquidGlassStyle, borderRadius: '12px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            覚醒時間アラート: <Box component="span" sx={{ fontWeight: 400 }}>{wakeWindowWarning}</Box>
+                        </Typography>
                     </Alert>
                 )}
 
-                <AssistantComposer
-                    babyId={baby?.id}
+                <RecentDaysStrip
                     selectedDate={selectedDate}
-                    onCommitted={refreshActivities}
+                    onSelect={setSelectedDate}
+                    onOpenCalendar={() => setShowHomeDatePicker((current) => !current)}
                 />
 
-                {/* Calendar Card - Liquid Glass */}
-                <Card sx={{ 
+                {showHomeDatePicker && (
+                    <TextField
+                        type="date"
+                        size="small"
+                        value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
+                        onChange={(event) => {
+                            const [year, month, day] = event.target.value.split('-').map(Number);
+                            if (year && month && day) setSelectedDate(new Date(year, month - 1, day));
+                        }}
+                        sx={{ mb: 1.5, width: '100%' }}
+                        inputProps={{ 'aria-label': '日付を選択' }}
+                    />
+                )}
+
+                {/* Calendar has moved to Timeline. */}
+                {false && (<Card sx={{ 
                     mb: 3, 
                     mx: 0,
                     ...liquidGlassStyle
                 }}>
                     <CardContent sx={{ p: '12px 16px', '&:last-child': { pb: '12px' } }}>
-                        {!isCalendarExpanded ? (
+                        {isCalendarExpanded ? (
                             // Simple Date Picker Button
                             <Box 
                                 onClick={() => setIsCalendarExpanded(true)}
@@ -1170,7 +1145,7 @@ const ActivitiesPage: React.FC = () => {
                         </>
                         )}
                     </CardContent>
-                </Card>
+                </Card>)}
 
                 {/* Quick Actions - New Design */}
                 <Box sx={{ mb: 3 }}>
@@ -1180,7 +1155,7 @@ const ActivitiesPage: React.FC = () => {
                     <Grid container spacing={2}>
                         {[
                             { 
-                                label: 'Milk', 
+                                label: 'ミルク',
                                 type: 'feeding', 
                                 icon: (
                                     <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
@@ -1189,7 +1164,7 @@ const ActivitiesPage: React.FC = () => {
                                 )
                             },
                             { 
-                                label: 'Diaper', 
+                                label: 'おむつ',
                                 type: 'diaper', 
                                 icon: (
                                     <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
@@ -1198,7 +1173,7 @@ const ActivitiesPage: React.FC = () => {
                                 )
                             },
                             { 
-                                label: 'Sleep', 
+                                label: '睡眠',
                                 type: 'sleep', 
                                 icon: (
                                     <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
@@ -1208,7 +1183,7 @@ const ActivitiesPage: React.FC = () => {
                                 isSleepTimer: true // Special flag for sleep timer
                             },
                             { 
-                                label: 'Bath', 
+                                label: 'お風呂',
                                 type: 'bath', 
                                 icon: (
                                     <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
@@ -1217,7 +1192,7 @@ const ActivitiesPage: React.FC = () => {
                                 )
                             },
                             { 
-                                label: 'Measurements', 
+                                label: '計測',
                                 type: 'measurement', 
                                 icon: (
                                     <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
@@ -1226,7 +1201,7 @@ const ActivitiesPage: React.FC = () => {
                                 )
                             },
                             { 
-                                label: 'Memo', 
+                                label: 'メモ',
                                 type: 'memo', 
                                 icon: (
                                     <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
@@ -1258,10 +1233,10 @@ const ActivitiesPage: React.FC = () => {
                                 const diffHours = diffMs / (1000 * 60 * 60);
                                 const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-                                if (diffDays > 0) return `${diffDays}d ago`;
-                                if (diffHours >= 1) return `${diffHours.toFixed(1)}h ago`;
-                                if (diffMinutes >= 1) return `${Math.floor(diffMinutes)}m ago`;
-                                return 'Just now';
+                                if (diffDays > 0) return `${diffDays}日前`;
+                                if (diffHours >= 1) return `${diffHours.toFixed(1)}時間前`;
+                                if (diffMinutes >= 1) return `${Math.floor(diffMinutes)}分前`;
+                                return 'たった今';
                             };
 
                             const timeSince = getTimeSinceLastActivity(action.type);
@@ -1335,7 +1310,7 @@ const ActivitiesPage: React.FC = () => {
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                         {action.icon}
                                         <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#101c22' }}>
-                                            {(action as any).isSleepTimer && ongoingSleep ? 'Bé đã dậy' : action.label}
+                                            {(action as any).isSleepTimer && ongoingSleep ? '起床' : action.label}
                                         </Typography>
                                     </Box>
                                     {(action as any).isSleepTimer && ongoingSleep ? (
@@ -1347,16 +1322,25 @@ const ActivitiesPage: React.FC = () => {
                                         }}>
                                             ⏱️ {Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
                                         </Typography>
-                                    ) : timeSince && !(action as any).isSleepTimer ? (
+                                    ) : timeSince ? (
                                         <Typography sx={{ 
                                             fontSize: '12px', 
-                                            color: '#9ca3af',
+                                            color: timeSince === 'データなし' ? '#b0b8bf' : '#9ca3af',
                                             fontWeight: 500,
                                             pl: 5
                                         }}>
                                             {timeSince}
                                         </Typography>
-                                    ) : null}
+                                    ) : (
+                                        <Typography sx={{ 
+                                            fontSize: '12px',
+                                            color: '#b0b8bf',
+                                            fontWeight: 500,
+                                            pl: 5
+                                        }}>
+                                            データなし
+                                        </Typography>
+                                    )}
                                 </Box>
                             </Grid>
                             );
@@ -1364,7 +1348,8 @@ const ActivitiesPage: React.FC = () => {
                     </Grid>
                 </Box>
 
-                {/* Summary - New Design */}
+                {/* Summary has moved to Timeline. */}
+                {false && (
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
                         サマリー
@@ -1566,10 +1551,11 @@ const ActivitiesPage: React.FC = () => {
                         
                     </Box>
                 </Box>
+                )}
 
                 </Box>
 
-                <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'none', mb: 3 }}>
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
                         最近の記録
                     </Typography>
@@ -1652,6 +1638,7 @@ const ActivitiesPage: React.FC = () => {
 
                                     const groupedActivities = filteredActivities
                                         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                                        .slice(0, 5)
                                         .reduce((acc, activity) => {
                                             const timeKey = new Date(activity.timestamp).toLocaleTimeString('vi-VN', {
                                                 hour: '2-digit',
@@ -2133,6 +2120,15 @@ const ActivitiesPage: React.FC = () => {
                                     );
                                 })()}
                     </Box>
+                    {(activities || []).length > 5 && (
+                        <MuiButton
+                            size="small"
+                            onClick={() => history.push('/timeline')}
+                            sx={{ mt: 1, textTransform: 'none', fontWeight: 700, color: '#13a4ec' }}
+                        >
+                            Xem toàn bộ timeline
+                        </MuiButton>
+                    )}
                 </Box>
             </Box>
 
@@ -2550,6 +2546,7 @@ const ActivitiesPage: React.FC = () => {
                                                 label="量 (ml)"
                                                 type="number"
                                                 inputMode="decimal"
+                                                inputProps={{ inputMode: 'decimal', pattern: '[0-9]*' }}
                                                 value={formData.amount}
                                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                                 fullWidth
@@ -2642,7 +2639,10 @@ const ActivitiesPage: React.FC = () => {
                                                     )}
                                                 />
                                                 <TextField
-                                                    label="量（例: 1杯、50g）"
+                                                    label="量 (g)"
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    inputProps={{ inputMode: 'decimal', pattern: '[0-9]*' }}
                                                     value={formData.amount}
                                                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                                     fullWidth

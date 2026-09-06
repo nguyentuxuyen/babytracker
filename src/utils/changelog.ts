@@ -13,7 +13,7 @@ export const fallbackChangelogReleases: ChangelogRelease[] = changelogSeed.relea
 }));
 
 export const formatChangelogDate = (value: Date): string => {
-  return value.toLocaleDateString('vi-VN', {
+  return value.toLocaleDateString('ja-JP', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'

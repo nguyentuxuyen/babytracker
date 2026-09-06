@@ -4,6 +4,8 @@ import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import HistoryIcon from '@mui/icons-material/History';
+import AddIcon from '@mui/icons-material/Add';
 
 const BottomNav: React.FC = () => {
     const history = useHistory();
@@ -12,8 +14,9 @@ const BottomNav: React.FC = () => {
     const getNavValue = () => {
         const path = location.pathname;
         if (path === '/' || path === '/activities') return 0;
-        if (path === '/statistics') return 1;
-        if (path === '/food-history') return 2;
+        if (path === '/timeline') return 1;
+        if (path === '/statistics') return 3;
+        if (path === '/food-history') return 4;
         return 0;
     };
 
@@ -24,6 +27,10 @@ const BottomNav: React.FC = () => {
                 bottom: 0, 
                 left: 0, 
                 right: 0,
+                display: 'block',
+                width: '100%',
+                minHeight: { xs: 60, sm: 64 },
+                visibility: 'visible',
                 zIndex: 1000,
                 boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.08)',
                 borderTop: '1px solid #e5e7eb'
@@ -38,9 +45,15 @@ const BottomNav: React.FC = () => {
                             history.push('/');
                             break;
                         case 1:
-                            history.push('/statistics');
+                            history.push('/timeline');
                             break;
                         case 2:
+                            history.push('/?add=1');
+                            break;
+                        case 3:
+                            history.push('/statistics');
+                            break;
+                        case 4:
                             history.push('/food-history');
                             break;
                     }
@@ -48,6 +61,8 @@ const BottomNav: React.FC = () => {
                 showLabels
                 sx={{
                     height: { xs: 60, sm: 64 },
+                    width: '100%',
+                    display: 'flex',
                     bgcolor: '#ffffff',
                     '& .MuiBottomNavigationAction-root': {
                         minWidth: 'auto',
@@ -73,9 +88,9 @@ const BottomNav: React.FC = () => {
                         }
                     }}
                 />
-                <BottomNavigationAction 
-                    label="成長" 
-                    icon={<ShowChartIcon />}
+                <BottomNavigationAction
+                    label="記録"
+                    icon={<HistoryIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
                             fontSize: '12px',
@@ -88,18 +103,44 @@ const BottomNav: React.FC = () => {
                         }
                     }}
                 />
-                <BottomNavigationAction 
-                    label="食事" 
+                <BottomNavigationAction
+                    label=""
+                    icon={<AddIcon />}
+                    sx={{
+                        minWidth: 68,
+                        position: 'relative',
+                        zIndex: 1,
+                        '& .MuiSvgIcon-root': {
+                            width: 52,
+                            height: 52,
+                            padding: 1,
+                            borderRadius: '50%',
+                            color: '#ffffff',
+                            bgcolor: '#13a4ec',
+                            boxShadow: '0 4px 12px rgba(19, 164, 236, 0.35)'
+                        },
+                        '& .MuiBottomNavigationAction-label': { display: 'none' }
+                    }}
+                />
+                <BottomNavigationAction
+                    label="分析"
+                    icon={<ShowChartIcon />}
+                    sx={{
+                        '& .MuiBottomNavigationAction-label': {
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            marginTop: '4px'
+                        }
+                    }}
+                />
+                <BottomNavigationAction
+                    label="食事"
                     icon={<RestaurantIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
                             fontSize: '12px',
                             fontWeight: 600,
-                            marginTop: '4px',
-                            opacity: 1,
-                            '&.Mui-selected': {
-                                fontSize: '12px'
-                            }
+                            marginTop: '4px'
                         }
                     }}
                 />

@@ -121,7 +121,7 @@ const HeaderComponent: React.FC<{
                         fontFamily: 'Manrope, sans-serif'
                     }}>
                         {(() => {
-                            const namePart = baby?.name ? `Welcome, ${baby.name}くん` : 'Welcome';
+                            const namePart = baby?.name ? `${baby.name}くん` : '赤ちゃん';
                             return namePart;
                         })()}
                     </div>
@@ -151,11 +151,11 @@ const HeaderComponent: React.FC<{
 
                                         if (months > 0) {
                                             if (days === 0) {
-                                                return `${months} tháng tuổi`;
+                                                return `${months}か月`; 
                                             }
-                                            return `${months} tháng ${days} ngày tuổi`;
+                                            return `${months}か月${days}日`; 
                                         }
-                                        return `${days} ngày tuổi`;
+                                        return `${days}日`; 
                                     }
                                 }
                             } catch (err) {
@@ -254,7 +254,7 @@ const HeaderComponent: React.FC<{
                                     fontWeight: 600
                                 }}
                             >
-                                Changelog
+                                変更履歴
                             </MuiButton>
                         </div>
                         <div style={{ position: 'relative' }}>
@@ -440,10 +440,10 @@ const HeaderComponent: React.FC<{
             </div>
 
             <Dialog open={showChangelog} onClose={handleCloseChangelog} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ pb: 1 }}>What’s new</DialogTitle>
+                <DialogTitle sx={{ pb: 1 }}>更新内容</DialogTitle>
                 <DialogContent dividers>
                     <Typography variant="caption" sx={{ display: 'block', color: '#6b7f8a', mb: 2 }}>
-                        {changelogUsesFirebase ? 'Nguon du lieu: Firebase changelog' : 'Nguon du lieu: local fallback'}
+                        {changelogUsesFirebase ? 'データソース: Firebase' : 'データソース: ローカル'}
                     </Typography>
                     {changelogReleases.map((entry) => (
                         <Box key={entry.version} sx={{ mb: 2.5 }}>

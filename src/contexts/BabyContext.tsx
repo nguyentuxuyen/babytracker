@@ -12,7 +12,7 @@ interface BabyContextType {
     fetchBabyData: () => Promise<void>;
     addActivity: (activity: Omit<Activity, 'id'>) => Promise<Activity | null>;
     deleteActivity: (activityId: string) => Promise<boolean>;
-    refreshActivities: () => Promise<void>;
+    refreshActivities: (date?: Date) => Promise<void>;
 }
 
 const BabyContext = createContext<BabyContextType | undefined>(undefined);
@@ -42,7 +42,7 @@ export const BabyProvider: React.FC<BabyProviderProps> = ({ children }) => {
                     if (babyData) {
                         console.log('✅ Found baby data by UID, setting data...');
                         setBaby(babyData);
-                        const activitiesData = await firestore.getActivities(currentUser.uid);
+                        const activitiesData = await firestore.getActivitiesByDate(currentUser.uid, new Date());
                         setActivities(activitiesData);
                     } else {
                         console.log('❌ No baby data found by UID, checking for legacy data by email...');
@@ -72,7 +72,7 @@ export const BabyProvider: React.FC<BabyProviderProps> = ({ children }) => {
                                 setBaby(legacyBabyData);
                             }
                             
-                            const activitiesData = await firestore.getActivities(currentUser.uid);
+                            const activitiesData = await firestore.getActivitiesByDate(currentUser.uid, new Date());
                             setActivities(activitiesData);
                         } else {
                             console.log('❌ No baby data found at all (neither UID nor email)');
@@ -136,11 +136,11 @@ export const BabyProvider: React.FC<BabyProviderProps> = ({ children }) => {
         }
     };
 
-    const refreshActivities = async () => {
+    const refreshActivities = async (date: Date = new Date()) => {
         if (!currentUser?.uid) return;
         
         try {
-            const activitiesData = await firestore.getActivities(currentUser.uid);
+            const activitiesData = await firestore.getActivitiesByDate(currentUser.uid, date);
             setActivities(activitiesData);
         } catch (error) {
             console.error('Error fetching activities:', error);

@@ -703,20 +703,20 @@ const MilestonesPage: React.FC = () => {
                     <TextField
                         autoFocus
                         fullWidth
-                        label="Tiêu đề"
+                        label="タイトル"
                         value={newItemTitle}
                         onChange={(e) => setNewItemTitle(e.target.value)}
                         sx={{ mb: 2 }}
-                        placeholder="Ví dụ: Biết nói câu 5-6 từ"
+                        placeholder="例: 5〜6語の文章を話す"
                     />
                     <TextField
                         fullWidth
-                        label="Mô tả"
+                        label="説明"
                         value={newItemDescription}
                         onChange={(e) => setNewItemDescription(e.target.value)}
                         multiline
                         rows={3}
-                        placeholder="Mô tả chi tiết về mốc phát triển này..."
+                        placeholder="この発達記録の詳細..."
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 2, borderTop: '1px solid #e5e7eb' }}>
@@ -732,7 +732,7 @@ const MilestonesPage: React.FC = () => {
                             fontWeight: 600
                         }}
                     >
-                        Hủy
+                        キャンセル
                     </Button>
                     <Button
                         onClick={handleAddItem}

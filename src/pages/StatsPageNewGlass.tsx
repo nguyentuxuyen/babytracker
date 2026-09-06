@@ -98,9 +98,9 @@ const StatsPage: React.FC = () => {
                     if (birthDate) {
                         const daysSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                         const daysToShow = Math.min(desired, daysSinceBirth);
-                        return `Last ${daysToShow} day${daysToShow > 1 ? 's' : ''}`;
+                        return `${daysToShow}日間`;
                     }
-                    return `Last ${desired} day${desired > 1 ? 's' : ''}`;
+                    return `${desired}日間`;
                 }
             case 'week':
                 {
@@ -108,9 +108,9 @@ const StatsPage: React.FC = () => {
                     if (birthDate) {
                         const weeksSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
                         const weeksToShow = Math.min(desired, weeksSinceBirth);
-                        return `Last ${weeksToShow} week${weeksToShow > 1 ? 's' : ''}`;
+                        return `${weeksToShow}週間`;
                     }
-                    return `Last ${desired} week${desired > 1 ? 's' : ''}`;
+                    return `${desired}週間`;
                 }
             case 'month':
                 {
@@ -118,12 +118,12 @@ const StatsPage: React.FC = () => {
                     if (birthDate) {
                         const monthsSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1;
                         const monthsToShow = Math.min(desired, monthsSinceBirth);
-                        return `Last ${monthsToShow} month${monthsToShow > 1 ? 's' : ''}`;
+                        return `${monthsToShow}か月間`;
                     }
-                    return `Last ${desired} month${desired > 1 ? 's' : ''}`;
+                    return `${desired}か月間`;
                 }
             case 'range':
-                return 'Custom range';
+                return '期間指定';
             default:
                 return '';
         }
@@ -613,7 +613,7 @@ const StatsPage: React.FC = () => {
             <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
                 <Box sx={{ textAlign: 'center' }}>
                     <ShowChartIcon sx={{ fontSize: 48, mb: 2, color: '#13a4ec' }} />
-                    <Typography color="text.primary" fontSize={16}>Đang tải thống kê...</Typography>
+                    <Typography color="text.primary" fontSize={16}>統計を読み込んでいます...</Typography>
                 </Box>
             </Box>
         );
@@ -640,10 +640,10 @@ const StatsPage: React.FC = () => {
                             border: '1px solid #e5e7eb'
                         }}>
                         {[
-                            { key: 'day', label: 'Day' },
-                            { key: 'week', label: 'Week' },
-                            { key: 'month', label: 'Month' },
-                            { key: 'range', label: 'Range' }
+                            { key: 'day', label: '日' },
+                            { key: 'week', label: '週' },
+                            { key: 'month', label: '月' },
+                            { key: 'range', label: '期間' }
                         ].map(period => (
                             <Box
                                 key={period.key}
@@ -925,11 +925,11 @@ const StatsPage: React.FC = () => {
                             {/* Checkboxes for toggling lines */}
                             <Grid container spacing={2}>
                                 {[
-                                    { key: 'milk', label: 'Milk', color: '#13a4ec' },
-                                    { key: 'solid', label: 'Solid Food', color: '#9c27b0' },
-                                    { key: 'diaper', label: 'Diaper', color: '#f59e0b' },
-                                    { key: 'urine', label: 'Urination', color: '#10b981' },
-                                    { key: 'stool', label: 'Defecation', color: '#ef4444' }
+                                    { key: 'milk', label: 'ミルク', color: '#13a4ec' },
+                                    { key: 'solid', label: '離乳食', color: '#9c27b0' },
+                                    { key: 'diaper', label: 'おむつ', color: '#f59e0b' },
+                                    { key: 'urine', label: 'おしっこ', color: '#10b981' },
+                                    { key: 'stool', label: 'うんち', color: '#ef4444' }
                                 ].map(line => (
                                     <Grid item xs={6} sm={3} key={line.key}>
                                         <FormControlLabel

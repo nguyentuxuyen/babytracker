@@ -180,7 +180,7 @@ const WonderWeeksPage: React.FC = () => {
                         </svg>
                     </IconButton>
                     <Typography variant="h6" sx={{ flexGrow: 1, textAlign: 'center', fontWeight: 'bold' }}>
-                        Wonder Weeks
+                        ワンダーウィーク
                     </Typography>
                     <Box sx={{ width: 40 }} />
                 </Box>
@@ -189,11 +189,11 @@ const WonderWeeksPage: React.FC = () => {
             {/* Content */}
             <Box sx={{ p: 2 }}>
                 <Box sx={{ mb: 3, p: 2, bgcolor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                    <Typography sx={{ fontWeight: 'bold', color: '#1f2937', mb: 1 }}>Tuổi của bé: {ageInWeeks} tuần</Typography>
-                    {currentLeap && <Typography sx={{ color: '#ef4444' }}>Bé đang ở trong Tuần Khủng Hoảng {currentLeap.id}!</Typography>}
-                    {nextLeap && !currentLeap && <Typography sx={{ color: '#3b82f6' }}>Tuần Khủng Hoảng tiếp theo (Số {nextLeap.id}) sẽ bắt đầu vào khoảng tuần {nextLeap.startWeek}.</Typography>}
+                    <Typography sx={{ fontWeight: 'bold', color: '#1f2937', mb: 1 }}>月齢: {ageInWeeks}週</Typography>
+                    {currentLeap && <Typography sx={{ color: '#ef4444' }}>現在、ワンダーウィーク {currentLeap.id} の期間です！</Typography>}
+                    {nextLeap && !currentLeap && <Typography sx={{ color: '#3b82f6' }}>次のワンダーウィーク（{nextLeap.id}）は{nextLeap.startWeek}週頃に始まります。</Typography>}
                      <Typography sx={{ fontSize: '0.8rem', color: '#6b7280', mt: 1 }}>
-                        Lưu ý: Thời gian được tính từ {baby?.dueDate ? 'ngày dự sinh' : 'ngày sinh'} và có thể thay đổi tùy theo sự phát triển của mỗi bé.
+                        注意: {baby?.dueDate ? '出産予定日' : '出生時'}を基準に計算しています。発達には個人差があります。
                     </Typography>
                 </Box>
 
@@ -216,15 +216,15 @@ const WonderWeeksPage: React.FC = () => {
                         >
                             <Box sx={{ p: 2, borderBottom: '1px solid #e5e7eb' }}>
                                 <Typography sx={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#111827' }}>
-                                    {`Tuần Khủng Hoảng ${leap.id}: ${leap.name}`}
+                                    {`ワンダーウィーク ${leap.id}: ${leap.name}`}
                                 </Typography>
                                 <Typography sx={{ fontSize: '0.9rem', color: '#6b7280' }}>
-                                    (Khoảng tuần {leap.startWeek} - {leap.endWeek})
+                                    （${leap.startWeek}〜${leap.endWeek}週頃）
                                 </Typography>
                             </Box>
                             <Box sx={{ p: 2 }}>
                                 <Typography sx={{ mb: 1.5, color: '#374151' }}>{leap.description}</Typography>
-                                <Typography sx={{ fontWeight: 'bold', color: '#1f2937', mb: 1 }}>Các kỹ năng mới bé có thể học:</Typography>
+                                <Typography sx={{ fontWeight: 'bold', color: '#1f2937', mb: 1 }}>身につく可能性のある新しいスキル:</Typography>
                                 <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
                                     {leap.skills.map((skill, i) => (
                                         <Typography component="li" key={i} sx={{ mb: 0.5, color: '#374151' }}>{skill}</Typography>
