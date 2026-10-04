@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, List, ListItem, ListItemText, ListItemSecondaryAction } from '@mui/material';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
+import { BackIcon as ArrowBackIosNewIcon, EditIcon, DeleteIcon, AddIcon, CheckIcon, CloseIcon, FoodIcon as RestaurantIcon } from '../components/common/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useBaby } from '../contexts/BabyContext';
 import { firestore } from '../firebase/firestore';
@@ -161,13 +157,13 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fontWeight: 700,
                             color: '#101c22'
                         }}>
-                            Welcome, {currentUser?.email?.split('@')[0] || 'User'}くん
+                            ようこそ、{currentUser?.email?.split('@')[0] || 'ユーザー'}さん
                         </Typography>
                         <Typography sx={{
                             fontSize: '12px',
                             color: '#6b7f8a'
                         }}>
-                            {baby?.name || 'Baby'} is {ageInDays} days old
+                            {baby?.name || '赤ちゃん'}は生後{ageInDays}日
                         </Typography>
                     </Box>
 
@@ -261,25 +257,25 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             color: '#101c22',
                             mb: 0.5
                         }}>
-                            {baby?.name ? `Baby ${baby.name}` : 'Baby Name'}
+                            {baby?.name || '赤ちゃん'}
                         </Typography>
                         <Typography sx={{
                             fontSize: '14px',
                             color: '#6b7f8a'
                         }}>
-                            Born on {baby?.birthDate 
-                                ? new Date(baby.birthDate).toLocaleDateString('en-US', { 
+                            誕生日: {baby?.birthDate
+                                ? new Date(baby.birthDate).toLocaleDateString('ja-JP', {
                                     month: 'long', 
                                     day: 'numeric', 
                                     year: 'numeric' 
                                 }) 
-                                : 'Date not set'}
+                                : '未設定'}
                         </Typography>
                         <Typography sx={{
                             fontSize: '14px',
                             color: '#6b7f8a'
                         }}>
-                            {baby?.gender === 'male' ? 'Male' : baby?.gender === 'female' ? 'Female' : 'Gender not set'}
+                            {baby?.gender === 'male' ? '男の子' : baby?.gender === 'female' ? '女の子' : '性別未設定'}
                         </Typography>
                     </Box>
                 </Box>
@@ -305,7 +301,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             {[
                                 { label: '名前', value: baby?.name || '未設定' },
                                 { label: '生年月日', value: baby?.birthDate 
-                                    ? new Date(baby.birthDate).toLocaleDateString('en-US', { 
+                                    ? new Date(baby.birthDate).toLocaleDateString('ja-JP', {
                                         month: 'long', 
                                         day: 'numeric', 
                                         year: 'numeric' 
@@ -313,7 +309,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                     : '未設定' 
                                 },
                                 { label: '出産予定日', value: baby?.dueDate 
-                                    ? new Date(baby.dueDate).toLocaleDateString('en-US', { 
+                                    ? new Date(baby.dueDate).toLocaleDateString('ja-JP', {
                                         month: 'long', 
                                         day: 'numeric', 
                                         year: 'numeric' 
@@ -431,7 +427,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fontWeight: 700,
                             color: '#101c22'
                         }}>
-                            Solid Food Menu
+                            離乳食メニュー
                         </Typography>
                         <Button 
                             startIcon={<RestaurantIcon />}
@@ -439,7 +435,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             size="small"
                             sx={{ textTransform: 'none' }}
                         >
-                            Manage Menu
+                            メニュー管理
                         </Button>
                     </Box>
                     <Card sx={{
@@ -470,7 +466,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </Box>
                         ) : (
                             <Typography sx={{ color: '#6b7f8a', fontSize: '14px', fontStyle: 'italic' }}>
-                                No food items added yet. Click "Manage Menu" to add foods.
+                                まだ料理が登録されていません。「メニュー管理」から追加してください。
                             </Typography>
                         )}
                     </Card>
@@ -504,13 +500,13 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         }
                     }}
                 >
-                    Edit Profile
+                    プロフィール編集
                 </Button>
             </Box>
 
             {/* Edit Profile Dialog */}
             <Dialog open={isEditing} onClose={() => setIsEditing(false)}>
-                <DialogTitle>Edit Baby Profile</DialogTitle>
+                <DialogTitle>赤ちゃんのプロフィール編集</DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <TextField
@@ -545,8 +541,8 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
                                 label="性別"
                             >
-                                <MenuItem value="male">Male</MenuItem>
-                                <MenuItem value="female">Female</MenuItem>
+                                <MenuItem value="male">男の子</MenuItem>
+                                <MenuItem value="female">女の子</MenuItem>
                             </Select>
                         </FormControl>
                         <TextField
@@ -569,21 +565,21 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setIsEditing(false)} color="primary">
-                        Cancel
+                        キャンセル
                     </Button>
                     <Button onClick={handleSave} color="primary">
-                        Save
+                        保存
                     </Button>
                 </DialogActions>
             </Dialog>
 
             {/* Manage Food Menu Dialog */}
             <Dialog open={isManagingFood} onClose={() => setIsManagingFood(false)} fullWidth maxWidth="xs">
-                <DialogTitle>Manage Food Menu</DialogTitle>
+                <DialogTitle>離乳食メニュー管理</DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: 'flex', gap: 1, mb: 2, mt: 1 }}>
                         <TextField
-                            label="Add New Food"
+                            label="新しい料理を追加"
                             variant="outlined"
                             size="small"
                             fullWidth
@@ -628,10 +624,10 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                                 autoFocus
                                             />
                                             <IconButton onClick={handleSaveEditFood} color="primary" size="small">
-                                                <AddIcon /> {/* Reuse AddIcon as Check/Save icon or use CheckIcon if available */}
+                                                <CheckIcon />
                                             </IconButton>
                                             <IconButton onClick={() => setEditingFoodItem(null)} color="default" size="small">
-                                                <DeleteIcon sx={{ transform: 'rotate(45deg)' }} /> {/* Reuse DeleteIcon as Cancel/X */}
+                                                <CloseIcon />
                                             </IconButton>
                                         </Box>
                                     ) : (
@@ -661,7 +657,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </List>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setIsManagingFood(false)}>Close</Button>
+                    <Button onClick={() => setIsManagingFood(false)}>閉じる</Button>
                 </DialogActions>
             </Dialog>
         </Box>

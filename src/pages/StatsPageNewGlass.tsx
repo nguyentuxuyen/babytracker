@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Typography, Box, Checkbox, FormControlLabel, Grid, Slider } from '@mui/material';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
+import { ChartIcon as ShowChartIcon, InfoIcon } from '../components/common/icons';
 import { Activity } from '../types';
 import { firestore } from '../firebase/firestore';
 import { getCurrentUser } from '../firebase/auth';
@@ -337,7 +337,7 @@ const StatsPage: React.FC = () => {
                 dateEnd.setDate(0);
                 dateEnd.setHours(23, 59, 59, 999);
                 
-                const label = dateStart.toLocaleDateString('en-US', { month: 'short' });
+                const label = dateStart.toLocaleDateString('ja-JP', { month: 'short' });
                 
                 // Filter and process activities
                 const periodActivities = activities.filter(activity => {
@@ -683,7 +683,7 @@ const StatsPage: React.FC = () => {
                         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
                     }}>
                         <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 2 }}>
-                            Select Date Range
+                            期間を選択
                         </Typography>
                         
                         <Grid container spacing={3}>
@@ -691,7 +691,7 @@ const StatsPage: React.FC = () => {
                             <Grid item xs={12} sm={6}>
                                 <Box>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
-                                        Start Date
+                                        開始日
                                     </Typography>
                                     <input
                                         type="date"
@@ -730,7 +730,7 @@ const StatsPage: React.FC = () => {
                             <Grid item xs={12} sm={6}>
                                 <Box>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
-                                        End Date
+                                        終了日
                                     </Typography>
                                     <input
                                         type="date"
@@ -761,13 +761,11 @@ const StatsPage: React.FC = () => {
                         
                         {/* Info text */}
                         <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <svg width="16" height="16" viewBox="0 0 256 256" fill="#6b7f8a">
-                                <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path>
-                            </svg>
+                            <InfoIcon sx={{ fontSize: 16, color: '#6b7f8a', flexShrink: 0 }} />
                             <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
                                 {baby?.birthDate 
-                                    ? `Date range limited from ${new Date(baby.birthDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (birth date) to today`
-                                    : 'Select a custom date range to view statistics'
+                                    ? `${new Date(baby.birthDate).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', year: 'numeric' })}（誕生日）から今日までの範囲で選択できます`
+                                    : '期間を選択して統計を表示します'
                                 }
                             </Typography>
                         </Box>
@@ -791,11 +789,11 @@ const StatsPage: React.FC = () => {
                                         textOverflow: 'ellipsis'
                                     }}
                                 >
-                                    Adjust range
+                                    表示範囲
                                 </Typography>
                                 {/* optional helper text (kept small) */}
                                 <Typography sx={{ fontSize: 12, color: '#6b7f8a', mt: 0.5 }}>
-                                    Use the slider to adjust how many {filter.period === 'day' ? 'days' : filter.period === 'week' ? 'weeks' : 'months'} to display
+                                    表示する{filter.period === 'day' ? '日数' : filter.period === 'week' ? '週数' : '月数'}をスライダーで調整します
                                 </Typography>
                             </Box>
 
@@ -837,7 +835,7 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                Daily Activities
+                                アクティビティ
                             </Typography>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
                                 {getPeriodLabel()}
@@ -967,20 +965,20 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                Nutrition Intake
+                                栄養摂取
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 3, mb: 0.5 }}>
                                 <Box>
                                     <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#13a4ec' }}>
                                         {totalMilk} ml
                                     </Typography>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>Milk</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>ミルク</Typography>
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#9c27b0' }}>
                                         {totalSolid} g
                                     </Typography>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>Solid</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>離乳食</Typography>
                                 </Box>
                             </Box>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
@@ -1028,7 +1026,7 @@ const StatsPage: React.FC = () => {
                                             strokeWidth={3}
                                             fill="url(#colorMilk)"
                                             strokeLinecap="round"
-                                            name="Milk (ml)"
+                                            name="ミルク (ml)"
                                         />
                                         <Area 
                                             type="monotone" 
@@ -1037,7 +1035,7 @@ const StatsPage: React.FC = () => {
                                             strokeWidth={3}
                                             fill="url(#colorSolid)"
                                             strokeLinecap="round"
-                                            name="Solid (g)"
+                                            name="離乳食 (g)"
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -1055,12 +1053,12 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                Sleep Analytics (Giấc Ngủ)
+                                睡眠分析
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 3, mb: 1, mt: 2 }}>
                                 <Box>
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
-                                        Avg Total Sleep
+                                        平均睡眠時間
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
                                         {sleepAnalytics.avgTotalSleep}
@@ -1068,7 +1066,7 @@ const StatsPage: React.FC = () => {
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
-                                        Longest Stretch
+                                        最長連続睡眠
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
                                         {sleepAnalytics.longestStretch}
@@ -1076,15 +1074,15 @@ const StatsPage: React.FC = () => {
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
-                                        Night Wakings
+                                        夜間覚醒
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
-                                        {sleepAnalytics.avgNightWakings} / night
+                                        {sleepAnalytics.avgNightWakings} 回 / 夜
                                     </Typography>
                                 </Box>
                             </Box>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
-                                {getPeriodLabel()} - Tổng {Math.floor(totalSleep / 60)}h
+                                {getPeriodLabel()} - 合計 {Math.floor(totalSleep / 60)}時間
                             </Typography>
 
                             {/* Chart Area */}
@@ -1136,7 +1134,7 @@ const StatsPage: React.FC = () => {
                                 p: 3
                             }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 2 }}>
-                                    Growth Standards (WHO)
+                                    成長曲線 (WHO)
                                 </Typography>
                                 <GrowthChart baby={baby} activities={activities} />
                             </Card>

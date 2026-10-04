@@ -1,20 +1,22 @@
 import React from 'react';
-// Fallback MUI icons
-import HomeIcon from '@mui/icons-material/Home';
-import AddIcon from '@mui/icons-material/Add';
-import EventIcon from '@mui/icons-material/Event';
-import MenuIcon from '@mui/icons-material/Menu';
-import BabyChangingStationOutlinedIcon from '@mui/icons-material/BabyChangingStationOutlined';
-import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
-import BedtimeOutlinedIcon from '@mui/icons-material/BedtimeOutlined';
-import MonitorHeartOutlinedIcon from '@mui/icons-material/MonitorHeartOutlined';
-import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
-import AssessmentIcon from '@mui/icons-material/Assessment';
+// Shared Lucide icons
+import {
+  HomeIcon,
+  AddIcon,
+  CalendarIcon as EventIcon,
+  MenuIcon,
+  BabyIcon as BabyChangingStationOutlinedIcon,
+  FoodIcon as RestaurantOutlinedIcon,
+  SleepIcon as BedtimeOutlinedIcon,
+  MeasurementIcon as MonitorHeartOutlinedIcon,
+  MemoIcon as EditNoteOutlinedIcon,
+  BarChartIcon as AssessmentIcon
+} from './icons';
 
 // Default style - black icons
 const defaultSx = { sx: { color: '#000000', fontSize: 24 } };
 
-// Simple wrapper components using MUI icons with black color
+// Simple wrapper components using Lucide icons with black color
 export const IconFaHome: React.FC<any> = (props) => {
   const merged = { ...defaultSx, ...props };
   return <HomeIcon {...merged} />;

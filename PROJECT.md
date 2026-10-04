@@ -165,7 +165,7 @@ Không cần auth token — dùng `SERVICE_ACCOUNT_USER_UID` env.
 ### 5.4 Sleep Timer
 - Bấm **Sleep** → `firestore.startOngoingSleep(uid, babyId, startTime)`.
 - Timer hiển thị trên nút bằng `SleepTimerDisplay`.
-- Bấm lại → `firestore.stopOngoingSleep(uid, babyId)` → tự tính `duration`, tạo activity `sleep`.
+- Bấm lại → UI đổi ngay, tự tính `duration` từ `startTime` đang có, rồi chạy song song `firestore.saveActivity` (activity `sleep`) và `firestore.clearOngoingSleep(uid, babyId)`.
 
 ### 5.5 Offline Queue
 - `firestore.saveActivity` bắt lỗi network → `enqueueActivity` → `localStorage`.

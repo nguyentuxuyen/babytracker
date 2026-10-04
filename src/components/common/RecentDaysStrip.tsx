@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, IconButton, Tooltip, Typography } from '@mui/material';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import { CalendarDaysIcon as CalendarMonthIcon } from './icons';
 
 type RecentDaysStripProps = {
     selectedDate: Date;

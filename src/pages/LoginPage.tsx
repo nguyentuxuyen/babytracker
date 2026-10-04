@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, TextField, CircularProgress, InputAdornment, IconButton, Container } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { VisibilityIcon as Visibility, VisibilityOffIcon as VisibilityOff } from '../components/common/icons';
 import { useHistory } from 'react-router-dom';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase/config';

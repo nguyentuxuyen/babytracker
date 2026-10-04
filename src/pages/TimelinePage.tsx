@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import BedtimeOutlinedIcon from '@mui/icons-material/BedtimeOutlined';
-import ChildCareOutlinedIcon from '@mui/icons-material/ChildCareOutlined';
-import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
-import MonitorHeartOutlinedIcon from '@mui/icons-material/MonitorHeartOutlined';
-import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
-import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
+import { BabyIcon, BathIcon, DeleteIcon, EditIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon } from '../components/common/icons';
 import { useAuth } from '../hooks/useAuth';
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
@@ -37,12 +31,20 @@ const activityColors: Record<string, string> = {
 };
 
 const activityIcons: Record<string, React.ReactNode> = {
-    feeding: <RestaurantOutlinedIcon />,
-    sleep: <BedtimeOutlinedIcon />,
-    diaper: <ChildCareOutlinedIcon />,
-    measurement: <MonitorHeartOutlinedIcon />,
-    memo: <EditNoteOutlinedIcon />,
-    bath: <BathtubOutlinedIcon />
+    feeding: <FoodIcon />,
+    sleep: <SleepIcon />,
+    diaper: <BabyIcon />,
+    measurement: <MeasurementIcon />,
+    memo: <MemoIcon />,
+    bath: <BathIcon />
+};
+
+const getActivityIcon = (activity: Activity) => {
+    const details = activity.details as Record<string, unknown> | undefined;
+    if (activity.type === 'feeding' && details?.foodType !== 'solid') {
+        return <MilkIcon />;
+    }
+    return activityIcons[activity.type] || <MemoIcon />;
 };
 
 const getActivityDetails = (activity: Activity) => {
@@ -50,7 +52,9 @@ const getActivityDetails = (activity: Activity) => {
     if (!details) return [];
 
     if (activity.type === 'feeding') {
-        const amount = details.amount ? `${details.amount}ml` : '';
+        const amount = details.amount
+            ? `${details.amount}${details.foodType === 'solid' ? 'g' : 'ml'}`
+            : '';
         const food = details.foodType === 'solid' ? String(details.foodItem || 'Solid Food') : '';
         return [food ? `${food} (${amount})` : amount].filter(Boolean);
     }
@@ -79,7 +83,9 @@ const TimelinePage: React.FC = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
     const [editAmount, setEditAmount] = useState('');
-    const [editDuration, setEditDuration] = useState('');
+    const [editTime, setEditTime] = useState('');
+    const [editSleepStartTime, setEditSleepStartTime] = useState('');
+    const [editSleepEndTime, setEditSleepEndTime] = useState('');
     const [editNotes, setEditNotes] = useState('');
     const [savingEdit, setSavingEdit] = useState(false);
     const selectedDateTime = selectedDate.getTime();
@@ -118,8 +124,21 @@ const TimelinePage: React.FC = () => {
         const details = activity.details as Record<string, unknown>;
         setEditingActivity(activity);
         setEditAmount(details.amount ? String(details.amount) : '');
-        setEditDuration(details.duration ? String(details.duration) : '');
-        setEditNotes(details.notes ? String(details.notes) : '');
+        const notes = details.notes ? String(details.notes) : '';
+        setEditNotes(notes);
+        setEditTime(new Date(activity.timestamp).toTimeString().slice(0, 5));
+
+        if (activity.type === 'sleep') {
+            const endTime = new Date(activity.timestamp);
+            const startTimeMatch = notes.match(/(?:Bắt đầu|開始): (\d{1,2}):(\d{2}):\d{2}/);
+            const duration = Number(details.duration) || 0;
+            const startTime = new Date(endTime.getTime() - duration * 60000);
+
+            setEditSleepStartTime(startTimeMatch
+                ? `${startTimeMatch[1].padStart(2, '0')}:${startTimeMatch[2]}`
+                : startTime.toTimeString().slice(0, 5));
+            setEditSleepEndTime(endTime.toTimeString().slice(0, 5));
+        }
     };
 
     const saveEdit = async () => {
@@ -127,17 +146,42 @@ const TimelinePage: React.FC = () => {
         setSavingEdit(true);
         const details = { ...(editingActivity.details as Record<string, unknown>) };
         if ('amount' in details) details.amount = Number(editAmount) || 0;
-        if ('duration' in details) details.duration = Number(editDuration) || 0;
-        if ('notes' in details || editNotes) details.notes = editNotes;
+        let timestamp = editingActivity.timestamp;
+        if (editingActivity.type === 'sleep' && editSleepStartTime && editSleepEndTime) {
+            const [startHours, startMinutes] = editSleepStartTime.split(':').map(Number);
+            const [endHours, endMinutes] = editSleepEndTime.split(':').map(Number);
+            const endTime = new Date(editingActivity.timestamp);
+            endTime.setHours(endHours, endMinutes, 0, 0);
+            const startTime = new Date(endTime);
+            startTime.setHours(startHours, startMinutes, 0, 0);
+            if (startTime > endTime) startTime.setDate(startTime.getDate() - 1);
+
+            details.duration = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+            const startNote = `開始: ${editSleepStartTime}:00`;
+            details.notes = /(?:Bắt đầu|開始): \d{1,2}:\d{2}:\d{2}/.test(editNotes)
+                ? editNotes.replace(/(?:Bắt đầu|開始): \d{1,2}:\d{2}:\d{2}/, startNote)
+                : [editNotes.trim(), startNote].filter(Boolean).join('\n');
+            timestamp = endTime;
+        } else {
+            if ('notes' in details || editNotes) details.notes = editNotes;
+            if (editTime) {
+                const [hours, minutes] = editTime.split(':').map(Number);
+                const newTime = new Date(editingActivity.timestamp);
+                newTime.setHours(hours, minutes, 0, 0);
+                timestamp = newTime;
+            }
+        }
 
         const updated = await firestore.updateActivity(user.uid, editingActivity.id, {
             details,
-            timestamp: editingActivity.timestamp
+            timestamp
         });
         if (updated) {
-            setActivities((current) => current.map((activity) => (
-                activity.id === editingActivity.id ? { ...activity, details } as Activity : activity
-            )));
+            setActivities((current) => current
+                .map((activity) => (
+                    activity.id === editingActivity.id ? { ...activity, details, timestamp } as Activity : activity
+                ))
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
             setEditingActivity(null);
         } else {
             setError('オフライン記録は編集できないか、更新に失敗しました。');
@@ -208,7 +252,7 @@ const TimelinePage: React.FC = () => {
                         <Card key={label} variant="outlined" sx={{ borderRadius: 1.5 }}>
                             <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
                                 <Typography variant="body2" sx={{ color: '#6b7f8a', fontWeight: 700, mb: 0.75 }}>{label}</Typography>
-                                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 0.75 }}>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 0.8fr) minmax(0, 0.8fr)', gap: 0.75, '& .MuiTypography-body1': { fontSize: 15, whiteSpace: 'nowrap' } }}>
                                     <Box><Typography variant="caption" color="text.secondary">ミルク</Typography><Typography fontWeight={700}>{stats.feeding.count}回 · {stats.feeding.totalAmount}ml</Typography></Box>
                                     <Box><Typography variant="caption" color="text.secondary">離乳食</Typography><Typography fontWeight={700}>{stats.solid.count}回 · {stats.solid.totalAmount}g</Typography></Box>
                                     <Box><Typography variant="caption" color="text.secondary">おしっこ</Typography><Typography fontWeight={700}>{stats.urine.count}</Typography></Box>
@@ -251,14 +295,14 @@ const TimelinePage: React.FC = () => {
                                         <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                                             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                                                 <Box sx={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color, bgcolor: `${color}18` }}>
-                                                    {activityIcons[activity.type] || <EditNoteOutlinedIcon />}
+                                                    {getActivityIcon(activity)}
                                                 </Box>
                                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                                                         <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{activityLabels[activity.type] || activity.type}</Typography>
                                                         <Box sx={{ display: 'flex' }}>
-                                                            <Tooltip title="記録を編集"><IconButton aria-label="記録を編集" size="small" onClick={() => openEdit(activity)}><EditNoteOutlinedIcon fontSize="small" /></IconButton></Tooltip>
-                                                            <Tooltip title="記録を削除"><IconButton aria-label="記録を削除" size="small" onClick={() => void handleDelete(activity.id)}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
+                                                            <Tooltip title="記録を編集"><IconButton aria-label="記録を編集" size="small" onClick={() => openEdit(activity)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                                                            <Tooltip title="記録を削除"><IconButton aria-label="記録を削除" size="small" onClick={() => void handleDelete(activity.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                                                         </Box>
                                                     </Box>
                                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -277,11 +321,17 @@ const TimelinePage: React.FC = () => {
             <Dialog open={Boolean(editingActivity)} onClose={() => setEditingActivity(null)} fullWidth maxWidth="xs">
                 <DialogTitle>記録を編集</DialogTitle>
                 <DialogContent>
+                    {editingActivity && editingActivity.type !== 'sleep' && (
+                        <TextField label="時刻" type="time" value={editTime} onChange={(event) => setEditTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} sx={{ mt: 1 }} />
+                    )}
                     {editingActivity?.type === 'feeding' && (
-                        <TextField label="量 (ml)" type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 1 }} />
+                        <TextField label="量 (ml)" type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
                     )}
                     {editingActivity?.type === 'sleep' && (
-                        <TextField label="時間 (分)" type="number" value={editDuration} onChange={(event) => setEditDuration(event.target.value)} fullWidth size="small" sx={{ mt: 1 }} />
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, mt: 1 }}>
+                            <TextField label="開始時刻" type="time" value={editSleepStartTime} onChange={(event) => setEditSleepStartTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+                            <TextField label="終了時刻" type="time" value={editSleepEndTime} onChange={(event) => setEditSleepEndTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+                        </Box>
                     )}
                     <TextField label="メモ" value={editNotes} onChange={(event) => setEditNotes(event.target.value)} fullWidth multiline minRows={2} size="small" sx={{ mt: 2 }} />
                 </DialogContent>

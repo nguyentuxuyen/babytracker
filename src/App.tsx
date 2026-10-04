@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme/theme';
@@ -13,13 +13,13 @@ import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTest
 import { ChangelogRelease } from './types';
 
 import {
-    AccountCircle as AccountCircleIcon,
-    ChildCare as ChildCareIcon,
-    Logout as LogoutIcon,
-    Notifications as NotificationsIcon,
-    NotificationsOff as NotificationsOffIcon,
-    Send as SendIcon
-} from '@mui/icons-material';
+    AccountIcon as AccountCircleIcon,
+    BabyIcon as ChildCareIcon,
+    LogoutIcon,
+    NotificationsIcon,
+    NotificationsOffIcon,
+    SendIcon
+} from './components/common/icons';
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
 import packageJson from '../package.json';
 import { CHANGELOG_SEEN_STORAGE_KEY, fallbackChangelogReleases, formatChangelogDate } from './utils/changelog';
@@ -66,6 +66,29 @@ const HeaderComponent: React.FC<{
 }) => {
     const { baby } = useBaby();
     const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close the account menu on an outside tap or Escape
+    useEffect(() => {
+        if (!showMenu) return;
+
+        const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setShowMenu(false);
+        };
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('touchstart', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('touchstart', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [showMenu]);
     const [showChangelog, setShowChangelog] = useState(false);
 
     useEffect(() => {
@@ -96,7 +119,7 @@ const HeaderComponent: React.FC<{
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            backgroundColor: 'rgba(246, 247, 248, 0.94)',
+            backgroundColor: '#f6f7f8',
             backdropFilter: 'none',
             WebkitBackdropFilter: 'none',
             borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
@@ -174,7 +197,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                Offline mode
+                                オフライン
                             </div>
                         )}
                         {isOnline && pendingSyncCount > 0 && (
@@ -186,7 +209,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                {pendingSyncCount} đang chờ đồng bộ
+                                {pendingSyncCount}件 同期待ち
                             </div>
                         )}
                         {isSyncing && (
@@ -198,7 +221,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                Đang đồng bộ...
+                                同期中...
                             </div>
                         )}
                         {reminderEnabled && (
@@ -210,7 +233,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                Nhắc nhở mỗi {Math.round(reminderIntervalMinutes / 60)}h
+                                リマインダー {Math.round(reminderIntervalMinutes / 60)}時間ごと
                             </div>
                         )}
                         {pushEnabled && (
@@ -222,7 +245,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                Push server: bật
+                                プッシュ通知: オン
                             </div>
                         )}
                     </div>
@@ -257,7 +280,7 @@ const HeaderComponent: React.FC<{
                                 変更履歴
                             </MuiButton>
                         </div>
-                        <div style={{ position: 'relative' }}>
+                        <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
                                 style={{
@@ -320,7 +343,7 @@ const HeaderComponent: React.FC<{
                                         onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                     >
                                         <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
-                                        Thông tin bé
+                                        赤ちゃん情報
                                     </button>
                                     <button
                                         onClick={onToggleReminder}
@@ -348,7 +371,7 @@ const HeaderComponent: React.FC<{
                                         ) : (
                                             <NotificationsOffIcon sx={{ fontSize: '20px', color: '#6b7f8a' }} />
                                         )}
-                                        {reminderEnabled ? 'Tắt nhắc nhở' : 'Bật nhắc nhở'}
+                                        {reminderEnabled ? 'リマインダーをオフ' : 'リマインダーをオン'}
                                     </button>
                                     <div style={{
                                         borderTop: '1px solid #e5e7eb',
@@ -356,9 +379,9 @@ const HeaderComponent: React.FC<{
                                         fontSize: '12px',
                                         color: '#6b7f8a'
                                     }}>
-                                        Trạng thái thông báo: {notificationPermission}
+                                        通知の許可: {({ granted: '許可', denied: '拒否', default: '未設定', unsupported: '非対応' } as Record<string, string>)[notificationPermission]}
                                         <div style={{ marginTop: '6px' }}>
-                                            Push server: {pushSupported ? (pushEnabled ? 'enabled' : 'disabled') : 'unsupported'}
+                                            プッシュ通知: {pushSupported ? (pushEnabled ? '有効' : '無効') : '非対応'}
                                         </div>
                                         <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                             {[60, 120, 180, 240].map((minutes) => (
@@ -397,7 +420,7 @@ const HeaderComponent: React.FC<{
                                                 }}
                                             >
                                                 <SendIcon sx={{ fontSize: '16px' }} />
-                                                Gửi test push
+                                                テスト通知を送信
                                             </button>
                                         )}
                                     </div>
@@ -430,7 +453,7 @@ const HeaderComponent: React.FC<{
                                         onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                     >
                                         <LogoutIcon sx={{ fontSize: '20px' }} />
-                                        Đăng xuất
+                                        ログアウト
                                     </button>
                                 </div>
                             )}
@@ -473,7 +496,7 @@ const HeaderComponent: React.FC<{
                 </DialogContent>
                 <DialogActions>
                     <MuiButton onClick={handleCloseChangelog} variant="contained" sx={{ bgcolor: '#13a4ec' }}>
-                        Đóng
+                        閉じる
                     </MuiButton>
                 </DialogActions>
             </Dialog>
@@ -653,9 +676,9 @@ const MainApp: React.FC = () => {
                 return;
             }
 
-            const babyName = baby?.name ? ` cho ${baby.name}` : '';
+            const babyName = baby?.name ? `${baby.name}の` : '';
             new Notification('Baby Tracker Reminder', {
-                body: `Đã đến lúc cập nhật hoạt động${babyName} 👶`,
+                body: `${babyName}記録を更新する時間です 👶`,
                 icon: `${process.env.PUBLIC_URL}/icon-192.svg`,
                 badge: `${process.env.PUBLIC_URL}/icon-192.svg`
             });
@@ -752,7 +775,7 @@ const MainApp: React.FC = () => {
                 height: '100vh',
                 bgcolor: '#f6f7f8'
             }}>
-                <Box sx={{ color: '#101c22', fontSize: '18px' }}>Đang tải...</Box>
+                <Box sx={{ color: '#101c22', fontSize: '18px' }}>読み込み中...</Box>
             </Box>
         );
     }

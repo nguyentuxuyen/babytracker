@@ -1,8 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, TextField, Tooltip } from '@mui/material';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import MicIcon from '@mui/icons-material/Mic';
-import StopIcon from '@mui/icons-material/Stop';
+import { SparklesIcon as AutoAwesomeIcon, MicIcon, StopIcon } from './icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { parseAssistantCommand } from '../../services/assistantCore';
 import { executeAssistantCommand } from '../../services/assistantApi';
@@ -92,34 +90,36 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
     return (
         <Card sx={{ mb: 2, borderRadius: 2, boxShadow: '0 6px 18px rgba(37, 99, 235, 0.1)' }}>
             <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <TextField
-                        value={text}
-                        onChange={(event) => setText(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === 'Enter' && !event.shiftKey) {
-                                event.preventDefault();
-                                void handleSubmit();
-                            }
-                        }}
-                        placeholder='例: ミルク120ml 9:15'
-                        size="small"
-                        InputProps={{
-                            startAdornment: <AutoAwesomeIcon color="primary" sx={{ mr: 1, fontSize: 20 }} />
-                        }}
-                        sx={{ flex: 1, minWidth: 0 }}
-                    />
-                    <Tooltip title={listening ? '音声入力を停止' : '音声入力'}>
-                        <IconButton onClick={toggleVoiceInput} color={listening ? 'error' : 'primary'} aria-label="音声入力">
-                            {listening ? <StopIcon /> : <MicIcon />}
-                        </IconButton>
-                    </Tooltip>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'stretch', gap: 1, width: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+                        <TextField
+                            value={text}
+                            onChange={(event) => setText(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' && !event.shiftKey) {
+                                    event.preventDefault();
+                                    void handleSubmit();
+                                }
+                            }}
+                            placeholder='例: ミルク120ml 9:15'
+                            size="small"
+                            InputProps={{
+                                startAdornment: <AutoAwesomeIcon color="primary" sx={{ mr: 1, fontSize: 20 }} />
+                            }}
+                            sx={{ flex: 1, minWidth: 0 }}
+                        />
+                        <Tooltip title={listening ? '音声入力を停止' : '音声入力'}>
+                            <IconButton onClick={toggleVoiceInput} color={listening ? 'error' : 'primary'} aria-label="音声入力">
+                                {listening ? <StopIcon /> : <MicIcon />}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                     <Button
                         variant="contained"
                         onClick={handleSubmit}
                         disabled={loading}
                         size="small"
-                        sx={{ minWidth: 92, minHeight: 40, whiteSpace: 'nowrap', flexShrink: 0 }}
+                        sx={{ minWidth: { sm: 92 }, minHeight: 40, whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
                         {loading ? <CircularProgress size={16} color="inherit" /> : 'AIで記録'}
                     </Button>

@@ -1,11 +1,7 @@
 import React from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import HistoryIcon from '@mui/icons-material/History';
-import AddIcon from '@mui/icons-material/Add';
+import { HomeIcon, ChartIcon as ShowChartIcon, FoodIcon as RestaurantIcon, HistoryIcon, AddIcon } from '../common/icons';
 
 const BottomNav: React.FC = () => {
     const history = useHistory();
@@ -17,7 +13,7 @@ const BottomNav: React.FC = () => {
         if (path === '/timeline') return 1;
         if (path === '/statistics') return 3;
         if (path === '/food-history') return 4;
-        return 0;
+        return -1;
     };
 
     return (

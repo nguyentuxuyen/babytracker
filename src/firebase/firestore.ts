@@ -628,36 +628,14 @@ export const firestore = {
         }
     },
 
-    // Stop ongoing sleep session and return the sleep data
-    stopOngoingSleep: async (userId: string, babyId: string): Promise<{ startTime: Date; endTime: Date; duration: number } | null> => {
+    // Remove the ongoing sleep session marker
+    clearOngoingSleep: async (userId: string, babyId: string): Promise<boolean> => {
         try {
-            const sleepDocRef = doc(db, 'users', userId, 'ongoingSleep', babyId);
-            const sleepDoc = await getDoc(sleepDocRef);
-            
-            if (!sleepDoc.exists()) {
-                console.log('No ongoing sleep session found');
-                return null;
-            }
-            
-            const data = sleepDoc.data();
-            const startTime = data.startTime.toDate();
-            const endTime = new Date();
-            const durationMs = endTime.getTime() - startTime.getTime();
-            const durationMinutes = Math.round(durationMs / (1000 * 60));
-            
-            // Delete the ongoing sleep document
-            await deleteDoc(sleepDocRef);
-            
-            console.log('✅ Sleep timer stopped. Duration:', durationMinutes, 'minutes');
-            
-            return {
-                startTime,
-                endTime,
-                duration: durationMinutes
-            };
+            await deleteDoc(doc(db, 'users', userId, 'ongoingSleep', babyId));
+            return true;
         } catch (error) {
-            console.error('Error stopping sleep timer:', error);
-            return null;
+            console.error('Error clearing sleep timer:', error);
+            return false;
         }
     },
 

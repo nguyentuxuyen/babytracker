@@ -1,9 +1,6 @@
 import React from 'react';
-// Fallback imports from MUI
-import HomeIcon from '@mui/icons-material/Home';
-import AddIcon from '@mui/icons-material/Add';
-import EventIcon from '@mui/icons-material/Event';
-import MenuIcon from '@mui/icons-material/Menu';
+// Fallback imports from the shared Lucide set
+import { HomeIcon, AddIcon, CalendarIcon as EventIcon, MenuIcon } from './icons';
 
 // Try to dynamically require Iconly package. This keeps the app safe if the package
 // isn't installed yet. We prefer Iconly Bold set when available.

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, Chip, Stack, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import { SearchIcon } from '../components/common/icons';
 import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { Activity } from '../types';
@@ -118,7 +118,7 @@ const FoodHistoryPage: React.FC = () => {
                         <Card key={item.id} sx={{ borderRadius: '16px', border: '1px solid #e5e7eb' }}>
                             <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 700 }}>
-                                    {details.foodItem || 'Món ăn'}
+                                    {details.foodItem || '料理'}
                                 </Typography>
                                 <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
                                     {ts.toLocaleDateString('vi-VN')} • {ts.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}

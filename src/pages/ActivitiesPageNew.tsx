@@ -9,6 +9,7 @@ import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { AssistantComposer } from '../components/common/AssistantComposer';
 import RecentDaysStrip from '../components/common/RecentDaysStrip';
+import { BabyIcon, BathIcon, CalendarIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, DeleteIcon, EditIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon, UrineIcon } from '../components/common/icons';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 
 // 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
@@ -23,6 +24,14 @@ const liquidGlassStyle = {
 };
 
 const normalizeFoodName = (value: string) => value.trim();
+
+const resolveFeedingFoodType = (details?: Record<string, any>, fallback: 'milk' | 'solid' = 'milk'): 'milk' | 'solid' => {
+    if (!details) return fallback;
+    if (details.foodType === 'solid') return 'solid';
+    if (details.foodType === 'milk') return 'milk';
+    if (details.foodItem || details.foodPreference || details.isAllergic) return 'solid';
+    return fallback;
+};
 
 const mergeFoodItems = (items: string[]) => {
     const merged = new Map<string, string>();
@@ -131,6 +140,10 @@ const ActivitiesPage: React.FC = () => {
             normalizedDetails.amount = activity.details.time;
         }
 
+        if (normalizedType === 'feeding') {
+            normalizedDetails.foodType = resolveFeedingFoodType(normalizedDetails, normalizedDetails.foodType || 'milk');
+        }
+
         return {
             id: activity.id,
             type: normalizedType,
@@ -180,7 +193,7 @@ const ActivitiesPage: React.FC = () => {
     }, [currentUser]);    
 
     const [formData, setFormData] = useState<{
-        type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo';
+        type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
         time: string;
         amount: string;
         duration: string;
@@ -190,7 +203,7 @@ const ActivitiesPage: React.FC = () => {
         temperature: string;
         isUrine?: boolean;
         isStool?: boolean;
-    stoolColor?: Array<'vàng' | 'nâu' | 'xám'>;
+        stoolColor?: Array<'vàng' | 'nâu' | 'xám'>;
         stoolConsistency?: 'lỏng' | 'bình thường' | 'khô';
         timestamp?: string;
         foodType?: 'milk' | 'solid';
@@ -272,7 +285,7 @@ const ActivitiesPage: React.FC = () => {
                 loadActivities();
                 setSnackbar({
                     open: true,
-                    message: `Đã đồng bộ ${syncedCount} hoạt động đã lưu offline.`,
+                    message: `オフライン保存した${syncedCount}件の記録を同期しました。`,
                     severity: 'success'
                 });
             }
@@ -288,6 +301,20 @@ const ActivitiesPage: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser]);    
 
+    // Guards the sleep card against double taps while a start/stop is in flight.
+    // Released after a few seconds at the latest so a stalled (offline) write cannot lock the card.
+    const sleepActionBusy = useRef(false);
+    const lockSleepAction = () => {
+        if (sleepActionBusy.current) return null;
+        sleepActionBusy.current = true;
+        const release = () => { sleepActionBusy.current = false; };
+        const timeout = window.setTimeout(release, 3000);
+        return () => {
+            window.clearTimeout(timeout);
+            release();
+        };
+    };
+
     // Handle start sleep
     const handleStartSleep = async () => {
         if (!currentUser?.uid || !baby?.id) {
@@ -299,73 +326,99 @@ const ActivitiesPage: React.FC = () => {
             return;
         }
 
-        const startTime = new Date();
-        const success = await firestore.startOngoingSleep(currentUser.uid, baby.id, startTime);
-        
-        if (success) {
-            setOngoingSleep({ startTime });
-            setSnackbar({
-                open: true,
-                message: '睡眠タイマーを開始しました。⏱️',
-                severity: 'success'
-            });
-        } else {
-            setSnackbar({
-                open: true,
-                message: '睡眠タイマーの開始に失敗しました。',
-                severity: 'error'
-            });
+        const unlock = lockSleepAction();
+        if (!unlock) return;
+
+        // Show the timer immediately; roll back if the write fails.
+        const started = { startTime: new Date() };
+        setOngoingSleep(started);
+        try {
+            const success = await firestore.startOngoingSleep(currentUser.uid, baby.id, started.startTime);
+
+            if (success) {
+                setSnackbar({
+                    open: true,
+                    message: '睡眠タイマーを開始しました。⏱️',
+                    severity: 'success'
+                });
+            } else {
+                setOngoingSleep(prev => (prev === started ? null : prev));
+                setSnackbar({
+                    open: true,
+                    message: '睡眠タイマーの開始に失敗しました。',
+                    severity: 'error'
+                });
+            }
+        } finally {
+            unlock();
         }
     };
 
     // Handle stop sleep
     const handleStopSleep = async () => {
-        if (!currentUser?.uid || !baby?.id) return;
+        if (!currentUser?.uid || !baby?.id || !ongoingSleep) return;
 
+        const unlock = lockSleepAction();
+        if (!unlock) return;
+
+        const userId = currentUser.uid;
+        const babyId = baby.id;
+        const stopped = ongoingSleep;
+        const endTime = new Date();
+        const duration = Math.round((endTime.getTime() - stopped.startTime.getTime()) / (1000 * 60));
+
+        const activityData = {
+            babyId,
+            type: 'sleep' as const,
+            timestamp: endTime,
+            details: {
+                time: endTime,
+                duration,
+                notes: `開始: ${stopped.startTime.toLocaleTimeString('ja-JP')}`
+            }
+        };
+
+        // Hide the timer immediately; restore it if saving the sleep fails.
+        setOngoingSleep(null);
         try {
-            setLoading(true);
-            const sleepData = await firestore.stopOngoingSleep(currentUser.uid, baby.id);
-            
-            if (sleepData) {
-                // Create a sleep activity with the calculated duration
-                const activityData = {
-                    babyId: baby.id,
-                    type: 'sleep' as const,
-                    timestamp: sleepData.endTime,
-                    details: {
-                        time: sleepData.endTime,
-                        duration: sleepData.duration,
-                        notes: `開始: ${sleepData.startTime.toLocaleTimeString('ja-JP')}`
-                    }
-                };
+            const [savedActivity, cleared] = await Promise.all([
+                firestore.saveActivity(userId, activityData).catch((error) => {
+                    console.error('Error stopping sleep:', error);
+                    return null;
+                }),
+                firestore.clearOngoingSleep(userId, babyId)
+            ]);
 
-                const savedActivity = await firestore.saveActivity(currentUser.uid, activityData);
-                const localActivity = {
-                    id: savedActivity.id,
-                    type: 'sleep' as const,
-                    timestamp: savedActivity.timestamp,
-                    details: savedActivity.details
-                };
-
-                setActivities([localActivity, ...(activities || [])]);
-                setOngoingSleep(null);
+            if (!savedActivity) {
+                // Put the session back so the sleep is not lost.
+                if (cleared) void firestore.startOngoingSleep(userId, babyId, stopped.startTime);
+                setOngoingSleep(prev => prev ?? stopped);
                 setSnackbar({
                     open: true,
-                    message: savedActivity.id.startsWith('offline-')
-                        ? `睡眠をオフライン保存しました: ${sleepData.duration}分。オンライン時に自動同期されます。`
-                        : `睡眠を記録しました: ${sleepData.duration}分 😴`,
-                    severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
+                    message: '睡眠タイマーの停止に失敗しました。',
+                    severity: 'error'
                 });
+                return;
             }
-        } catch (error) {
-            console.error('Error stopping sleep:', error);
+
+            if (!cleared) void firestore.clearOngoingSleep(userId, babyId);
+
+            const localActivity = {
+                id: savedActivity.id,
+                type: 'sleep' as const,
+                timestamp: savedActivity.timestamp,
+                details: savedActivity.details
+            };
+            setActivities(prev => [localActivity, ...(prev || [])]);
             setSnackbar({
                 open: true,
-                message: '睡眠タイマーの停止に失敗しました。',
-                severity: 'error'
+                message: savedActivity.id.startsWith('offline-')
+                    ? `睡眠をオフライン保存しました: ${duration}分。オンライン時に自動同期されます。`
+                    : `睡眠を記録しました: ${duration}分 😴`,
+                severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
             });
         } finally {
-            setLoading(false);
+            unlock();
         }
     };
 
@@ -383,6 +436,7 @@ const ActivitiesPage: React.FC = () => {
         
         try {
             setLoading(true);
+            const effectiveFoodType = formData.foodType === 'solid' || formData.foodItem || formData.foodPreference !== 'normal' || !!formData.isAllergic ? 'solid' : 'milk';
             
             // Create timestamp using selected date and form time
             // If formData.timestamp exists (from sleep end time edit), use that as base date
@@ -414,7 +468,7 @@ const ActivitiesPage: React.FC = () => {
                         time: timestamp,
                         amount: formData.amount ? Number(formData.amount) : 0,
                         notes: formData.notes || '',
-                        foodType: formData.foodType || 'milk',
+                        foodType: effectiveFoodType,
                         foodItem: formData.foodItem || '',
                         isAllergic: !!formData.isAllergic,
                         foodPreference: formData.foodPreference || 'normal'
@@ -456,6 +510,7 @@ const ActivitiesPage: React.FC = () => {
                         notes: formData.notes || ''
                     };
                     break;
+                case 'bath':
                 case 'memo':
                     details = {
                         notes: formData.notes || ''
@@ -469,7 +524,7 @@ const ActivitiesPage: React.FC = () => {
             
             const activityData = {
                 babyId: baby.id,
-                type: formData.type as 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo',
+                type: formData.type as 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath',
                 timestamp: timestamp,
                 details: details
             };
@@ -617,20 +672,24 @@ const ActivitiesPage: React.FC = () => {
             }
             
             // Reset form data
-            setFormData({ 
-                type: 'feeding', 
+            setFormData({
+                type: 'feeding',
                 time: new Date().toTimeString().slice(0, 5),
-                amount: '', 
-                duration: '', 
-                notes: '', 
-                weight: '', 
+                amount: '',
+                duration: '',
+                notes: '',
+                weight: '',
                 height: '',
                 temperature: '',
                 isUrine: true,
                 isStool: false,
-            stoolColor: ['vàng'],
+                stoolColor: [],
                 stoolConsistency: 'bình thường',
-                timestamp: undefined
+                timestamp: undefined,
+                foodType: 'milk',
+                foodItem: '',
+                isAllergic: false,
+                foodPreference: 'normal'
             });
             
             // Reset bulk mode states
@@ -655,45 +714,31 @@ const ActivitiesPage: React.FC = () => {
         switch (type) {
             case 'feeding': 
                 return (
-                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                        <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
-                    </svg>
+                    <MilkIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                 );
             case 'sleep': 
                 return (
-                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                        <path d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,136,224a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM188.9,190.34A88,88,0,0,1,65.66,67.11a89,89,0,0,1,31.4-26A106,106,0,0,0,96,56,104.11,104.11,0,0,0,200,160a106,106,0,0,0,14.92-1.06A89,89,0,0,1,188.9,190.34Z"></path>
-                    </svg>
+                    <SleepIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                 );
             case 'diaper': 
                 return (
-                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                        <path d="M92,140a12,12,0,1,1,12-12A12,12,0,0,1,92,140Zm72-24a12,12,0,1,0,12,12A12,12,0,0,0,164,116Zm-12.27,45.23a45,45,0,0,1-47.46,0,8,8,0,0,0-8.54,13.54,61,61,0,0,0,64.54,0,8,8,0,0,0-8.54-13.54ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.11,88.11,0,0,0-84.09-87.91C120.32,56.38,120,71.88,120,72a8,8,0,0,0,16,0,8,8,0,0,1,16,0,24,24,0,0,1-48,0c0-.73.13-14.3,8.46-30.63A88,88,0,1,0,216,128Z"></path>
-                    </svg>
+                    <BabyIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                 );
             case 'measurement': 
                 return (
-                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                        <path d="M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l32-32,26.34,26.35a8,8,0,0,0,11.32-11.32L75.31,128,96,107.31l26.34,26.35a8,8,0,0,0,11.32-11.32L107.31,96,128,75.31l26.34,26.35a8,8,0,0,0,11.32-11.32L139.31,64l32-32L224,84.69Z"></path>
-                    </svg>
+                    <MeasurementIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                 );
             case 'bath': 
                 return (
-                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                        <path d="M64,236a12,12,0,1,1-12-12A12,12,0,0,1,64,236Zm20-44a12,12,0,1,0,12,12A12,12,0,0,0,84,192Zm-64,0a12,12,0,1,0,12,12A12,12,0,0,0,20,192Zm32-32a12,12,0,1,0,12,12A12,12,0,0,0,52,160ZM256,40a8,8,0,0,1-8,8H219.31L191.46,75.86,169.8,202.65a16,16,0,0,1-27.09,8.66l-98-98a16,16,0,0,1,8.69-27.1L180.14,64.54,208,36.69A15.86,15.86,0,0,1,219.31,32H248A8,8,0,0,1,256,40ZM174.21,81.79,56,102l98,98Z"></path>
-                    </svg>
+                    <BathIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                 );
             case 'memo': 
                 return (
-                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                        <path d="M88,96a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H96A8,8,0,0,1,88,96Zm8,40h64a8,8,0,0,0,0-16H96a8,8,0,0,0,0,16Zm32,16H96a8,8,0,0,0,0,16h32a8,8,0,0,0,0-16ZM224,48V156.69A15.86,15.86,0,0,1,219.31,168L168,219.31A15.86,15.86,0,0,1,156.69,224H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,224,48ZM48,208H152V160a8,8,0,0,1,8-8h48V48H48Zm120-40v28.7L196.69,168Z"></path>
-                    </svg>
+                    <MemoIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                 );
             default: 
                 return (
-                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                        <path d="M88,96a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H96A8,8,0,0,1,88,96Zm8,40h64a8,8,0,0,0,0-16H96a8,8,0,0,0,0,16Zm32,16H96a8,8,0,0,0,0,16h32a8,8,0,0,0,0-16ZM224,48V156.69A15.86,15.86,0,0,1,219.31,168L168,219.31A15.86,15.86,0,0,1,156.69,224H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,224,48ZM48,208H152V160a8,8,0,0,1,8-8h48V48H48Zm120-40v28.7L196.69,168Z"></path>
-                    </svg>
+                    <MemoIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                 );
         }
     };
@@ -795,6 +840,9 @@ const ActivitiesPage: React.FC = () => {
     const handleEditActivity = (activity: Activity) => {
         // Convert activity data back to form format
         const activityTime = new Date(activity.timestamp);
+        const normalizedFoodType = activity.type === 'feeding'
+            ? resolveFeedingFoodType(activity.details as Record<string, any> | undefined, 'milk')
+            : 'milk';
         
         setFormData({
             type: activity.type as any,
@@ -814,7 +862,7 @@ const ActivitiesPage: React.FC = () => {
                     : [],
             stoolConsistency: activity.details?.stoolConsistency || 'bình thường',
             timestamp: activity.timestamp.toISOString(), // Store original timestamp for editing
-            foodType: activity.details?.foodType || 'milk',
+            foodType: normalizedFoodType,
             foodItem: activity.details?.foodItem || '',
             isAllergic: activity.details?.isAllergic || false,
             foodPreference: activity.details?.foodPreference || 'normal'
@@ -979,15 +1027,13 @@ const ActivitiesPage: React.FC = () => {
                                 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Zm-96-88a12,12,0,1,1-12-12A12,12,0,0,1,112,120Zm44,0a12,12,0,1,1-12-12A12,12,0,0,1,156,120Zm-88,40a12,12,0,1,1-12-12A12,12,0,0,1,68,160Zm44,0a12,12,0,1,1-12-12A12,12,0,0,1,112,160Zm44,0a12,12,0,1,1-12-12A12,12,0,0,1,156,160Z"></path>
-                                    </svg>
+                                    <CalendarIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                     <Box>
                                         <Typography sx={{ fontSize: '14px', color: '#6b7f8a', fontWeight: 500 }}>
-                                            Quick date select
+                                            日付を選択
                                         </Typography>
                                         <Typography sx={{ fontSize: '16px', color: '#101c22', fontWeight: 700, mt: 0.5 }}>
-                                            {selectedDate.toLocaleDateString('en-US', { 
+                                            {selectedDate.toLocaleDateString('ja-JP', {
                                                 weekday: 'short', 
                                                 year: 'numeric', 
                                                 month: 'short', 
@@ -996,9 +1042,7 @@ const ActivitiesPage: React.FC = () => {
                                         </Typography>
                                     </Box>
                                 </Box>
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="#6b7f8a">
-                                    <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
-                                </svg>
+                                <ChevronDownIcon sx={{ fontSize: 20, color: '#6b7f8a', flexShrink: 0 }} />
                             </Box>
                         ) : (
                             <>
@@ -1017,9 +1061,7 @@ const ActivitiesPage: React.FC = () => {
                                     '&:hover': { bgcolor: '#f6f7f8' }
                                 }}
                             >
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"></path>
-                                </svg>
+                                <ChevronLeftIcon sx={{ fontSize: 20, flexShrink: 0 }} />
                             </IconButton>
                             <Typography variant="h3" sx={{ fontWeight: 700, fontSize: '18px', color: '#101c22' }}>
                                 {selectedDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
@@ -1039,9 +1081,7 @@ const ActivitiesPage: React.FC = () => {
                                     '&:hover': { bgcolor: '#f6f7f8' }
                                 }}
                             >
-                                <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                                    <path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path>
-                                </svg>
+                                <ChevronRightIcon sx={{ fontSize: 20, flexShrink: 0 }} />
                             </IconButton>
                         </Box>
 
@@ -1139,7 +1179,7 @@ const ActivitiesPage: React.FC = () => {
                                     '&:hover': { bgcolor: '#f6f7f8' }
                                 }}
                             >
-                                Close Calendar
+                                カレンダーを閉じる
                             </MuiButton>
                         </Box>
                         </>
@@ -1158,27 +1198,21 @@ const ActivitiesPage: React.FC = () => {
                                 label: 'ミルク',
                                 type: 'feeding', 
                                 icon: (
-                                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
-                                    </svg>
+                                    <MilkIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
                                 label: 'おむつ',
                                 type: 'diaper', 
                                 icon: (
-                                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M92,140a12,12,0,1,1,12-12A12,12,0,0,1,92,140Zm72-24a12,12,0,1,0,12,12A12,12,0,0,0,164,116Zm-12.27,45.23a45,45,0,0,1-47.46,0,8,8,0,0,0-8.54,13.54,61,61,0,0,0,64.54,0,8,8,0,0,0-8.54-13.54ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.11,88.11,0,0,0-84.09-87.91C120.32,56.38,120,71.88,120,72a8,8,0,0,0,16,0,8,8,0,0,1,16,0,24,24,0,0,1-48,0c0-.73.13-14.3,8.46-30.63A88,88,0,1,0,216,128Z"></path>
-                                    </svg>
+                                    <BabyIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
                                 label: '睡眠',
                                 type: 'sleep', 
                                 icon: (
-                                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,136,224a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM188.9,190.34A88,88,0,0,1,65.66,67.11a89,89,0,0,1,31.4-26A106,106,0,0,0,96,56,104.11,104.11,0,0,0,200,160a106,106,0,0,0,14.92-1.06A89,89,0,0,1,188.9,190.34Z"></path>
-                                    </svg>
+                                    <SleepIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 ),
                                 isSleepTimer: true // Special flag for sleep timer
                             },
@@ -1186,27 +1220,21 @@ const ActivitiesPage: React.FC = () => {
                                 label: 'お風呂',
                                 type: 'bath', 
                                 icon: (
-                                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M64,236a12,12,0,1,1-12-12A12,12,0,0,1,64,236Zm20-44a12,12,0,1,0,12,12A12,12,0,0,0,84,192Zm-64,0a12,12,0,1,0,12,12A12,12,0,0,0,20,192Zm32-32a12,12,0,1,0,12,12A12,12,0,0,0,52,160ZM256,40a8,8,0,0,1-8,8H219.31L191.46,75.86,169.8,202.65a16,16,0,0,1-27.09,8.66l-98-98a16,16,0,0,1,8.69-27.1L180.14,64.54,208,36.69A15.86,15.86,0,0,1,219.31,32H248A8,8,0,0,1,256,40ZM174.21,81.79,56,102l98,98Z"></path>
-                                    </svg>
+                                    <BathIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
                                 label: '計測',
                                 type: 'measurement', 
                                 icon: (
-                                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M235.32,73.37,182.63,20.69a16,16,0,0,0-22.63,0L20.68,160a16,16,0,0,0,0,22.63l52.69,52.68a16,16,0,0,0,22.63,0L235.32,96A16,16,0,0,0,235.32,73.37ZM84.68,224,32,171.31l32-32,26.34,26.35a8,8,0,0,0,11.32-11.32L75.31,128,96,107.31l26.34,26.35a8,8,0,0,0,11.32-11.32L107.31,96,128,75.31l26.34,26.35a8,8,0,0,0,11.32-11.32L139.31,64l32-32L224,84.69Z"></path>
-                                    </svg>
+                                    <MeasurementIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
                                 label: 'メモ',
                                 type: 'memo', 
                                 icon: (
-                                    <svg width="24" height="24" viewBox="0 0 256 256" fill="#13a4ec">
-                                        <path d="M88,96a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H96A8,8,0,0,1,88,96Zm8,40h64a8,8,0,0,0,0-16H96a8,8,0,0,0,0,16Zm32,16H96a8,8,0,0,0,0,16h32a8,8,0,0,0,0-16ZM224,48V156.69A15.86,15.86,0,0,1,219.31,168L168,219.31A15.86,15.86,0,0,1,156.69,224H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,224,48ZM48,208H152V160a8,8,0,0,1,8-8h48V48H48Zm120-40v28.7L196.69,168Z"></path>
-                                    </svg>
+                                    <MemoIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                         ].map(action => {
@@ -1320,7 +1348,7 @@ const ActivitiesPage: React.FC = () => {
                                             fontWeight: 600,
                                             pl: 5
                                         }}>
-                                            ⏱️ {Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
+                                            <TimerIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />{Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
                                         </Typography>
                                     ) : timeSince ? (
                                         <Typography sx={{ 
@@ -1361,7 +1389,7 @@ const ActivitiesPage: React.FC = () => {
                         {/* Today */}
                         <Box sx={{ mb: 2 }}>
                             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#6b7f8a', mb: 1.5 }}>
-                                {new Date().toDateString() === selectedDate.toDateString() ? 'Today' : selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {new Date().toDateString() === selectedDate.toDateString() ? '今日' : selectedDate.toLocaleDateString('ja-JP', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 {/* Milk & Solid Merged */}
@@ -1378,13 +1406,11 @@ const ActivitiesPage: React.FC = () => {
                                     flex: 1.2,
                                     minWidth: 0
                                 }}>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap', mb: 0.5 }}>Milk & Ăn dặm</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap', mb: 0.5 }}>ミルク・離乳食</Typography>
                                     
                                     {/* Line 1: Milk */}
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
-                                            <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
-                                        </svg>
+                                        <MilkIcon sx={{ fontSize: 16, color: '#13a4ec', flexShrink: 0 }} />
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {todayStats.feeding.count}x • {todayStats.feeding.totalAmount}ml
                                         </Typography>
@@ -1392,10 +1418,7 @@ const ActivitiesPage: React.FC = () => {
 
                                     {/* Line 2: Solid */}
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
-                                            <path d="M224,112H32a16,16,0,0,0-16,16v32a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V128A16,16,0,0,0,224,112ZM32,160V128H224v32Z" opacity="0.2"></path>
-                                            <path d="M224,104H32a24,24,0,0,0-24,24v32a24,24,0,0,0,24,24H224a24,24,0,0,0,24-24V128A24,24,0,0,0,224,104Zm8,56a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V128a8,8,0,0,1,8-8H224a8,8,0,0,1,8,8ZM176,80a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,80Z"></path>
-                                        </svg>
+                                        <FoodIcon sx={{ fontSize: 16, color: '#13a4ec', flexShrink: 0 }} />
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {todayStats.solid?.count || 0}x • {todayStats.solid?.totalAmount || 0}g
                                         </Typography>
@@ -1415,11 +1438,9 @@ const ActivitiesPage: React.FC = () => {
                                     flex: 1,
                                     minWidth: 0
                                 }}>
-                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
-                                        <path d="M92,140a12,12,0,1,1,12-12A12,12,0,0,1,92,140Zm72-24a12,12,0,1,0,12,12A12,12,0,0,0,164,116Zm-12.27,45.23a45,45,0,0,1-47.46,0,8,8,0,0,0-8.54,13.54,61,61,0,0,0,64.54,0,8,8,0,0,0-8.54-13.54ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.11,88.11,0,0,0-84.09-87.91C120.32,56.38,120,71.88,120,72a8,8,0,0,0,16,0,8,8,0,0,1,16,0,24,24,0,0,1-48,0c0-.73.13-14.3,8.46-30.63A88,88,0,1,0,216,128Z"></path>
-                                    </svg>
+                                    <UrineIcon sx={{ fontSize: 20, color: '#f59e0b', flexShrink: 0 }} />
                                     <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>Tè (urine)</Typography>
+                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>おしっこ</Typography>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap' }}>
                                             {todayStats.urine.count}
                                         </Typography>
@@ -1439,11 +1460,9 @@ const ActivitiesPage: React.FC = () => {
                                     flex: 1,
                                     minWidth: 0
                                 }}>
-                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
-                                        <path d="M92,140a12,12,0,1,1,12-12A12,12,0,0,1,92,140Zm72-24a12,12,0,1,0,12,12A12,12,0,0,0,164,116Zm-12.27,45.23a45,45,0,0,1-47.46,0,8,8,0,0,0-8.54,13.54,61,61,0,0,0,64.54,0,8,8,0,0,0-8.54-13.54ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.11,88.11,0,0,0-84.09-87.91C120.32,56.38,120,71.88,120,72a8,8,0,0,0,16,0,8,8,0,0,1,16,0,24,24,0,0,1-48,0c0-.73.13-14.3,8.46-30.63A88,88,0,1,0,216,128Z"></path>
-                                    </svg>
+                                    <BabyIcon sx={{ fontSize: 20, color: '#f59e0b', flexShrink: 0 }} />
                                     <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>Ị (defecate)</Typography>
+                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>うんち</Typography>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap' }}>
                                             {todayStats.stool.count}
                                         </Typography>
@@ -1458,7 +1477,7 @@ const ActivitiesPage: React.FC = () => {
                         {/* Yesterday */}
                         <Box sx={{ mb: 2 }}>
                             <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#6b7f8a', mb: 1.5 }}>
-                                {new Date().toDateString() === selectedDate.toDateString() ? 'Yesterday' : new Date(selectedDate.getTime() - 86400000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {new Date().toDateString() === selectedDate.toDateString() ? '昨日' : new Date(selectedDate.getTime() - 86400000).toLocaleDateString('ja-JP', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 {/* Milk & Solid Merged */}
@@ -1475,13 +1494,11 @@ const ActivitiesPage: React.FC = () => {
                                     flex: 1.2,
                                     minWidth: 0
                                 }}>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap', mb: 0.5 }}>Milk & Ăn dặm</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap', mb: 0.5 }}>ミルク・離乳食</Typography>
                                     
                                     {/* Line 1: Milk */}
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
-                                            <path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path>
-                                        </svg>
+                                        <MilkIcon sx={{ fontSize: 16, color: '#13a4ec', flexShrink: 0 }} />
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {yesterdayStats.feeding.count}x • {yesterdayStats.feeding.totalAmount}ml
                                         </Typography>
@@ -1489,10 +1506,7 @@ const ActivitiesPage: React.FC = () => {
 
                                     {/* Line 2: Solid */}
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <svg width="16" height="16" viewBox="0 0 256 256" fill="#13a4ec">
-                                            <path d="M224,112H32a16,16,0,0,0-16,16v32a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V128A16,16,0,0,0,224,112ZM32,160V128H224v32Z" opacity="0.2"></path>
-                                            <path d="M224,104H32a24,24,0,0,0-24,24v32a24,24,0,0,0,24,24H224a24,24,0,0,0,24-24V128A24,24,0,0,0,224,104Zm8,56a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V128a8,8,0,0,1,8-8H224a8,8,0,0,1,8,8ZM176,80a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,80Z"></path>
-                                        </svg>
+                                        <FoodIcon sx={{ fontSize: 16, color: '#13a4ec', flexShrink: 0 }} />
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {yesterdayStats.solid?.count || 0}x • {yesterdayStats.solid?.totalAmount || 0}g
                                         </Typography>
@@ -1512,11 +1526,9 @@ const ActivitiesPage: React.FC = () => {
                                     flex: 1,
                                     minWidth: 0
                                 }}>
-                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
-                                        <path d="M92,140a12,12,0,1,1,12-12A12,12,0,0,1,92,140Zm72-24a12,12,0,1,0,12,12A12,12,0,0,0,164,116Zm-12.27,45.23a45,45,0,0,1-47.46,0,8,8,0,0,0-8.54,13.54,61,61,0,0,0,64.54,0,8,8,0,0,0-8.54-13.54ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.11,88.11,0,0,0-84.09-87.91C120.32,56.38,120,71.88,120,72a8,8,0,0,0,16,0,8,8,0,0,1,16,0,24,24,0,0,1-48,0c0-.73.13-14.3,8.46-30.63A88,88,0,1,0,216,128Z"></path>
-                                    </svg>
+                                    <UrineIcon sx={{ fontSize: 20, color: '#f59e0b', flexShrink: 0 }} />
                                     <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>Tè (urine)</Typography>
+                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>おしっこ</Typography>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap' }}>
                                             {yesterdayStats.urine.count}
                                         </Typography>
@@ -1536,11 +1548,9 @@ const ActivitiesPage: React.FC = () => {
                                     flex: 1,
                                     minWidth: 0
                                 }}>
-                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#f59e0b">
-                                        <path d="M92,140a12,12,0,1,1,12-12A12,12,0,0,1,92,140Zm72-24a12,12,0,1,0,12,12A12,12,0,0,0,164,116Zm-12.27,45.23a45,45,0,0,1-47.46,0,8,8,0,0,0-8.54,13.54,61,61,0,0,0,64.54,0,8,8,0,0,0-8.54-13.54ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88.11,88.11,0,0,0-84.09-87.91C120.32,56.38,120,71.88,120,72a8,8,0,0,0,16,0,8,8,0,0,1,16,0,24,24,0,0,1-48,0c0-.73.13-14.3,8.46-30.63A88,88,0,1,0,216,128Z"></path>
-                                    </svg>
+                                    <BabyIcon sx={{ fontSize: 20, color: '#f59e0b', flexShrink: 0 }} />
                                     <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
-                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>Ị (defecate)</Typography>
+                                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a', whiteSpace: 'nowrap' }}>うんち</Typography>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap' }}>
                                             {yesterdayStats.stool.count}
                                         </Typography>
@@ -1801,9 +1811,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                     onMouseEnter={(e) => e.currentTarget.style.background = '#f6f7f8'}
                                                                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                                                                 >
-                                                                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#13a4ec">
-                                                                                        <path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM51.31,160,136,75.31,152.69,92,68,176.68ZM48,179.31,76.69,208H48Zm48,25.38L79.31,188,164,103.31,180.69,120Zm96-96L147.31,64l24-24L216,84.68Z"></path>
-                                                                                    </svg>
+                                                                                    <EditIcon sx={{ fontSize: 20, color: '#13a4ec', flexShrink: 0 }} />
                                                                                 </button>
                                                                                 <button
                                                                                     onClick={() => handleDeleteActivity(activity.id)}
@@ -1821,9 +1829,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                     onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
                                                                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                                                                 >
-                                                                                    <svg width="20" height="20" viewBox="0 0 256 256" fill="#ef4444">
-                                                                                        <path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path>
-                                                                                    </svg>
+                                                                                    <DeleteIcon sx={{ fontSize: 20, color: '#ef4444', flexShrink: 0 }} />
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -1983,7 +1989,7 @@ const ActivitiesPage: React.FC = () => {
                                                                             {/* Urine / Stool badges - Icon based */}
                                                                             {activity.details && activity.details.isUrine && (
                                                                                 <div 
-                                                                                    title="Tè (Urine)"
+                                                                                    title="おしっこ"
                                                                                     style={{
                                                                                     display: 'inline-flex',
                                                                                     alignItems: 'center',
@@ -1991,7 +1997,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                     fontSize: '20px',
                                                                                     cursor: 'default'
                                                                                 }}>
-                                                                                    💧
+                                                                                    <UrineIcon sx={{ fontSize: 20, color: '#13a4ec' }} />
                                                                                 </div>
                                                                             )}
                                                                             
@@ -2008,7 +2014,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                             return (
                                                                                                 <div 
                                                                                                     key={c}
-                                                                                                    title={`Ị (defecate) - ${c}`}
+                                                                                                    title={`うんち - ${c}`}
                                                                                                     style={{
                                                                                                     display: 'inline-flex',
                                                                                                     alignItems: 'center',
@@ -2021,7 +2027,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                                     cursor: 'default',
                                                                                                     position: 'relative'
                                                                                                 }}>
-                                                                                                    💩
+                                                                                                    <BabyIcon sx={{ fontSize: 18, color: '#ffffff' }} />
                                                                                                 </div>
                                                                                             );
                                                                                         })
@@ -2035,7 +2041,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                             const bgColor = colorMap[String(activity.details.stoolColor).toLowerCase()] || '#6b7280';
                                                                                             return (
                                                                                                 <div 
-                                                                                                    title={`Ị (defecate) - ${activity.details.stoolColor}`}
+                                                                                                    title={`うんち - ${activity.details.stoolColor}`}
                                                                                                     style={{
                                                                                                     display: 'inline-flex',
                                                                                                     alignItems: 'center',
@@ -2047,7 +2053,7 @@ const ActivitiesPage: React.FC = () => {
                                                                                                     fontSize: '18px',
                                                                                                     cursor: 'default'
                                                                                                 }}>
-                                                                                                    💩
+                                                                                                    <BabyIcon sx={{ fontSize: 18, color: '#ffffff' }} />
                                                                                                 </div>
                                                                                             );
                                                                                         })()
@@ -2126,7 +2132,7 @@ const ActivitiesPage: React.FC = () => {
                             onClick={() => history.push('/timeline')}
                             sx={{ mt: 1, textTransform: 'none', fontWeight: 700, color: '#13a4ec' }}
                         >
-                            Xem toàn bộ timeline
+                            すべての記録を見る
                         </MuiButton>
                     )}
                 </Box>
