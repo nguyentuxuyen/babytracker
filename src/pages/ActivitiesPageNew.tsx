@@ -436,7 +436,9 @@ const ActivitiesPage: React.FC = () => {
         
         try {
             setLoading(true);
-            const effectiveFoodType = formData.foodType === 'solid' || formData.foodItem || formData.foodPreference !== 'normal' || !!formData.isAllergic ? 'solid' : 'milk';
+            // The selected tab decides milk vs solid; solid-only fields may be unset or stale on the milk tab.
+            const isSolid = formData.foodType === 'solid';
+            const effectiveFoodType = isSolid ? 'solid' : 'milk';
             
             // Create timestamp using selected date and form time
             // If formData.timestamp exists (from sleep end time edit), use that as base date
@@ -469,9 +471,9 @@ const ActivitiesPage: React.FC = () => {
                         amount: formData.amount ? Number(formData.amount) : 0,
                         notes: formData.notes || '',
                         foodType: effectiveFoodType,
-                        foodItem: formData.foodItem || '',
-                        isAllergic: !!formData.isAllergic,
-                        foodPreference: formData.foodPreference || 'normal'
+                        foodItem: isSolid ? formData.foodItem || '' : '',
+                        isAllergic: isSolid && !!formData.isAllergic,
+                        foodPreference: isSolid ? formData.foodPreference || 'normal' : 'normal'
                     };
 
                     // Auto-save new food item to menu
