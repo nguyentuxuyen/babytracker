@@ -1,13 +1,16 @@
 # BabyTracker — Project Reference
 
-> Tài liệu này mô tả toàn bộ nghiệp vụ, kiến trúc và quy ước của dự án.  
-> Đây là **nguồn sự thật duy nhất** để AI agent hoặc thành viên mới hiểu dự án mà không cần đọc thêm tài liệu khác.
+> Mô tả nghiệp vụ, kiến trúc và quy ước của dự án. Đọc file này trước, **không cần đọc lại toàn bộ code**.
+> Danh sách lỗi / điểm chưa tốt đã biết: xem [REVIEW.md](REVIEW.md).
+> Cập nhật lần cuối: 2026-10-08 (đối chiếu với code ở commit `41a7a06`).
 
 ---
 
 ## 1. Mục tiêu sản phẩm
 
-Ứng dụng PWA (Progressive Web App) theo dõi hoạt động hằng ngày của trẻ sơ sinh, hướng đến phụ huynh người Nhật. Toàn bộ ngôn ngữ hiển thị trong UI là **tiếng Nhật**. Nội dung data ghi chú trong Firebase có thể chứa prefix tiếng Việt cũ (`Bắt đầu:`) — phải xử lý tương thích song song với prefix Nhật (`開始:`).
+PWA theo dõi hoạt động hằng ngày của trẻ sơ sinh (bú sữa, ăn dặm, ngủ, tã, tắm, số đo, ghi chú). UI hiển thị **tiếng Nhật**. Mỗi tài khoản có **đúng 1 bé** (`babies/{uid}`, `baby.id === uid`).
+
+Dữ liệu cũ có thể chứa tiếng Việt (prefix `Bắt đầu:` trong notes giấc ngủ, giá trị `stoolColor`/`stoolConsistency`, `type` kiểu `'thay tã'`) — code phải tương thích song song.
 
 ---
 
@@ -15,230 +18,169 @@
 
 | Tầng | Công nghệ |
 |---|---|
-| Frontend | React 18, TypeScript, Create React App |
-| UI | Material UI (MUI) v5 |
+| Frontend | **React 17**, TypeScript 4, Create React App (`react-scripts` 4.0.3) |
+| UI | MUI v5, icon `lucide-react` (bọc trong `components/common/icons.tsx`), `recharts` |
 | Routing | React Router v5 |
-| Database | Firebase Firestore (client SDK) |
-| Auth | Firebase Authentication (email/password) |
-| Backend API | Vercel Serverless Functions (Node.js, `api/`) |
-| Admin SDK | Firebase Admin (`api/_admin.js`) |
-| Deploy | Vercel (`vercel.json`), alias `https://babytracker-lyart.vercel.app` |
-| PWA | CRA service worker + Web Push (`api/push*`) |
+| Database | Firestore client SDK v9, bật `enableMultiTabIndexedDbPersistence` |
+| Auth | Firebase Auth: email/password **và Google popup** (không có UI đăng ký email) |
+| Backend | Vercel Serverless Functions (`api/*.js`, CommonJS) + Firebase Admin |
+| AI | Gemini REST (`api/gemini.js`, model `gemini-3.1-flash-lite`) |
+| PWA | Workbox service worker (`src/service-worker.ts`) + Web Push (`web-push`) |
+| Deploy | Vercel, alias `https://babytracker-lyart.vercel.app` |
+
+Lệnh: `npm run dev` (web), `npm run dev:vercel` (web + api), `npm run build`, `CI=true npx react-scripts test --watchAll=false`.
+Deploy: project Vercel đã nối với GitHub `nguyentuxuyen/babytracker` (từ 2026-10-09) — push/merge vào `main` tự deploy production, push nhánh khác tạo preview. Deploy tay vẫn dùng được: `npx vercel --prod --yes`.
+Build cần `NODE_OPTIONS=--openssl-legacy-provider` (đã nằm trong script).
 
 ---
 
-## 3. Cấu trúc thư mục
+## 3. Cấu trúc thư mục (file đang dùng thật)
 
 ```
 src/
-  App.tsx                      # Root: Header, Auth wrapper, Reminder logic
-  index.tsx                    # Entry point
-  routes/AppRouter.tsx         # Lazy-loaded route definitions
+  index.tsx                  # ThemeProvider(styles/m3-theme) + đăng ký service worker
+  App.tsx                    # Providers, Header (menu tài khoản, changelog), offline sync, reminder/push
+  routes/AppRouter.tsx       # Route lazy + BottomNav
   contexts/
-    AuthContext.tsx             # Firebase auth state
-    BabyContext.tsx             # Baby data + activities global state
-    DateContext.tsx             # Selected date for calendar navigation
+    AuthContext.tsx          # currentUser, login/logout
+    BabyContext.tsx          # baby + activities CỦA 1 NGÀY (refreshActivities(date))
+    DateContext.tsx          # selectedDate dùng chung Home/Timeline
   firebase/
-    config.ts                  # Firebase client init
-    auth.ts                    # Auth helpers (getCurrentUser)
-    firestore.ts               # All Firestore read/write helpers
+    config.ts                # init app, db, auth
+    auth.ts                  # login/register/logout helpers (thông báo lỗi tiếng Việt)
+    firestore.ts             # TẤT CẢ đọc/ghi Firestore + offline queue localStorage
   pages/
-    ActivitiesPageNew.tsx      # Trang chủ (/) + tab 最近の記録 (/recent-activities)
-    BabyInfoPageNew.tsx        # Thông tin bé + chỉnh sửa hồ sơ
-    StatsPageNewGlass.tsx      # Thống kê biểu đồ (成長)
-    FoodHistoryPage.tsx        # Lịch sử đồ ăn dặm (食事)
-    LoginPage.tsx              # Đăng nhập
-    MilestonesPage.tsx         # Ẩn khỏi nav (route vẫn tồn tại)
-    WonderWeeksPage.tsx        # Ẩn khỏi nav (route vẫn tồn tại)
+    ActivitiesPageNew.tsx    # Home (/ và /activities): quick actions, sleep timer, form nhập, dialog AI
+    TimelinePage.tsx         # 記録 (/timeline): danh sách theo ngày, summary 2 ngày, sửa/xoá
+    StatsPageNewGlass.tsx    # 分析 (/statistics): biểu đồ + GrowthChart (WHO)
+    FoodHistoryPage.tsx      # 食事 (/food-history): lịch sử ăn dặm
+    BabyInfoPageNew.tsx      # Hồ sơ bé + quản lý food menu (mở từ menu Header, không qua route)
+    LoginPage.tsx            # /login
+    MilestonesPage.tsx, WonderWeeksPage.tsx   # route còn, không có trong nav
   components/
-    layout/BottomNav.tsx       # Bottom navigation (4 tab: ホーム/履歴/成長/食事)
-    common/AssistantComposer.tsx  # AI assistant input box
-    common/GrowthChart.tsx     # Biểu đồ tăng trưởng
-    SleepTimerDisplay.tsx      # Timer đếm giấc ngủ real-time
-    PrivateRoute.tsx           # HOC bảo vệ route cần login
+    layout/BottomNav.tsx     # 5 mục
+    common/AssistantComposer.tsx   # ô nhập AI + voice (ja-JP)
+    common/RecentDaysStrip.tsx     # dải 4 ngày gần nhất
+    common/GrowthChart.tsx, LineChart.tsx, icons.tsx
+    PrivateRoute.tsx
   services/
-    assistantCore.ts           # Parse câu lệnh tự nhiên → AssistantCommand
-    assistantApi.ts            # Gọi /api/mcp hoặc fallback Firestore trực tiếp
-  hooks/
-    useActivities.ts
-    useAuth.ts
-    useDailyRating.ts
-    useFirestore.ts
-    useSleepTimer.ts
-  utils/
-    dailyStats.ts              # Tính thống kê theo ngày
-    growthStandards.ts         # Chuẩn WHO cho biểu đồ tăng trưởng
-    pushNotifications.ts       # Web Push subscribe/unsubscribe
-    reminderSettings.ts        # Cài đặt nhắc nhở (localStorage)
-  types/index.ts               # Kiểu dữ liệu chung (Baby, Activity...)
-  theme/theme.ts               # MUI theme
+    assistantCore.ts         # parser regex cục bộ (từ khoá TIẾNG VIỆT) → AssistantCommand
+    assistantApi.ts          # quyết định local hay gọi /api/mcp
+  hooks/useAuth.ts           # listener auth riêng (trùng với AuthContext) — pages đang dùng cái này
+  hooks/useSleepTimer.ts     # đọc ongoingSleep + đếm giây
+  utils/  dailyStats.ts, growthStandards.ts, pushNotifications.ts, reminderSettings.ts, changelog.ts
+  config/changelogSeed.json  # changelog fallback khi Firestore không có
+  theme/theme.ts             # theme dùng trong App.tsx (lồng trong m3-theme)
 
 api/
-  _admin.js                    # Firebase Admin init (safe, không crash khi thiếu env)
-  _auth.js                     # Verify Firebase ID token từ Bearer header
-  mcp.js                       # AI assistant endpoint (POST /api/mcp)
-  logMilk.js                   # Endpoint log sữa từ Siri Shortcut (POST /api/logMilk)
-  pushSubscribe.js             # Đăng ký Web Push
-  pushUnsubscribe.js           # Hủy đăng ký Web Push
-  pushDispatchReminders.js     # Cron gửi nhắc nhở
-  pushSendTest.js              # Test gửi push
+  _admin.js   # init Firebase Admin, không throw khi thiếu env → kiểm tra `if (!db)`
+  _auth.js    # verify Bearer Firebase ID token
+  _push.js    # cấu hình VAPID
+  gemini.js   # text → { tool, params, preview }
+  mcp.js      # POST: { text, selectedDate, babyId } (Gemini) hoặc { tool, params } (legacy)
+  logMilk.js  # POST từ Siri Shortcut, auth bằng header x-log-secret
+  pushSubscribe.js / pushUnsubscribe.js / pushSendTest.js   # cần Bearer token
+  pushDispatchReminders.js   # cron gửi nhắc, auth bằng x-reminder-secret
+
+scripts/      # syncChangelogToFirebase.js, parse_milk_shortcut.js, tài liệu Siri
 ```
 
 ---
 
-## 4. Firebase Data Model
+## 4. Firestore Data Model
 
-### `babies/{userId}`
-```
-{
-  name: string,
-  birthDate: Timestamp,
-  dueDate: Timestamp | null,
-  gender: 'male' | 'female',
-  birthWeight: number,   // grams
-  birthHeight: number,   // cm
-  avatarUrl: string,
-  mail: string           // email, dùng để backward-compat tìm theo email cũ
-}
-```
-
-### `users/{userId}/activities/{activityId}`
-```
-{
-  babyId: string,
-  type: 'feeding' | 'sleep' | 'diaper' | 'bath' | 'measurement' | 'memo',
-  timestamp: Timestamp,
-  details: { ... },     // xem bảng dưới
-  createdAt: Timestamp
-}
-```
-
-#### Chi tiết `details` theo từng `type`
-
-| type | fields |
+| Path | Nội dung |
 |---|---|
-| `feeding` | `amount` (ml, number), `foodType` ('milk'&#124;'solid'), `foodItem` (string), `foodPreference` ('enthusiastic'&#124;'normal'&#124;'dislike'&#124;'allergic'), `isAllergic` (bool), `notes` |
-| `sleep` | `duration` (minutes, number), `notes` (chứa `開始: HH:MM:SS` hoặc `Bắt đầu: HH:MM:SS` — tương thích cả 2) |
-| `diaper` | `isUrine` (bool), `isStool` (bool), `stoolColor` (array: 'vàng'&#124;'nâu'&#124;'xám'), `stoolConsistency` ('lỏng'&#124;'bình thường'&#124;'khô'), `notes` |
+| `babies/{uid}` | `name, birthDate, dueDate, gender('male'\|'female'), birthWeight(g), birthHeight(cm), avatarUrl, mail, foodMenu: string[], createdAt, updatedAt` |
+| `users/{uid}/activities/{id}` | `babyId, type, timestamp, details, createdAt` |
+| `users/{uid}/ongoingSleep/{babyId}` | `startTime, createdAt` — giấc ngủ đang chạy |
+| `users/{uid}/pushSubscriptions/{subId}` | `uid, endpoint, keys, enabled, intervalMinutes, lastSentAt, createdAt, updatedAt` |
+| `users/{uid}/milestones/data` **và** `users/{uid}/babies/{babyId}/milestones/data` | trạng thái cột mốc (ghi cả 2 nơi, đọc 3 nơi) |
+| `app_meta/changelog/meta/current`, `app_meta/changelog/releases/*` | version + changelog (sync bằng `npm run changelog:sync`) |
+
+Lưu ý: **document `users/{uid}` không được code nào tạo ra**, chỉ có subcollection.
+Danh sách món ăn dặm nằm ở `babies/{uid}.foodMenu` (không phải collection `foodItems`).
+
+### `details` theo `type`
+
+| type | fields thực tế |
+|---|---|
+| `feeding` | `amount` (ml hoặc g), `foodType` ('milk'\|'solid'), `foodItem`, `foodPreference` ('enthusiastic'\|'normal'\|'dislike'\|'allergic'), `isAllergic`, `notes`, `time` (thừa) |
+| `sleep` | `duration` (phút), `notes` chứa `開始: HH:MM:SS` (hoặc `Bắt đầu:`), `time` (thừa). **`timestamp` = giờ KẾT THÚC** |
+| `diaper` | `isUrine`, `isStool`, `stoolColor` (mảng 'vàng'\|'nâu'\|'xám'), `stoolConsistency` ('lỏng'\|'bình thường'\|'khô'), `notes` |
 | `measurement` | `weight` (g), `height` (cm), `temperature` (°C), `notes` |
-| `bath` | `notes` |
-| `memo` | `notes` |
+| `bath`, `memo` | `notes` |
 
-### `users/{userId}/ongoingSleep/{babyId}`
-Giấc ngủ đang diễn ra (timer chạy background):
-```
-{ startTime: Timestamp, babyId: string }
-```
-
-### `users/{userId}/foodItems`
-Danh sách tên món ăn dặm đã từng dùng, phục vụ Autocomplete.
-
-### `users/{userId}/milestones/{babyId}`
-Cột mốc phát triển, lưu trạng thái checked.
+`src/types/index.ts` **không khớp** bảng này (thiếu foodType…, stool dùng giá trị tiếng Anh, có `dailyRating` không còn dùng) — các page tự khai báo kiểu riêng và ép `any`.
 
 ---
 
-## 5. Luồng hoạt động chính
+## 5. Luồng nghiệp vụ
 
-### 5.1 Log hoạt động thủ công
-1. User bấm nút shortcut (Milk / Diaper / Sleep / Bath / Measurement / Memo) trên trang chủ.
-2. Bottom sheet form mở, pre-fill `time` = giờ hiện tại.
-3. User điền thông tin → submit.
-4. `handleSubmit` tạo `timestamp = new Date(selectedDate).setHours(h, m)`.
-5. Gọi `firestore.saveActivity(uid, activityData)`.
-6. Nếu offline → đẩy vào `localStorage` queue, sync lại khi online.
+### 5.1 Ghi thủ công (Home)
+Quick action → bottom sheet → `handleSubmit` (ActivitiesPageNew): `timestamp = new Date(selectedDate)` + `setHours(h, m)` → `firestore.saveActivity`. Có "bulk mode" nhập nhiều giờ cho cùng một loại.
 
-### 5.2 Log hoạt động bằng AI (AssistantComposer)
-1. User nhập câu tự nhiên (VD: `ミルク120ml 9:15`).
-2. `parseAssistantCommand` (assistantCore.ts) parse → `AssistantCommand`.
-   - Hỗ trợ nhiều dạng giờ: `9:15`, `9h15`, `9時15`, `9 giờ`, `9h`, `9時`, bare hour `21`.
-   - Parse lượng ml: regex `(\d+)\s*ml`.
-3. `executeAssistantCommand` (assistantApi.ts):
-   - Trên localhost → gọi Firestore trực tiếp (fallback local).
-   - Trên production → `POST /api/mcp` với Bearer token.
-4. `/api/mcp` verify token → ghi Firestore bằng Admin SDK.
+### 5.2 Ghi bằng AI
+Nút ＋ ở BottomNav → `/?add=1` → dialog `AssistantComposer` (gõ hoặc voice ja-JP).
+1. `parseAssistantCommand` (regex, từ khoá tiếng Việt + `ml`) → `tool`.
+2. `executeAssistantCommand`: nếu **localhost HOẶC parser cục bộ hiểu được** → ghi Firestore trực tiếp từ client. Chỉ khi `tool === 'unknown'` trên production mới `POST /api/mcp` `{ text, selectedDate, babyId }` → Gemini → Admin SDK ghi.
+3. Tools: `create_activity`, `add_food_item`.
 
-### 5.3 Log sữa từ Siri Shortcut
-`POST /api/logMilk` với body `{ amountMl, babyId?, timestamp?, note? }`.  
-Không cần auth token — dùng `SERVICE_ACCOUNT_USER_UID` env.
+### 5.3 Siri Shortcut
+`POST /api/logMilk` body `{ amountMl, babyId?, timestamp?, note? }`, header `x-log-secret` = `LOG_SECRET`. Ghi vào user `SERVICE_ACCOUNT_USER_UID`.
 
-### 5.4 Sleep Timer
-- Bấm **Sleep** → `firestore.startOngoingSleep(uid, babyId, startTime)`.
-- Timer hiển thị trên nút bằng `SleepTimerDisplay`.
-- Bấm lại → UI đổi ngay, tự tính `duration` từ `startTime` đang có, rồi chạy song song `firestore.saveActivity` (activity `sleep`) và `firestore.clearOngoingSleep(uid, babyId)`.
+### 5.4 Sleep timer
+Bắt đầu → `startOngoingSleep`. Dừng → tính `duration`, lưu activity `sleep` (timestamp = lúc dừng) song song với `clearOngoingSleep`; lỗi thì khôi phục timer. Timeline cho sửa giờ bắt đầu/kết thúc (`updateActivity`).
 
-### 5.5 Offline Queue
-- `firestore.saveActivity` bắt lỗi network → `enqueueActivity` → `localStorage`.
-- Khi app resume hoặc online → `syncPendingActivities` gửi lại.
-- Event `offline-sync-complete` emit để UI reload.
+### 5.5 Cảnh báo wake window (Home, chỉ hôm nay)
+Từ giấc ngủ gần nhất trong ngày: ≥2h "sắp đến giờ ngủ", ≥2.5h "dễ quá giấc".
+
+### 5.6 Offline
+- Firestore IndexedDB persistence bật.
+- Thêm một hàng đợi riêng ở `localStorage` key `offline-activity-queue:{uid}`: `saveActivity` lỗi mạng → enqueue (id `offline-…`); `App.tsx` gọi `syncPendingActivities` khi mount / `online`; phát event `offline-queue-updated`, `offline-sync-complete`.
+
+### 5.7 Nhắc nhở
+Cài đặt ở `localStorage` (`baby-tracker-reminder-settings`). Hai cơ chế song song: `setInterval` + `new Notification` khi app đang mở, và Web Push qua `pushDispatchReminders` (cần cron ngoài gọi — `vercel.json` **không** khai báo cron). Nhắc theo chu kỳ cố định 1/2/3/4h, không dựa vào hoạt động cuối.
+
+### 5.8 Thống kê
+`StatsPageNewGlass` và `FoodHistoryPage` gọi `getActivities` (toàn bộ lịch sử, `limit(3000)`) rồi tổng hợp phía client theo ngày/tuần/tháng/khoảng. `TimelinePage` gọi `getActivitiesByDateRange(…, 2)` và `calculateStatsForDate`.
 
 ---
 
-## 6. Bottom Navigation
+## 6. Navigation
 
-Thứ tự hiện tại (4 tab):
-
-| Index | Label | Route |
+| Index | Label | Hành động |
 |---|---|---|
 | 0 | ホーム | `/` |
-| 1 | 履歴 | `/recent-activities` |
-| 2 | 成長 | `/statistics` |
-| 3 | 食事 | `/food-history` |
+| 1 | 記録 | `/timeline` |
+| 2 | 追加 (＋) | `/?add=1` → mở dialog AI |
+| 3 | 分析 | `/statistics` |
+| 4 | 食事 | `/food-history` |
 
-> Route `/milestones` và `/wonder-weeks` **vẫn tồn tại** trong AppRouter nhưng không xuất hiện trong nav.
-
----
-
-## 7. Trang chủ vs 最近の記録
-
-Cả 2 tab đều dùng cùng component `ActivitiesPageNew.tsx`, phân biệt bằng:
-```ts
-const isRecentActivitiesTab = location.pathname === '/recent-activities';
-```
-
-- **Trang chủ** (`/`): Hiển thị AssistantComposer, Wake Window alert, quick action buttons, Summary.
-- **最近の記録** (`/recent-activities`): Chỉ hiển thị date picker + timeline activities.
+Route khác: `/login`, `/activities` (= Home), `/baby-info`, `/milestones`, `/wonder-weeks`.
 
 ---
 
-## 8. Quy ước ngôn ngữ UI
+## 7. Biến môi trường
 
-| Phạm vi | Ngôn ngữ |
+| Biến | Dùng ở |
 |---|---|
-| Tất cả text hiển thị cho người dùng | **Tiếng Nhật** |
-| Code, comment, console.log | Tiếng Anh |
-| Data notes cũ trong Firestore (`Bắt đầu:`) | Tương thích với prefix Nhật mới (`開始:`) |
+| `FIREBASE_SERVICE_ACCOUNT` hoặc `FIREBASE_SERVICE_ACCOUNT_BASE64` | `_admin.js` (logMilk chỉ đọc bản JSON) |
+| `GEMINI_API_KEY` | `gemini.js` |
+| `LOG_SECRET`, `SERVICE_ACCOUNT_USER_UID`, `DEFAULT_BABY_ID` | `logMilk.js` |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `_push.js` |
+| `REMINDER_CRON_SECRET` | `pushDispatchReminders.js` |
+| `REACT_APP_VAPID_PUBLIC_KEY`, `REACT_APP_VERSION` | client |
+
+Firebase web config hard-code trong `src/firebase/config.ts` (project `baby-tracker-app-e7e1d`). **Firestore security rules không nằm trong repo.**
 
 ---
 
-## 9. Serverless API (`api/`)
+## 8. Quy ước
 
-### Biến môi trường bắt buộc trên Vercel
-
-| Biến | Mô tả |
-|---|---|
-| `FIREBASE_SERVICE_ACCOUNT` | JSON string của Firebase service account key |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | (thay thế) base64 của JSON trên |
-| `SERVICE_ACCOUNT_USER_UID` | UID của user dùng cho logMilk endpoint |
-| `DEFAULT_BABY_ID` | BabyId mặc định cho logMilk nếu không truyền |
-| `VAPID_PUBLIC_KEY` | Web Push VAPID public key |
-| `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
-
-### `POST /api/mcp`
-- Auth: Bearer Firebase ID token (header `Authorization`).
-- Body: `{ tool: string, params: object }`.
-- Tools hỗ trợ: `create_activity`, `add_food_item`.
-- Trả về JSON `{ success, tool, message, data }`.
-- Nếu Firebase Admin chưa init → 500 với `code: FIREBASE_ADMIN_NOT_CONFIGURED`.
-
----
-
-## 10. Các điểm kỹ thuật quan trọng
-
-1. **Múi giờ**: Luôn dùng `new Date(selectedDate)` + `setHours(h, m, 0, 0)` để tạo timestamp. **Không dùng** `new Date('YYYY-MM-DD')` vì JS parse theo UTC gây lệch múi giờ.
-2. **Firebase Admin an toàn**: `api/_admin.js` không throw ở module-load. Kiểm tra `if (!db)` trước khi dùng.
-3. **Offline queue**: Activities được queue ở localStorage với key `offline-activity-queue:{userId}`. Auto-sync khi online.
-4. **Sleep notes backward compat**: Regex parse start time phải bắt cả `Bắt đầu:` và `開始:`.
-5. **PWA cache**: Sau deploy, user cần hard-refresh hoặc close/reopen PWA để nhận bundle mới.
-6. **Build command**: `npm run build` (dùng `cross-env NODE_OPTIONS=--openssl-legacy-provider react-scripts build`).
-7. **Deploy**: `npx vercel --prod --yes`.
+1. **Múi giờ**: tạo timestamp bằng `new Date(selectedDate)` + `setHours(h, m, 0, 0)`. Không dùng `new Date('YYYY-MM-DD')` hay `toISOString().slice(0, 10)` để lấy ngày (lệch theo UTC).
+2. Text hiển thị: tiếng Nhật. Code/comment/log: tiếng Anh.
+3. Regex giờ bắt đầu ngủ phải bắt cả `Bắt đầu:` và `開始:`.
+4. API: kiểm tra `if (!db)` trước khi dùng Admin.
+5. Sau deploy, PWA cần đóng/mở lại để nhận bundle mới (SW dùng `skipWaiting` + `clientsClaim`).
+6. Tăng version: `package.json` + `src/config/changelogSeed.json`, rồi `npm run changelog:sync`.

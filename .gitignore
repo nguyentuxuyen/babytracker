@@ -3,3 +3,5 @@ build/
 .env.local
 .vercel
 .env*
+
+.DS_Store
