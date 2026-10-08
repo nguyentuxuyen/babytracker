@@ -17,6 +17,7 @@ import {
 import { db } from './config';
 import { Baby, Activity, ChangelogConfig, ChangelogRelease } from '../types';
 import { getCurrentUser } from './auth';
+import { moveFoodItemToEnd } from '../utils/foodSearch';
 
 const changelogRootPath = ['app_meta', 'changelog'] as const;
 
@@ -674,8 +675,8 @@ export const firestore = {
                 currentItems = docSnap.data().foodMenu || [];
             }
 
-            const normalizedName = normalizeFoodName(foodName);
-            const mergedItems = mergeFoodItems([...currentItems, normalizedName]);
+            // Adding or re-using an item makes it the most recent one.
+            const mergedItems = moveFoodItemToEnd(mergeFoodItems(currentItems), normalizeFoodName(foodName));
             await setDoc(docRef, {
                 foodMenu: mergedItems,
                 updatedAt: serverTimestamp()

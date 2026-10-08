@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom';
 import { useHistory, useLocation } from 'react-router-dom';
-import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
@@ -11,6 +11,9 @@ import { AssistantComposer } from '../components/common/AssistantComposer';
 import RecentDaysStrip from '../components/common/RecentDaysStrip';
 import { BabyIcon, BathIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon } from '../components/common/icons';
 import { useSleepTimer } from '../hooks/useSleepTimer';
+import { filterFoodItems } from '../utils/foodSearch';
+
+const RECENT_FOOD_CHIP_COUNT = 8;
 
 // 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
 const liquidGlassStyle = {
@@ -482,7 +485,8 @@ const ActivitiesPage: React.FC = () => {
                         // Don't await this to keep UI responsive
                         firestore.addFoodItem(currentUser.uid, normalizedFoodItem).then(success => {
                             if (success) {
-                                setFoodItems(prev => mergeFoodItems([...prev, normalizedFoodItem]));
+                                // foodItems is most-recent first.
+                                setFoodItems(prev => mergeFoodItems([normalizedFoodItem, ...prev]));
                             }
                         });
                     }
@@ -1509,6 +1513,35 @@ const ActivitiesPage: React.FC = () => {
                                             />
                                         ) : (
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                {foodItems.length > 0 && (
+                                                    <Box>
+                                                        <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7f8a', mb: 0.75 }}>
+                                                            最近の食品
+                                                        </Typography>
+                                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                                                            {foodItems.slice(0, RECENT_FOOD_CHIP_COUNT).map((item) => {
+                                                                const selected = formData.foodItem === item;
+                                                                return (
+                                                                    <Chip
+                                                                        key={item}
+                                                                        label={item}
+                                                                        onClick={() => {
+                                                                            setFormData(prev => ({ ...prev, foodItem: item }));
+                                                                            setFoodMenuOpen(false);
+                                                                        }}
+                                                                        sx={{
+                                                                            maxWidth: '100%',
+                                                                            fontWeight: 600,
+                                                                            color: selected ? '#ffffff' : '#101c22',
+                                                                            bgcolor: selected ? '#13a4ec' : '#e3e8eb',
+                                                                            '&:hover': { bgcolor: selected ? '#13a4ec' : '#d5dce0' }
+                                                                        }}
+                                                                    />
+                                                                );
+                                                            })}
+                                                        </Box>
+                                                    </Box>
+                                                )}
                                                 <Autocomplete
                                                     freeSolo
                                                     disablePortal={false}
@@ -1516,6 +1549,7 @@ const ActivitiesPage: React.FC = () => {
                                                     clearOnBlur
                                                     handleHomeEndKeys
                                                     options={foodItems}
+                                                    filterOptions={(options, state) => filterFoodItems(options, state.inputValue)}
                                                     value={formData.foodItem || ''}
                                                     open={foodMenuOpen}
                                                     onOpen={() => setFoodMenuOpen(true)}
@@ -1523,9 +1557,10 @@ const ActivitiesPage: React.FC = () => {
                                                     onChange={(_, newValue) => {
                                                         setFormData(prev => ({ ...prev, foodItem: newValue || '' }));
                                                     }}
-                                                    onInputChange={(_, newInputValue) => {
+                                                    onInputChange={(_, newInputValue, reason) => {
                                                         setFormData(prev => ({ ...prev, foodItem: newInputValue }));
-                                                        setFoodMenuOpen(true);
+                                                        // Only typing opens the list; picking a chip must not.
+                                                        if (reason === 'input') setFoodMenuOpen(true);
                                                     }}
                                                     ListboxProps={{
                                                         sx: {
@@ -1544,7 +1579,6 @@ const ActivitiesPage: React.FC = () => {
                                                             label="食品名"
                                                             placeholder="例: おかゆ、にんじん"
                                                             onFocus={() => {
-                                                                setFoodMenuOpen(true);
                                                                 // Scroll the Autocomplete element into view, aligning it to the top or center of viewport
                                                                 setTimeout(() => {
                                                                     const element = document.activeElement;

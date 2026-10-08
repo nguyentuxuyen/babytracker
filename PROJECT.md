@@ -99,7 +99,7 @@ scripts/      # syncChangelogToFirebase.js, parse_milk_shortcut.js, tài liệu 
 | `app_meta/changelog/meta/current`, `app_meta/changelog/releases/*` | version + changelog (sync bằng `npm run changelog:sync`) |
 
 Lưu ý: **document `users/{uid}` không được code nào tạo ra**, chỉ có subcollection.
-Danh sách món ăn dặm nằm ở `babies/{uid}.foodMenu` (không phải collection `foodItems`).
+Danh sách món ăn dặm nằm ở `babies/{uid}.foodMenu` (không phải collection `foodItems`). Mảng lưu theo thứ tự **dùng cũ nhất trước**: `addFoodItem` đưa món vừa thêm/vừa dùng xuống cuối, `getFoodItems` đảo ngược để món gần nhất lên đầu. Form Home hiện 8 món đầu thành chip "最近の食品"; tìm kiếm dùng `utils/foodSearch.ts` (bỏ qua hoa/thường, hiragana/katakana, dấu tiếng Việt).
 
 ### `details` theo `type`
 
