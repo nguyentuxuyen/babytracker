@@ -170,7 +170,10 @@
       "loose": "Lỏng",
       "normal": "Bình thường",
       "hard": "Khô"
-    }
+    },
+    "kind": "Loại",
+    "both": "Cả hai",
+    "colorLabel": "Màu sắc"
   },
   "feeding": {
     "milk": "Sữa",

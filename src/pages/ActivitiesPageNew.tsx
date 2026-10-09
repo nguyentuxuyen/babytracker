@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, Component, ReactNode } fro
 import ReactDOM from 'react-dom';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Grid, Snackbar, Alert, InputAdornment, Autocomplete, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
@@ -10,14 +10,15 @@ import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { AssistantComposer } from '../components/common/AssistantComposer';
 import RecentDaysStrip from '../components/common/RecentDaysStrip';
-import { BabyIcon, BathIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon } from '../components/common/icons';
+import { BabyIcon, BathIcon, CloseIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon } from '../components/common/icons';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { filterFoodItems } from '../utils/foodSearch';
 import i18n from '../i18n';
 import { formatHoursMinutes } from '../i18n/format';
 import DayStatsCard from '../components/common/DayStatsCard';
 import RecentActivityList from '../components/common/RecentActivityList';
-import { ACTIVITY_COLORS } from '../components/common/activityDisplay';
+import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityDisplay';
+import { ChoiceChips, SectionLabel, SegmentedControl, fieldSx, nativeTimeInputStyle } from '../components/common/FormControls';
 import { calculateStatsForDate } from '../utils/dailyStats';
 
 const isSameLocalDay = (left: Date, right: Date) => (
@@ -27,6 +28,7 @@ const isSameLocalDay = (left: Date, right: Date) => (
 );
 
 const RECENT_FOOD_CHIP_COUNT = 8;
+const MILK_AMOUNT_PRESETS = [60, 90, 120, 150, 180];
 
 const normalizeFoodName = (value: string) => value.trim();
 
@@ -736,6 +738,11 @@ const ActivitiesPage: React.FC = () => {
 
 
     // WAKE WINDOW warning
+    // Colour of the open sheet: matches the activity (milk blue, solid pink, diaper amber...).
+    const formAccent = formData.type === 'feeding' && formData.foodType === 'solid'
+        ? ACTIVITY_COLORS.solid
+        : ACTIVITY_COLORS[formData.type] || ACTIVITY_COLORS.feeding;
+
     const wakeWindowWarning = useMemo(() => {
         if (!activities || activities.length === 0 || ongoingSleep) return null;
 
@@ -1048,9 +1055,8 @@ const ActivitiesPage: React.FC = () => {
                     <Box 
                         onClick={(e) => e.stopPropagation()}
                         sx={{
-                            bgcolor: 'rgba(255, 255, 255, 0.9)',
-                            backdropFilter: 'blur(20px)',
-                            borderRadius: { xs: '20px 20px 0 0', sm: '24px 24px 0 0' },
+                            bgcolor: '#ffffff',
+                            borderRadius: '28px 28px 0 0',
                             width: '100%',
                             maxWidth: { xs: '100%', sm: 600 },
                             minHeight: { xs: '50vh', sm: 'auto' },
@@ -1085,44 +1091,62 @@ const ActivitiesPage: React.FC = () => {
                         </Box>
 
                         {/* Header */}
-                        <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2, flexShrink: 0 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="h6" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, color: '#101c22' }}>
-                                    {editingActivity ? t('activities.editTitle') : getActivityTitle(formData.type)}
-                                </Typography>
-                                {!editingActivity && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="caption" sx={{ color: '#6b7f8a', fontSize: { xs: '12px', sm: '13px' }, display: { xs: 'none', sm: 'block' } }}>
-                                            {t('activities.bulk.label')}
-                                        </Typography>
-                                        <MuiButton
-                                            size="small"
-                                            variant={isBulkMode ? "contained" : "outlined"}
-                                            onClick={() => {
-                                                setIsBulkMode(!isBulkMode);
-                                                if (!isBulkMode) {
-                                                    setBulkTimes([formData.time]);
-                                                }
-                                            }}
-                                            sx={{ 
-                                                minWidth: 'auto', 
-                                                px: 1.5,
-                                                py: 0.5,
-                                                fontSize: '12px',
-                                                bgcolor: isBulkMode ? '#13a4ec' : 'transparent',
-                                                color: isBulkMode ? '#ffffff' : '#6b7f8a',
-                                                borderColor: '#e5e7eb',
-                                                '&:hover': {
-                                                    bgcolor: isBulkMode ? '#0e8fd4' : '#f6f7f8',
-                                                    borderColor: '#e5e7eb'
-                                                }
-                                            }}
-                                        >
-                                            {isBulkMode ? t('common.on') : t('common.off')}
-                                        </MuiButton>
-                                    </Box>
-                                )}
+                        <Box sx={{ px: 2, pb: 2, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box sx={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: formAccent,
+                                bgcolor: `${formAccent}18`,
+                                '& svg': { fontSize: 22 }
+                            }}>
+                                {getActivityIcon({ type: formData.type, details: { foodType: formData.foodType } })}
                             </Box>
+                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: 19, fontWeight: 700, color: '#101c22' }} noWrap>
+                                {editingActivity ? t('activities.editTitle') : getActivityTitle(formData.type)}
+                            </Typography>
+                            {!editingActivity && (
+                                <Box
+                                    component="button"
+                                    type="button"
+                                    aria-pressed={isBulkMode}
+                                    onClick={() => {
+                                        setIsBulkMode(!isBulkMode);
+                                        if (!isBulkMode) {
+                                            setBulkTimes([formData.time]);
+                                        }
+                                    }}
+                                    sx={{
+                                        flexShrink: 0,
+                                        height: 32,
+                                        px: 1.5,
+                                        borderRadius: '999px',
+                                        border: `1.5px solid ${isBulkMode ? '#13a4ec' : '#e2e8f0'}`,
+                                        bgcolor: isBulkMode ? '#e0f2fe' : '#ffffff',
+                                        color: isBulkMode ? '#0369a1' : '#64748b',
+                                        fontFamily: 'inherit',
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {t('activities.bulk.label')}
+                                </Box>
+                            )}
+                            <IconButton
+                                aria-label={t('common.close')}
+                                onClick={() => {
+                                    setShowForm(false);
+                                    setHideActivityType(false);
+                                }}
+                                sx={{ flexShrink: 0, bgcolor: '#f1f5f9', width: 36, height: 36, '&:hover': { bgcolor: '#e2e8f0' } }}
+                            >
+                                <CloseIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
                         </Box>
 
                         {/* Form Content - Scrollable */}
@@ -1174,8 +1198,8 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                             sx={{
-                                                bgcolor: '#e3e8eb',
-                                                borderRadius: '12px',
+                                                bgcolor: '#f1f5f9',
+                                                borderRadius: '14px',
                                                 '& .MuiOutlinedInput-notchedOutline': {
                                                     border: 'none'
                                                 },
@@ -1209,25 +1233,14 @@ const ActivitiesPage: React.FC = () => {
 
                                 {/* Time Input - Single or Multiple */}
                                 {formData.type !== 'sleep' && (!isBulkMode ? (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                        <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a' }}>
-                                            {t('activities.form.time')}
-                                        </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                        <SectionLabel>{t('activities.form.time')}</SectionLabel>
                                         <input
                                             type="time"
+                                            aria-label={t('activities.form.time')}
                                             value={formData.time}
                                             onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px 16px',
-                                                fontSize: '16px',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                backgroundColor: '#e3e8eb',
-                                                color: '#101c22',
-                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                                boxSizing: 'border-box'
-                                            }}
+                                            style={nativeTimeInputStyle}
                                         />
                                     </Box>
                                 ) : (
@@ -1247,22 +1260,7 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                     InputLabelProps={{ shrink: true }}
                                                     inputProps={{ step: 60 }}
-                                                    sx={{ 
-                                                        flex: 1,
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': {
-                                                                border: 'none'
-                                                            },
-                                                            '&:hover fieldset': {
-                                                                border: 'none'
-                                                            },
-                                                            '&.Mui-focused fieldset': {
-                                                                border: '2px solid #13a4ec'
-                                                            }
-                                                        }
-                                                    }}
+                                                    variant="filled" hiddenLabel sx={{ ...fieldSx, flex: 1 }}
                                                 />
                                                 <IconButton 
                                                     onClick={() => {
@@ -1308,132 +1306,92 @@ const ActivitiesPage: React.FC = () => {
                                     </Box>
                                 ))}
 
-                                {/* Diaper Checkboxes */}
+                                {/* Diaper: what was in it, then stool details */}
                                 {formData.type === 'diaper' && (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox 
-                                                    checked={!!formData.isUrine} 
-                                                    onChange={(e) => setFormData({ ...formData, isUrine: e.target.checked })}
-                                                    sx={{
-                                                        color: '#13a4ec',
-                                                        '&.Mui-checked': {
-                                                            color: '#13a4ec'
-                                                        }
-                                                    }}
-                                                />
-                                            }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>{t('diaper.urine')}</Typography>}
-                                        />
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox 
-                                                    checked={!!formData.isStool} 
-                                                    onChange={(e) => setFormData({ ...formData, isStool: e.target.checked })}
-                                                    sx={{
-                                                        color: '#13a4ec',
-                                                        '&.Mui-checked': {
-                                                            color: '#13a4ec'
-                                                        }
-                                                    }}
-                                                />
-                                            }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>{t('diaper.stool')}</Typography>}
-                                        />
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        <Box>
+                                            <SectionLabel>{t('diaper.kind')}</SectionLabel>
+                                            <SegmentedControl
+                                                color={ACTIVITY_COLORS.diaper}
+                                                value={formData.isUrine && formData.isStool ? 'both' : formData.isStool ? 'stool' : 'urine'}
+                                                onChange={(kind) => setFormData({
+                                                    ...formData,
+                                                    isUrine: kind !== 'stool',
+                                                    isStool: kind !== 'urine',
+                                                    stoolColor: kind !== 'urine' && !(formData.stoolColor && formData.stoolColor.length) ? ['vàng'] : formData.stoolColor
+                                                })}
+                                                options={[
+                                                    { value: 'urine', label: t('diaper.urine') },
+                                                    { value: 'stool', label: t('diaper.stool') },
+                                                    { value: 'both', label: t('diaper.both') }
+                                                ]}
+                                            />
+                                        </Box>
 
                                         {formData.isStool && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pl: 4 }}>
-                                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                    {(['vàng', 'nâu', 'xám'] as const).map((color) => (
-                                                        <FormControlLabel
-                                                            key={color}
-                                                            control={
-                                                                <Checkbox
-                                                                    checked={Array.isArray(formData.stoolColor) ? formData.stoolColor.includes(color) : false}
-                                                                    onChange={(e) => {
-                                                                        const prev = Array.isArray(formData.stoolColor) ? formData.stoolColor : [];
-                                                                        if (e.target.checked) {
-                                                                            setFormData({ ...formData, stoolColor: Array.from(new Set([...prev, color])) });
-                                                                        } else {
-                                                                            setFormData({ ...formData, stoolColor: prev.filter((c) => c !== color) });
-                                                                        }
-                                                                    }}
-                                                                    sx={{
-                                                                        color: '#13a4ec',
-                                                                        '&.Mui-checked': {
-                                                                            color: '#13a4ec'
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            }
-                                                            label={<Typography sx={{ fontSize: '13px', color: '#101c22' }}>{t(`diaper.color.${color === 'vàng' ? 'yellow' : color === 'nâu' ? 'brown' : 'gray'}`)}</Typography>}
-                                                        />
-                                                    ))}
+                                            <>
+                                                <Box>
+                                                    <SectionLabel>{t('diaper.colorLabel')}</SectionLabel>
+                                                    <ChoiceChips
+                                                        color={ACTIVITY_COLORS.diaper}
+                                                        selected={Array.isArray(formData.stoolColor) ? formData.stoolColor : []}
+                                                        onToggle={(color) => {
+                                                            const prev = Array.isArray(formData.stoolColor) ? formData.stoolColor : [];
+                                                            setFormData({
+                                                                ...formData,
+                                                                stoolColor: prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
+                                                            });
+                                                        }}
+                                                        options={[
+                                                            { value: 'vàng' as const, label: t('diaper.color.yellow'), dot: '#facc15' },
+                                                            { value: 'nâu' as const, label: t('diaper.color.brown'), dot: '#92400e' },
+                                                            { value: 'xám' as const, label: t('diaper.color.gray'), dot: '#9ca3af' }
+                                                        ]}
+                                                    />
                                                 </Box>
-                                                <FormControl fullWidth>
-                                                    <InputLabel id="stool-consistency-label" sx={{ color: '#6b7f8a' }}>{t('diaper.consistency.label')}</InputLabel>
-                                                    <Select
-                                                        labelId="stool-consistency-label"
+                                                <Box>
+                                                    <SectionLabel>{t('diaper.consistency.label')}</SectionLabel>
+                                                    <SegmentedControl
+                                                        color={ACTIVITY_COLORS.diaper}
                                                         value={formData.stoolConsistency || 'bình thường'}
-                                                        label={t('diaper.consistency.label')}
-                                                        onChange={(e) => setFormData({ ...formData, stoolConsistency: e.target.value as 'lỏng' | 'bình thường' | 'khô' })}
-                                                        sx={{
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& .MuiOutlinedInput-notchedOutline': {
-                                                                border: 'none'
-                                                            },
-                                                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                                border: 'none'
-                                                            },
-                                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                                border: '2px solid #13a4ec'
-                                                            }
-                                                        }}
-                                                        MenuProps={{
-                                                            disableScrollLock: true,
-                                                            sx: { zIndex: 13000 },
-                                                            PaperProps: {
-                                                                sx: { 
-                                                                    borderRadius: '12px',
-                                                                    marginTop: '8px'
-                                                                }
-                                                            }
-                                                        }}
-                                                    >
-                                                        <MenuItem value="lỏng">{t('diaper.consistency.loose')}</MenuItem>
-                                                        <MenuItem value="bình thường">{t('diaper.consistency.normal')}</MenuItem>
-                                                        <MenuItem value="khô">{t('diaper.consistency.hard')}</MenuItem>
-                                                    </Select>
-                                                </FormControl>
-                                            </Box>
+                                                        onChange={(value) => setFormData({ ...formData, stoolConsistency: value })}
+                                                        options={[
+                                                            { value: 'lỏng', label: t('diaper.consistency.loose') },
+                                                            { value: 'bình thường', label: t('diaper.consistency.normal') },
+                                                            { value: 'khô', label: t('diaper.consistency.hard') }
+                                                        ]}
+                                                    />
+                                                </Box>
+                                            </>
                                         )}
                                     </Box>
                                 )}
 
                                 {/* Feeding Type Tabs */}
                                 {formData.type === 'feeding' && (
-                                    <Box sx={{ width: '100%', mb: 2 }}>
-                                        <Tabs
-                                            value={formData.foodType === 'solid' ? 1 : 0}
-                                            onChange={(_, newValue) => setFormData({ ...formData, foodType: newValue === 0 ? 'milk' : 'solid' })}
-                                            variant="fullWidth"
-                                            sx={{
-                                                mb: 2,
-                                                '& .MuiTab-root': {
-                                                    textTransform: 'none',
-                                                    fontWeight: 600,
-                                                    fontSize: '15px'
-                                                }
-                                            }}
-                                        >
-                                            <Tab label={t('feeding.milk')} />
-                                            <Tab label={t('feeding.solid')} />
-                                        </Tabs>
+                                    <Box sx={{ width: '100%' }}>
+                                        <Box sx={{ mb: 2 }}>
+                                            <SegmentedControl
+                                                color={formData.foodType === 'solid' ? ACTIVITY_COLORS.solid : ACTIVITY_COLORS.feeding}
+                                                value={formData.foodType === 'solid' ? 'solid' : 'milk'}
+                                                onChange={(value) => setFormData({ ...formData, foodType: value })}
+                                                options={[
+                                                    { value: 'milk', label: t('feeding.milk'), icon: <MilkIcon /> },
+                                                    { value: 'solid', label: t('feeding.solid'), icon: <FoodIcon /> }
+                                                ]}
+                                            />
+                                        </Box>
 
                                         {formData.foodType !== 'solid' ? (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                            <ChoiceChips
+                                                color={ACTIVITY_COLORS.feeding}
+                                                selected={[Number(formData.amount)]}
+                                                onToggle={(amount) => setFormData({ ...formData, amount: String(amount) })}
+                                                options={MILK_AMOUNT_PRESETS.map((amount) => ({ value: amount, label: `${amount}ml` }))}
+                                            />
                                             <TextField
+                                                InputProps={{ endAdornment: <InputAdornment position="end">ml</InputAdornment> }}
                                                 label={t('feeding.amountMl')}
                                                 type="number"
                                                 inputMode="decimal"
@@ -1441,26 +1399,9 @@ const ActivitiesPage: React.FC = () => {
                                                 value={formData.amount}
                                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                                 fullWidth
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': { border: 'none' },
-                                                        '&:hover fieldset': { border: 'none' },
-                                                        '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#e3e8eb',
-                                                        paddingRight: '4px',
-                                                        '&.MuiInputLabel-shrink': {
-                                                            backgroundColor: '#ffffff',
-                                                            paddingLeft: '4px',
-                                                            paddingRight: '4px'
-                                                        }
-                                                    }
-                                                }}
+                                                variant="filled" sx={fieldSx}
                                             />
+                                            </Box>
                                         ) : (
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                 {foodItems.length > 0 && (
@@ -1482,9 +1423,9 @@ const ActivitiesPage: React.FC = () => {
                                                                         sx={{
                                                                             maxWidth: '100%',
                                                                             fontWeight: 600,
-                                                                            color: selected ? '#ffffff' : '#101c22',
-                                                                            bgcolor: selected ? '#13a4ec' : '#e3e8eb',
-                                                                            '&:hover': { bgcolor: selected ? '#13a4ec' : '#d5dce0' }
+                                                                            color: selected ? '#ffffff' : '#334155',
+                                                                            bgcolor: selected ? ACTIVITY_COLORS.solid : '#f1f5f9',
+                                                                            '&:hover': { bgcolor: selected ? ACTIVITY_COLORS.solid : '#e2e8f0' }
                                                                         }}
                                                                     />
                                                                 );
@@ -1537,25 +1478,7 @@ const ActivitiesPage: React.FC = () => {
                                                                     }
                                                                 }, 300); // Slight delay to allow keyboard to appear
                                                             }}
-                                                            sx={{
-                                                                '& .MuiOutlinedInput-root': {
-                                                                    bgcolor: '#e3e8eb',
-                                                                    borderRadius: '12px',
-                                                                    '& fieldset': { border: 'none' },
-                                                                    '&:hover fieldset': { border: 'none' },
-                                                                    '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                                },
-                                                                '& .MuiInputLabel-root': {
-                                                                    color: '#6b7f8a',
-                                                                    backgroundColor: '#e3e8eb',
-                                                                    paddingRight: '4px',
-                                                                    '&.MuiInputLabel-shrink': {
-                                                                        backgroundColor: '#ffffff',
-                                                                        paddingLeft: '4px',
-                                                                        paddingRight: '4px'
-                                                                    }
-                                                                }
-                                                            }}
+                                                            variant="filled" sx={fieldSx}
                                                         />
                                                     )}
                                                 />
@@ -1567,57 +1490,22 @@ const ActivitiesPage: React.FC = () => {
                                                     value={formData.amount}
                                                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                                     fullWidth
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': { border: 'none' },
-                                                            '&:hover fieldset': { border: 'none' },
-                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                        },
-                                                        '& .MuiInputLabel-root': {
-                                                            color: '#6b7f8a',
-                                                            backgroundColor: '#e3e8eb',
-                                                            paddingRight: '4px',
-                                                            '&.MuiInputLabel-shrink': {
-                                                                backgroundColor: '#ffffff',
-                                                                paddingLeft: '4px',
-                                                                paddingRight: '4px'
-                                                            }
-                                                        }
-                                                    }}
+                                                    variant="filled" sx={fieldSx}
                                                 />
-                                                <FormControl fullWidth>
-                                                    <InputLabel id="food-preference-label">{t('feeding.reaction.label')}</InputLabel>
-                                                    <Select
-                                                        labelId="food-preference-label"
-                                                        id="food-preference-select"
-                                                        value={formData.foodPreference ?? 'normal'}
-                                                        label={t('feeding.reaction.label')}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, foodPreference: (e.target.value as 'enthusiastic' | 'normal' | 'dislike' | 'allergic') || 'normal' }))}
-                                                        sx={{
-                                                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: '2px solid #13a4ec' },
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px'
-                                                        }}
-                                                        MenuProps={{
-                                                            disableScrollLock: true,
-                                                            sx: { zIndex: 13000 },
-                                                            PaperProps: {
-                                                                sx: { 
-                                                                    borderRadius: '12px',
-                                                                    marginTop: '8px'
-                                                                }
-                                                            }
-                                                        }}
-                                                    >
-                                                        <MenuItem value="enthusiastic" sx={{ color: '#101c22' }}>{t('feeding.reaction.enthusiastic')}</MenuItem>
-                                                        <MenuItem value="normal" sx={{ color: '#101c22' }}>{t('feeding.reaction.normal')}</MenuItem>
-                                                        <MenuItem value="dislike" sx={{ color: '#101c22' }}>{t('feeding.reaction.dislike')}</MenuItem>
-                                                        <MenuItem value="allergic" sx={{ color: '#d32f2f' }}>{t('feeding.reaction.allergic')}</MenuItem>
-                                                    </Select>
-                                                </FormControl>
+                                                <Box>
+                                                    <SectionLabel>{t('feeding.reaction.label')}</SectionLabel>
+                                                    <ChoiceChips
+                                                        color={ACTIVITY_COLORS.solid}
+                                                        selected={[formData.foodPreference ?? 'normal']}
+                                                        onToggle={(value) => setFormData(prev => ({ ...prev, foodPreference: value }))}
+                                                        options={[
+                                                            { value: 'enthusiastic' as const, label: t('feeding.reaction.enthusiastic') },
+                                                            { value: 'normal' as const, label: t('feeding.reaction.normal') },
+                                                            { value: 'dislike' as const, label: t('feeding.reaction.dislike') },
+                                                            { value: 'allergic' as const, label: t('feeding.reaction.allergic'), danger: true }
+                                                        ]}
+                                                    />
+                                                </Box>
                                             </Box>
                                         )}
                                     </Box>
@@ -1628,9 +1516,7 @@ const ActivitiesPage: React.FC = () => {
                                     <>
                                         <Box sx={{ display: 'flex', gap: 2 }}>
                                             <Box sx={{ flex: 1 }}>
-                                                <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    {t('sleep.startTime')}
-                                                </Typography>
+                                                <SectionLabel>{t('sleep.startTime')}</SectionLabel>
                                                 <TextField
                                                     type="time"
                                                     value={(() => {
@@ -1687,21 +1573,11 @@ const ActivitiesPage: React.FC = () => {
                                                         setFormData({ ...formData, notes: newNotes, duration: newDuration });
                                                     }}
                                                     fullWidth
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': { border: 'none' },
-                                                            '&:hover fieldset': { border: 'none' },
-                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                        }
-                                                    }}
+                                                    variant="filled" hiddenLabel sx={fieldSx}
                                                 />
                                             </Box>
                                             <Box sx={{ flex: 1 }}>
-                                                <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    {t('sleep.endTimeWake')}
-                                                </Typography>
+                                                <SectionLabel>{t('sleep.endTimeWake')}</SectionLabel>
                                                 <TextField
                                                     type="time"
                                                     value={(() => {
@@ -1769,15 +1645,7 @@ const ActivitiesPage: React.FC = () => {
                                                         setFormData({ ...formData, timestamp: newTimestamp.toISOString(), duration: newDuration, notes: currentNotes });
                                                     }}
                                                     fullWidth
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': { border: 'none' },
-                                                            '&:hover fieldset': { border: 'none' },
-                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                        }
-                                                    }}
+                                                    variant="filled" hiddenLabel sx={fieldSx}
                                                 />
                                             </Box>
                                         </Box>
@@ -1787,31 +1655,7 @@ const ActivitiesPage: React.FC = () => {
                                             value={formData.duration}
                                             disabled={true}
                                             fullWidth
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    bgcolor: '#f0f2f5',
-                                                    borderRadius: '12px',
-                                                    '& fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&:hover fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&.Mui-focused fieldset': {
-                                                        border: 'none'
-                                                    }
-                                                },
-                                                '& .MuiInputLabel-root': {
-                                                    color: '#6b7f8a',
-                                                    backgroundColor: '#f0f2f5',
-                                                    paddingRight: '4px',
-                                                    '&.MuiInputLabel-shrink': {
-                                                        backgroundColor: '#ffffff',
-                                                        paddingLeft: '4px',
-                                                        paddingRight: '4px'
-                                                    }
-                                                }
-                                            }}
+                                            variant="filled" sx={fieldSx}
                                         />
                                     </>
                                 )}
@@ -1826,31 +1670,7 @@ const ActivitiesPage: React.FC = () => {
                                                 value={formData.weight}
                                                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                                                 fullWidth
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&:hover fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&.Mui-focused fieldset': {
-                                                            border: '2px solid #13a4ec'
-                                                        }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#e3e8eb',
-                                                        paddingRight: '4px',
-                                                        '&.MuiInputLabel-shrink': {
-                                                            backgroundColor: '#ffffff',
-                                                            paddingLeft: '4px',
-                                                            paddingRight: '4px'
-                                                        }
-                                                    }
-                                                }}
+                                                variant="filled" sx={fieldSx}
                                             />
                                             <TextField
                                                 label={t('measurement.heightCm')}
@@ -1858,31 +1678,7 @@ const ActivitiesPage: React.FC = () => {
                                                 value={formData.height}
                                                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
                                                 fullWidth
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&:hover fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&.Mui-focused fieldset': {
-                                                            border: '2px solid #13a4ec'
-                                                        }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#e3e8eb',
-                                                        paddingRight: '4px',
-                                                        '&.MuiInputLabel-shrink': {
-                                                            backgroundColor: '#ffffff',
-                                                            paddingLeft: '4px',
-                                                            paddingRight: '4px'
-                                                        }
-                                                    }
-                                                }}
+                                                variant="filled" sx={fieldSx}
                                             />
                                         </Box>
                                         <TextField
@@ -1891,31 +1687,7 @@ const ActivitiesPage: React.FC = () => {
                                             value={formData.temperature}
                                             onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
                                             fullWidth
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    bgcolor: '#e3e8eb',
-                                                    borderRadius: '12px',
-                                                    '& fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&:hover fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&.Mui-focused fieldset': {
-                                                        border: '2px solid #13a4ec'
-                                                    }
-                                                },
-                                                '& .MuiInputLabel-root': {
-                                                    color: '#6b7f8a',
-                                                    backgroundColor: '#e3e8eb',
-                                                    paddingRight: '4px',
-                                                    '&.MuiInputLabel-shrink': {
-                                                        backgroundColor: '#ffffff',
-                                                        paddingLeft: '4px',
-                                                        paddingRight: '4px'
-                                                    }
-                                                }
-                                            }}
+                                            variant="filled" sx={fieldSx}
                                         />
                                     </>
                                 )}
@@ -1929,30 +1701,7 @@ const ActivitiesPage: React.FC = () => {
                                         fullWidth
                                         multiline
                                         minRows={2}
-                                        sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                bgcolor: '#e3e8eb',
-                                                borderRadius: '12px',
-                                                '& fieldset': {
-                                                    border: 'none'
-                                                },
-                                                '&:hover fieldset': {
-                                                },
-                                                '&.Mui-focused fieldset': {
-                                                    border: '2px solid #13a4ec'
-                                                }
-                                            },
-                                            '& .MuiInputLabel-root': {
-                                                color: '#6b7f8a',
-                                                backgroundColor: '#e3e8eb',
-                                                paddingRight: '4px',
-                                                '&.MuiInputLabel-shrink': {
-                                                    backgroundColor: '#ffffff',
-                                                    paddingLeft: '4px',
-                                                    paddingRight: '4px'
-                                                }
-                                            }
-                                        }}
+                                        variant="filled" sx={fieldSx}
                                     />
                                     )}
 
@@ -2022,9 +1771,8 @@ const ActivitiesPage: React.FC = () => {
                                 sm: 3 
                             },
                             pt: 2,
-                            borderTop: '1px solid rgba(0, 0, 0, 0.05)',
-                            bgcolor: 'rgba(255, 255, 255, 0.8)',
-                            backdropFilter: 'blur(10px)',
+                            borderTop: '1px solid #f1f5f9',
+                            bgcolor: '#ffffff',
                             flexShrink: 0,
                             position: 'sticky',
                             bottom: 0,
@@ -2036,20 +1784,17 @@ const ActivitiesPage: React.FC = () => {
                                         setShowForm(false);
                                         setHideActivityType(false);
                                     }}
-                                    variant="outlined"
+                                    variant="text"
                                     fullWidth
                                     sx={{
-                                        borderRadius: '12px',
-                                        height: { xs: 44, sm: 48 },
-                                        borderColor: '#e5e7eb',
-                                        color: '#6b7f8a',
+                                        borderRadius: '14px',
+                                        height: 52,
+                                        bgcolor: '#f1f5f9',
+                                        color: '#334155',
                                         textTransform: 'none',
                                         fontWeight: 700,
                                         fontSize: { xs: '14px', sm: '16px' },
-                                        '&:hover': {
-                                            borderColor: '#6b7f8a',
-                                            bgcolor: 'transparent'
-                                        }
+                                        '&:hover': { bgcolor: '#e2e8f0' }
                                     }}
                                 >
                                     {t('common.cancel')}
@@ -2061,15 +1806,16 @@ const ActivitiesPage: React.FC = () => {
                                     fullWidth
                                     disabled={loading}
                                     sx={{
-                                        borderRadius: '12px',
-                                        height: { xs: 44, sm: 48 },
-                                        bgcolor: '#13a4ec',
+                                        borderRadius: '14px',
+                                        height: 52,
+                                        bgcolor: formAccent,
                                         boxShadow: 'none',
                                         textTransform: 'none',
                                         fontWeight: 700,
                                         fontSize: { xs: '14px', sm: '16px' },
                                         '&:hover': {
-                                            bgcolor: '#0e8fd4',
+                                            bgcolor: formAccent,
+                                            filter: 'brightness(0.95)',
                                             boxShadow: 'none'
                                         },
                                         '&:disabled': {

@@ -181,7 +181,10 @@
       "loose": "Loose",
       "normal": "Normal",
       "hard": "Hard"
-    }
+    },
+    "kind": "Type",
+    "both": "Both",
+    "colorLabel": "Colour"
   },
   "feeding": {
     "milk": "Milk",
