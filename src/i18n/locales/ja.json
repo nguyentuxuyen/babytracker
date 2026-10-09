@@ -533,7 +533,7 @@
     "summaryTitle": "今日のまとめ",
     "recent": "最近の記録",
     "seeAll": "すべて見る",
-    "previousDay": "前日: {{value}}",
+    "previousDay": "前日",
     "diaperValue": "おしっこ {{urine}} · うんち {{stool}}"
   }
 }

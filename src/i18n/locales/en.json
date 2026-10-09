@@ -551,7 +551,7 @@
     "summaryTitle": "Day summary",
     "recent": "Recent",
     "seeAll": "See all",
-    "previousDay": "Day before: {{value}}",
+    "previousDay": "Day before",
     "diaperValue": "Wet {{urine}} · Dirty {{stool}}"
   }
 }

@@ -533,7 +533,7 @@
     "summaryTitle": "Tóm tắt trong ngày",
     "recent": "Gần đây",
     "seeAll": "Xem tất cả",
-    "previousDay": "Hôm trước: {{value}}",
+    "previousDay": "Hôm trước",
     "diaperValue": "Tè {{urine}} · Phân {{stool}}"
   }
 }
