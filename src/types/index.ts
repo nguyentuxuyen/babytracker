@@ -9,54 +9,38 @@ export interface Baby {
     avatarUrl?: string;
 }
 
-// Base interfaces for activity details
-interface BaseActivityDetails {
-    notes?: string;
-}
+import type {
+    FeedingDetails,
+    SleepDetails,
+    DiaperDetails,
+    MeasurementDetails,
+    NotesDetails,
+    DailyRatingDetails
+} from '../domain/activitySchema';
 
-interface FeedingDetails extends BaseActivityDetails {
-    amount: number; // in ml
-}
+export type {
+    ActivityType,
+    FeedingDetails,
+    SleepDetails,
+    DiaperDetails,
+    MeasurementDetails,
+    NotesDetails,
+    DailyRatingDetails
+} from '../domain/activitySchema';
 
-interface DiaperChangeDetails extends BaseActivityDetails {
-    isUrine: boolean;
-    isStool: boolean;
-    stoolShape?: 'watery' | 'soft' | 'formed' | 'normal';
-    stoolColor?: 'yellow' | 'brown' | 'green' | 'black';
-}
+// Activity as the app uses it. Firestore documents are built and read through
+// src/domain/activitySchema.js, which is the source of truth for this shape.
+// Details are Partial so screens can build them field by field; the schema fills defaults.
+type ActivityBase = { id: string; babyId: string; timestamp: Date };
 
-interface SleepDetails extends BaseActivityDetails {
-    duration: number; // in minutes
-}
-
-interface BathDetails extends BaseActivityDetails {
-    // No specific fields other than notes
-}
-
-interface MeasurementDetails extends BaseActivityDetails {
-    height?: number; // in centimeters
-    weight?: number; // in grams
-    temperature?: number; // in Celsius
-}
-
-interface MemoDetails extends BaseActivityDetails {
-    notes: string; // notes is mandatory for memo
-}
-
-interface DailyRatingDetails extends BaseActivityDetails {
-    rating: number; // 1-5 stars
-    notes?: string; // optional notes about the day
-}
-
-// Discriminated Union for Activities
-export type Activity = 
-    | { id: string; babyId: string; type: 'feeding'; timestamp: Date; details: FeedingDetails }
-    | { id: string; babyId: string; type: 'diaper'; timestamp: Date; details: DiaperChangeDetails }
-    | { id: string; babyId: string; type: 'sleep'; timestamp: Date; details: SleepDetails }
-    | { id: string; babyId: string; type: 'bath'; timestamp: Date; details: BathDetails }
-    | { id: string; babyId: string; type: 'measurement'; timestamp: Date; details: MeasurementDetails }
-    | { id: string; babyId: string; type: 'memo'; timestamp: Date; details: MemoDetails }
-    | { id: string; babyId: string; type: 'dailyRating'; timestamp: Date; details: DailyRatingDetails };
+export type Activity =
+    | (ActivityBase & { type: 'feeding'; details: Partial<FeedingDetails> })
+    | (ActivityBase & { type: 'diaper'; details: Partial<DiaperDetails> })
+    | (ActivityBase & { type: 'sleep'; details: Partial<SleepDetails> })
+    | (ActivityBase & { type: 'bath'; details: Partial<NotesDetails> })
+    | (ActivityBase & { type: 'measurement'; details: Partial<MeasurementDetails> })
+    | (ActivityBase & { type: 'memo'; details: Partial<NotesDetails> })
+    | (ActivityBase & { type: 'dailyRating'; details: Partial<DailyRatingDetails> });
 
 export interface ChangelogRelease {
     version: string;

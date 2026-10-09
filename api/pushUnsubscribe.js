@@ -1,5 +1,6 @@
-const { admin, db } = require('./_admin');
+const { db } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
+const { subscriptionIdFor, legacySubscriptionIdFor } = require('./_subscriptions');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -7,23 +8,29 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  let uid;
   try {
-    const decoded = await verifyUserFromRequest(req);
-    const uid = decoded.uid;
-    const { endpoint } = req.body || {};
+    uid = (await verifyUserFromRequest(req)).uid;
+  } catch (error) {
+    res.status(401).json({ error: 'Unauthorized or invalid token' });
+    return;
+  }
 
-    if (!endpoint) {
-      res.status(400).json({ error: 'Missing endpoint' });
-      return;
-    }
+  const { endpoint } = req.body || {};
+  if (!endpoint || typeof endpoint !== 'string') {
+    res.status(400).json({ error: 'Missing endpoint' });
+    return;
+  }
 
-    const subscriptionId = Buffer.from(endpoint).toString('base64').replace(/[+/=]/g, '').slice(0, 80);
-    const docRef = db.collection('users').doc(uid).collection('pushSubscriptions').doc(subscriptionId);
-    await docRef.delete();
-
+  try {
+    const subscriptions = db.collection('users').doc(uid).collection('pushSubscriptions');
+    await Promise.all([
+      subscriptions.doc(subscriptionIdFor(endpoint)).delete(),
+      subscriptions.doc(legacySubscriptionIdFor(endpoint)).delete()
+    ]);
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('pushUnsubscribe error:', error);
-    res.status(401).json({ error: 'Unauthorized or invalid token' });
+    res.status(500).json({ error: 'Could not remove subscription' });
   }
 };

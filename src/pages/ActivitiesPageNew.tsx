@@ -419,10 +419,10 @@ const ActivitiesPage: React.FC = () => {
             setActivities(prev => [localActivity, ...(prev || [])]);
             setSnackbar({
                 open: true,
-                message: savedActivity.id.startsWith('offline-')
+                message: firestore.isPendingWrite(savedActivity.id)
                     ? t('activities.snackbar.sleepSavedOffline', { count: duration })
                     : t('activities.snackbar.sleepSaved', { count: duration }),
-                severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
+                severity: firestore.isPendingWrite(savedActivity.id) ? 'info' : 'success'
             });
         } finally {
             unlock();
@@ -556,10 +556,10 @@ const ActivitiesPage: React.FC = () => {
                 ) || []);
                 setSnackbar({
                     open: true,
-                    message: savedActivity.id.startsWith('offline-')
+                    message: firestore.isPendingWrite(savedActivity.id)
                         ? t('activities.snackbar.updatedOffline')
                         : t('activities.snackbar.updated'),
-                    severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
+                    severity: firestore.isPendingWrite(savedActivity.id) ? 'info' : 'success'
                 });
                 setEditingActivity(null);
             } else {
@@ -643,7 +643,7 @@ const ActivitiesPage: React.FC = () => {
                     setActivities([...newActivities, ...(activities || [])]);
                     
                     const successCount = newActivities.length;
-                    const offlineCount = newActivities.filter(activity => activity.id.startsWith('offline-')).length;
+                    const offlineCount = newActivities.filter(activity => firestore.isPendingWrite(activity.id)).length;
                     const errorCount = validTimes.length - successCount;
                     
                     if (errorCount === 0) {
@@ -673,10 +673,10 @@ const ActivitiesPage: React.FC = () => {
                     setActivities([localActivity, ...(activities || [])]);
                     setSnackbar({
                         open: true,
-                        message: savedActivity.id.startsWith('offline-')
+                        message: firestore.isPendingWrite(savedActivity.id)
                             ? t('activities.snackbar.savedOffline')
                             : t('activities.snackbar.saved'),
-                        severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
+                        severity: firestore.isPendingWrite(savedActivity.id) ? 'info' : 'success'
                     });
                 }
             }

@@ -114,7 +114,7 @@ function run(input) {
 4. **Method:** POST
 5. **Headers:** Tap "Add new field"
    - Key: `x-log-secret`
-   - Value: `mySecret123` (hoặc LOG_SECRET của bạn)
+   - Value: `<YOUR_LOG_SECRET>` (hoặc LOG_SECRET của bạn)
 6. **Request Body:** JSON
 7. Tap để add JSON fields:
    - Field 1:
@@ -171,7 +171,7 @@ function run(input) {
 - Check variable "Dictated Text" được pass vào JavaScript
 
 **Issue: "Unauthorized" error**
-- Check header `x-log-secret` = `mySecret123` (match với Vercel env var)
+- Check header `x-log-secret` = `<YOUR_LOG_SECRET>` (match với Vercel env var)
 
 **Issue: "Missing babyId" error**
 - Check Vercel env vars đã set đủ (DEFAULT_BABY_ID, SERVICE_ACCOUNT_USER_UID)
@@ -195,7 +195,7 @@ function run(input) {
 **API Endpoint:**
 - URL: `https://baby-tracker-app-1.vercel.app/api/logMilk`
 - Method: POST
-- Headers: `x-log-secret: mySecret123`
+- Headers: `x-log-secret: <YOUR_LOG_SECRET>`
 - Body: `{"amountMl": 150, "note": "via Siri"}`
 
 **Firebase Path:**
