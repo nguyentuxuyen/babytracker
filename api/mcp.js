@@ -1,38 +1,49 @@
-const { db, admin, adminInitError } = require('./_admin');
+const { db, admin } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
 const { parseWithGemini } = require('./gemini');
+const { buildActivityDoc, ActivityValidationError } = require('../src/domain/activitySchema');
+const { parseUserTimestamp, formatLocalIso, normalizeOffset } = require('./_time');
 
-const toDate = (value) => {
-  if (!value) return new Date();
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-};
+const MAX_TEXT_LENGTH = 300;
+const MAX_FOOD_NAME_LENGTH = 100;
+// Gemini calls per user per UTC day.
+const DAILY_AI_LIMIT = Number(process.env.ASSISTANT_DAILY_LIMIT) > 0 ? Number(process.env.ASSISTANT_DAILY_LIMIT) : 100;
 
 const sendError = (res, status, error, extra = {}) => {
   res.status(status).json({ success: false, error, ...extra });
 };
 
+// Count this call against the user's daily quota; false when the quota is used up.
+async function consumeAiQuota(uid) {
+  const day = new Date().toISOString().slice(0, 10);
+  const ref = db.collection('users').doc(uid).collection('usage').doc('assistant');
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.exists ? snapshot.data() : {};
+    const count = data.day === day ? Number(data.count) || 0 : 0;
+    if (count >= DAILY_AI_LIMIT) return false;
+    transaction.set(ref, { day, count: count + 1, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    return true;
+  });
+}
+
 /**
  * Execute a resolved { tool, params } command against Firestore.
- * Shared by both the Gemini path and the legacy { tool, params } path.
+ * Activities always go to the caller's own account and through the shared schema.
  */
-async function executeTool(tool, params, uid, res) {
+async function executeTool(tool, params, uid, utcOffsetMinutes, res) {
   if (tool === 'create_activity') {
-    const activityType = params.activityType || 'feeding';
-    const timestamp = toDate(params.timestamp);
-    const details = params.details || {};
-    const babyId = params.babyId || uid;
+    const timestamp = params.timestamp ? parseUserTimestamp(params.timestamp, utcOffsetMinutes) : new Date();
+    const activity = buildActivityDoc({
+      // One baby per account: the baby document id is the user's uid.
+      babyId: uid,
+      type: params.activityType,
+      timestamp,
+      details: params.details
+    });
 
     const docRef = db.collection('users').doc(uid).collection('activities').doc();
-    const activity = {
-      babyId,
-      type: activityType,
-      timestamp,
-      details,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    };
-
-    await docRef.set(activity);
+    await docRef.set({ ...activity, createdAt: admin.firestore.FieldValue.serverTimestamp() });
 
     res.status(200).json({
       success: true,
@@ -44,7 +55,7 @@ async function executeTool(tool, params, uid, res) {
   }
 
   if (tool === 'add_food_item') {
-    const foodName = String(params.foodName || '').trim();
+    const foodName = String(params.foodName || '').trim().slice(0, MAX_FOOD_NAME_LENGTH);
     if (!foodName) {
       sendError(res, 400, '食品名が必要です');
       return true;
@@ -56,7 +67,8 @@ async function executeTool(tool, params, uid, res) {
       ? babySnap.data().foodMenu
       : [];
 
-    if (!existingItems.includes(foodName)) {
+    const exists = existingItems.some((item) => String(item).toLocaleLowerCase() === foodName.toLocaleLowerCase());
+    if (!exists) {
       await babyDocRef.set({
         foodMenu: [...existingItems, foodName],
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -89,10 +101,8 @@ module.exports = async function handler(req, res) {
   }
 
   if (!db) {
-    sendError(res, 500, 'Server Firebase is not configured', {
-      code: 'FIREBASE_ADMIN_NOT_CONFIGURED',
-      details: adminInitError ? adminInitError.message : 'Unknown Firebase Admin init error'
-    });
+    console.error('[mcp] Firebase Admin is not configured');
+    sendError(res, 500, 'Server Firebase is not configured', { code: 'FIREBASE_ADMIN_NOT_CONFIGURED' });
     return;
   }
 
@@ -100,42 +110,56 @@ module.exports = async function handler(req, res) {
     const decoded = await verifyUserFromRequest(req);
     const uid = decoded.uid;
     const body = req.body || {};
+    const utcOffsetMinutes = normalizeOffset(body.utcOffsetMinutes);
 
-    console.log('[mcp] request', { uid, hasText: !!body.text, tool: body.tool ?? null });
-    // ── Gemini path: client sends { text, selectedDate, babyId } ──────────────
+    // ── Gemini path: client sends { text, selectedDate, utcOffsetMinutes } ────
     if (typeof body.text === 'string') {
-      const selectedDate = body.selectedDate || new Date().toISOString();
-      console.log('[mcp] calling Gemini for:', body.text.slice(0, 100));
-      const parsed = await parseWithGemini(body.text, selectedDate);
-      console.log('[mcp] Gemini parsed:', parsed);
-
-      // Inject babyId if not returned by Gemini
-      if (!parsed.params.babyId && body.babyId) {
-        parsed.params.babyId = body.babyId;
+      const text = body.text.trim();
+      if (!text || text.length > MAX_TEXT_LENGTH) {
+        sendError(res, 400, `入力は1〜${MAX_TEXT_LENGTH}文字にしてください`, { code: 'TEXT_LENGTH' });
+        return;
+      }
+      if (!(await consumeAiQuota(uid))) {
+        sendError(res, 429, '本日のAI入力の上限に達しました', { code: 'AI_QUOTA_EXCEEDED' });
+        return;
       }
 
-      const handled = await executeTool(parsed.tool, parsed.params, uid, res);
+      const now = new Date();
+      const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(body.selectedDate || ''))
+        ? body.selectedDate
+        : formatLocalIso(now, utcOffsetMinutes).slice(0, 10);
+      const parsed = await parseWithGemini(text, { selectedDate, now: formatLocalIso(now, utcOffsetMinutes) });
+
+      const handled = await executeTool(parsed.tool, parsed.params, uid, utcOffsetMinutes, res);
       if (!handled) {
         sendError(res, 400, `未対応のツール: ${parsed.tool}`);
       }
       return;
     }
 
-    // ── Legacy path: client sends { tool, params } (localhost fallback) ────────
+    // ── Direct path: client sends an already-parsed { tool, params } ─────────
     const { tool, params = {} } = body;
     if (!tool) {
       sendError(res, 400, 'リクエストに "text" または "tool" フィールドが必要です');
       return;
     }
 
-    const handled = await executeTool(tool, params, uid, res);
+    const handled = await executeTool(tool, params, uid, utcOffsetMinutes, res);
     if (!handled) {
       sendError(res, 400, `未対応のツール: ${tool}`);
     }
 
   } catch (error) {
-    console.error('[mcp] unhandled error', { code: error?.code, message: error?.message });
     const code = error && error.code ? error.code : '';
+    console.error('[mcp] error', { code, message: error?.message });
+
+    if (error instanceof ActivityValidationError) {
+      sendError(res, 422, 'AIの解析結果が記録の形式に合いませんでした。別の言い方で試してください。', {
+        code,
+        issues: error.issues
+      });
+      return;
+    }
 
     const authCodes = new Set([
       'AUTH_HEADER_MISSING',
@@ -155,15 +179,11 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    if (code === 'GEMINI_API_ERROR' || code === 'GEMINI_PARSE_ERROR' || code === 'GEMINI_SCHEMA_ERROR') {
-      sendError(res, 502, `Geminiエラー: ${error.message}`, { code });
+    if (typeof code === 'string' && code.startsWith('GEMINI_')) {
+      sendError(res, 502, 'AIサービスでエラーが発生しました。しばらくしてから再試行してください。', { code });
       return;
     }
 
-    sendError(res, 500, 'サーバー内部エラー', {
-      code: code || 'MCP_INTERNAL_ERROR',
-      details: error && error.message ? error.message : String(error)
-    });
+    sendError(res, 500, 'サーバー内部エラー', { code: code || 'MCP_INTERNAL_ERROR' });
   }
 };
-

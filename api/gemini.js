@@ -21,7 +21,8 @@ Markdownのコードブロック（\`\`\`json）や余分なテキストは一�
 1. create_activity — 育児活動を記録する
    params:
      activityType: "feeding" | "sleep" | "diaper" | "bath" | "measurement" | "memo"
-     timestamp: ISO 8601形式の文字列 (例: "2026-07-23T09:15:00.000+09:00")
+     timestamp: ISO 8601形式の文字列、必ずユーザーのタイムゾーンのオフセット付き (例: "2026-07-23T09:15:00+09:00")
+       時刻の指定がなければ「現在時刻」を使う。睡眠は目が覚めた時刻を timestamp にする。
      details (activityTypeに応じて):
        feeding  → { amount: number (ml), foodType: "milk"|"solid", foodItem?: string, notes?: string }
        sleep    → { duration: number (分), notes?: string }
@@ -48,18 +49,20 @@ Markdownのコードブロック（\`\`\`json）や余分なテキストは一�
 `.trim();
 
 /**
- * @param {string} text      - Raw user input
- * @param {string} selectedDate - ISO string of the currently selected date
+ * @param {string} text - Raw user input
+ * @param {{ selectedDate: string, now: string }} context - selected day (YYYY-MM-DD) and the
+ *   current time, both in the user's time zone ("2026-10-09T14:20:00+09:00")
  * @returns {Promise<{ tool: string, params: object, preview: string }>}
  */
-async function parseWithGemini(text, selectedDate) {
+async function parseWithGemini(text, context) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw Object.assign(new Error('GEMINI_API_KEY is not configured'), { code: 'GEMINI_NOT_CONFIGURED' });
   }
 
   const userMessage = `
-選択中の日付: ${selectedDate}
+現在時刻: ${context.now}
+選択中の日付: ${context.selectedDate} (時刻の指定がなければこの日付の現在時刻)
 ユーザーの入力: ${text}
 `.trim();
 
@@ -77,11 +80,9 @@ async function parseWithGemini(text, selectedDate) {
     }
   };
 
-  const url = `${GEMINI_ENDPOINT}?key=${apiKey}`;
-  console.log('[gemini] sending request, text length:', text.length);
-  const res = await fetch(url, {
+  const res = await fetch(GEMINI_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify(requestBody)
   });
 
@@ -98,7 +99,6 @@ async function parseWithGemini(text, selectedDate) {
 
   // Extract text from Gemini response structure
   const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-  console.log('[gemini] raw response:', rawText.slice(0, 300));
   if (!rawText) {
     throw Object.assign(new Error('Gemini returned an empty response'), { code: 'GEMINI_EMPTY_RESPONSE' });
   }

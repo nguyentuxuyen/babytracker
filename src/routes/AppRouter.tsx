@@ -4,6 +4,7 @@ import { Box, CircularProgress } from '@mui/material';
 
 import BottomNav from '../components/layout/BottomNav';
 import PrivateRoute from '../components/PrivateRoute';
+import ErrorBoundary from '../components/ErrorBoundary';
 import LoginPage from '../pages/LoginPage';
 
 // Lazy loading large pages
@@ -25,29 +26,31 @@ const FallbackLoader = () => (
 const AppRouter: React.FC = () => {
     return (
         <Router>
-            <Suspense fallback={<FallbackLoader />}>
-                <Switch>
-                    {/* Public route - MUST be first and outside Box wrapper */}
-                    <Route path="/login" exact component={LoginPage} />
+            <ErrorBoundary>
+                <Suspense fallback={<FallbackLoader />}>
+                    <Switch>
+                        {/* Public route - MUST be first and outside Box wrapper */}
+                        <Route path="/login" exact component={LoginPage} />
                     
-                    {/* Private routes with bottom padding for BottomNav */}
-                    <Route path="/">
-                        <Box sx={{ pb: { xs: '76px', sm: '80px' } }}>
-                            <Switch>
-                                <PrivateRoute path="/" exact component={ActivitiesPageNew} />
-                                <PrivateRoute path="/baby-info" component={BabyInfoPageNew} />
-                                <PrivateRoute path="/activities" component={ActivitiesPageNew} />
-                                <PrivateRoute path="/timeline" component={TimelinePage} />
-                                <PrivateRoute path="/statistics" component={StatsPageNewGlass} />
-                                <PrivateRoute path="/milestones" component={MilestonesPage} />
-                                <PrivateRoute path="/wonder-weeks" component={WonderWeeksPage} />
-                                <PrivateRoute path="/food-history" component={FoodHistoryPage} />
-                            </Switch>
-                        </Box>
-                        <BottomNav />
-                    </Route>
-                </Switch>
-            </Suspense>
+                        {/* Private routes with bottom padding for BottomNav */}
+                        <Route path="/">
+                            <Box sx={{ pb: { xs: '76px', sm: '80px' } }}>
+                                <Switch>
+                                    <PrivateRoute path="/" exact component={ActivitiesPageNew} />
+                                    <PrivateRoute path="/baby-info" component={BabyInfoPageNew} />
+                                    <PrivateRoute path="/activities" component={ActivitiesPageNew} />
+                                    <PrivateRoute path="/timeline" component={TimelinePage} />
+                                    <PrivateRoute path="/statistics" component={StatsPageNewGlass} />
+                                    <PrivateRoute path="/milestones" component={MilestonesPage} />
+                                    <PrivateRoute path="/wonder-weeks" component={WonderWeeksPage} />
+                                    <PrivateRoute path="/food-history" component={FoodHistoryPage} />
+                                </Switch>
+                            </Box>
+                            <BottomNav />
+                        </Route>
+                    </Switch>
+                </Suspense>
+            </ErrorBoundary>
         </Router>
     );
 };

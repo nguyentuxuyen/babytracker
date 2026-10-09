@@ -72,6 +72,12 @@ export const registerUser = async (email: string, password: string): Promise<Use
 export const logoutUser = async () => {
     try {
         await signOut(auth);
+        try {
+            // Per-account UI text overrides must not show for the next person on this device.
+            localStorage.removeItem('babytracker.translationOverrides');
+        } catch {
+            // Storage unavailable: nothing cached.
+        }
         console.log('Logout successful');
     } catch (error: any) {
         throw new Error(error.message);

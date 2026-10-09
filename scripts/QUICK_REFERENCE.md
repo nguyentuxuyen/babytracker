@@ -14,7 +14,7 @@ Then say: **"150 milliliters"** or **"1.5 liters"** or **"Log 150ml milk"**
 4. **Get Contents of URL**
    - URL: `https://baby-tracker-app-1.vercel.app/api/logMilk`
    - Method: POST
-   - Header: `x-log-secret: mySecret123`
+   - Header: `x-log-secret: <YOUR_LOG_SECRET>`
    - Body JSON: `{"amountMl": [Provided Input], "note": "via Siri"}`
 5. **Show Result** (Optional): "Logged [Provided Input] ml"
 

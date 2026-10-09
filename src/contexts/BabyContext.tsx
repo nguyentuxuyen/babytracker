@@ -47,8 +47,11 @@ export const BabyProvider: React.FC<BabyProviderProps> = ({ children }) => {
                     } else {
                         console.log('❌ No baby data found by UID, checking for legacy data by email...');
                         
-                        // Try to get legacy baby data by email
-                        const legacyBabyData = await firestore.getBabyByEmail(currentUser.email);
+                        // Legacy data is looked up by email, which only proves ownership when
+                        // the provider verified it (anyone can sign up with someone else's address).
+                        const legacyBabyData = currentUser.emailVerified
+                            ? await firestore.getBabyByEmail(currentUser.email)
+                            : null;
                         console.log('📝 Legacy baby data from email search:', legacyBabyData);
                         
                         if (legacyBabyData) {
@@ -98,12 +101,10 @@ export const BabyProvider: React.FC<BabyProviderProps> = ({ children }) => {
         
         try {
             setLoading(true);
-            // Try to get baby data by email first (compatible with existing data)
-            let babyData = await firestore.getBabyByEmail(currentUser.email);
-            
-            // If not found by email, try by UID
-            if (!babyData) {
-                babyData = await firestore.getBabyByUserId(currentUser.uid);
+            // The baby document id is the user's uid; legacy email lookup only for verified emails.
+            let babyData = await firestore.getBabyByUserId(currentUser.uid);
+            if (!babyData && currentUser.emailVerified) {
+                babyData = await firestore.getBabyByEmail(currentUser.email);
             }
             
             if (babyData) {

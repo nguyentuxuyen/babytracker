@@ -71,14 +71,9 @@ const StatsPage: React.FC = () => {
             if (currentUser?.uid) {
                 try {
                     setLoading(true);
-                    const userActivities = await firestore.getActivities(currentUser.uid);
-                    
-                    // Filter activities for current baby
-                    const babyActivities = baby?.id 
-                        ? userActivities.filter(a => a.babyId === baby.id)
-                        : userActivities;
-                    
-                    setActivities(babyActivities);
+                    // One baby per account: every activity under users/{uid} belongs to it,
+                    // whatever babyId an older writer stored.
+                    setActivities(await firestore.getActivities(currentUser.uid));
                 } catch (error) {
                     // Error loading activities - silently fail in production
                 } finally {

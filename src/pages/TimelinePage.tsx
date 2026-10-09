@@ -176,6 +176,7 @@ const TimelinePage: React.FC = () => {
         }
 
         const updated = await firestore.updateActivity(user.uid, editingActivity.id, {
+            type: editingActivity.type,
             details,
             timestamp
         });

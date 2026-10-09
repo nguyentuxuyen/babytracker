@@ -26,7 +26,7 @@ const runLocalFallback = async (command: AssistantCommand, userId: string): Prom
 
     if (tool === 'create_activity') {
         const saved = await firestore.saveActivity(userId, {
-            babyId: params.babyId || userId,
+            babyId: userId,
             type: params.activityType || 'feeding',
             timestamp: params.timestamp ? new Date(params.timestamp) : new Date(),
             details: params.details || {}
@@ -89,11 +89,13 @@ export const executeAssistantCommand = async (
 
     const token = await currentUser.getIdToken();
 
-    // Send raw text to server; Gemini parses it there
+    // Send raw text to server; Gemini parses it there. Dates go as the user's local
+    // calendar day plus the UTC offset so the server (UTC) can place times correctly.
+    const selected = options?.selectedDate ?? new Date();
     const body = {
         text: command.rawText,
-        selectedDate: options?.selectedDate?.toISOString() ?? new Date().toISOString(),
-        babyId: options?.babyId ?? command.params?.babyId ?? currentUser.uid,
+        selectedDate: `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`,
+        utcOffsetMinutes: -new Date().getTimezoneOffset()
     };
 
     const response = await fetch(ASSISTANT_ENDPOINT, {

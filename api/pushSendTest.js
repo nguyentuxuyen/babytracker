@@ -9,10 +9,16 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  let uid;
+  try {
+    uid = (await verifyUserFromRequest(req)).uid;
+  } catch (error) {
+    res.status(401).json({ error: 'Unauthorized or invalid token' });
+    return;
+  }
+
   try {
     configureWebPush();
-    const decoded = await verifyUserFromRequest(req);
-    const uid = decoded.uid;
 
     const snapshot = await db.collection('users').doc(uid).collection('pushSubscriptions')
       .where('enabled', '==', true)
@@ -48,6 +54,6 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ success: true, sent });
   } catch (error) {
     console.error('pushSendTest error:', error);
-    res.status(401).json({ error: 'Unauthorized or push config missing' });
+    res.status(500).json({ error: 'Push is not configured on the server' });
   }
 };
