@@ -223,7 +223,9 @@
     "confirmDelete": "Delete this record?",
     "deleteFailed": "Could not delete the record.",
     "updateFailed": "Offline records cannot be edited, or the update failed.",
-    "loadFailed": "Could not load activities."
+    "loadFailed": "Could not load activities.",
+    "deleted": "Record deleted",
+    "undo": "Undo"
   },
   "foodHistory": {
     "title": "Solid food log",

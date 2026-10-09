@@ -212,7 +212,9 @@
     "confirmDelete": "Xoá bản ghi này?",
     "deleteFailed": "Không xoá được bản ghi.",
     "updateFailed": "Không sửa được bản ghi ngoại tuyến, hoặc cập nhật thất bại.",
-    "loadFailed": "Không tải được hoạt động."
+    "loadFailed": "Không tải được hoạt động.",
+    "deleted": "Đã xoá bản ghi",
+    "undo": "Hoàn tác"
   },
   "foodHistory": {
     "title": "Nhật ký ăn dặm",

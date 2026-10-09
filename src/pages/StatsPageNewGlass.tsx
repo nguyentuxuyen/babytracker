@@ -922,7 +922,7 @@ const StatsPage: React.FC = () => {
                                                 alignItems: 'center',
                                                 gap: 0.75,
                                                 px: 1.5,
-                                                py: 0.75,
+                                                minHeight: 40,
                                                 borderRadius: '999px',
                                                 border: `1px solid ${active ? line.color : '#e5e7eb'}`,
                                                 bgcolor: active ? `${line.color}14` : '#ffffff',

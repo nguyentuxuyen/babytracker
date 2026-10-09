@@ -176,7 +176,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                     exclusive
                     onChange={(_, newMode) => newMode && setViewMode(newMode)}
                     size="small"
-                    sx={{ height: 32 }}
+                    sx={{ height: 40 }}
                 >
                     <ToggleButton value="combined">{t('growth.combined')}</ToggleButton>
                     <ToggleButton value="weight">{t('growth.weight')}</ToggleButton>

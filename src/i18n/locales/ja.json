@@ -212,7 +212,9 @@
     "confirmDelete": "この記録を削除しますか？",
     "deleteFailed": "記録を削除できませんでした。",
     "updateFailed": "オフライン記録は編集できないか、更新に失敗しました。",
-    "loadFailed": "アクティビティを読み込めませんでした。"
+    "loadFailed": "アクティビティを読み込めませんでした。",
+    "deleted": "記録を削除しました",
+    "undo": "元に戻す"
   },
   "foodHistory": {
     "title": "離乳食の記録",

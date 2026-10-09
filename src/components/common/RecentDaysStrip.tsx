@@ -78,7 +78,7 @@ const RecentDaysStrip: React.FC<RecentDaysStripProps> = ({ selectedDate, onSelec
             </Box>
             {onOpenCalendar && (
                 <Tooltip title={t('common.openCalendar')}>
-                    <IconButton onClick={onOpenCalendar} aria-label={t('common.openCalendar')} size="small">
+                    <IconButton onClick={onOpenCalendar} aria-label={t('common.openCalendar')} sx={{ width: 44, height: 44 }}>
                         <CalendarMonthIcon />
                     </IconButton>
                 </Tooltip>

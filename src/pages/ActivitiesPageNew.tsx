@@ -672,6 +672,8 @@ const ActivitiesPage: React.FC = () => {
                         details: savedActivity.details
                     } as Activity;
                     setActivities([localActivity, ...(activities || [])]);
+                    // A short buzz confirms the save on phones that support it.
+                    navigator.vibrate?.(15);
                     setSnackbar({
                         open: true,
                         message: firestore.isPendingWrite(savedActivity.id)
@@ -951,7 +953,13 @@ const ActivitiesPage: React.FC = () => {
                                             temperature: ''
                                         } as any;
 
-                                        if (action.type === 'diaper') {
+                                        if (action.type === 'feeding') {
+                                            // Start from the last bottle so a repeat feed is one tap on Save.
+                                            const lastMilk = (activities || [])
+                                                .filter((item) => item.type === 'feeding' && item.details?.foodType !== 'solid' && Number(item.details?.amount) > 0)
+                                                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                                            setFormData({ ...baseForm, foodType: 'milk', amount: lastMilk ? String(lastMilk.details.amount) : '' });
+                                        } else if (action.type === 'diaper') {
                                             setFormData({
                                                 ...baseForm,
                                                 isUrine: true,
@@ -1122,7 +1130,7 @@ const ActivitiesPage: React.FC = () => {
                                     }}
                                     sx={{
                                         flexShrink: 0,
-                                        height: 32,
+                                        height: 40,
                                         px: 1.5,
                                         borderRadius: '999px',
                                         border: `1.5px solid ${isBulkMode ? '#13a4ec' : '#e2e8f0'}`,
@@ -1143,7 +1151,7 @@ const ActivitiesPage: React.FC = () => {
                                     setShowForm(false);
                                     setHideActivityType(false);
                                 }}
-                                sx={{ flexShrink: 0, bgcolor: '#f1f5f9', width: 36, height: 36, '&:hover': { bgcolor: '#e2e8f0' } }}
+                                sx={{ flexShrink: 0, bgcolor: '#f1f5f9', width: 40, height: 40, '&:hover': { bgcolor: '#e2e8f0' } }}
                             >
                                 <CloseIcon sx={{ fontSize: 18 }} />
                             </IconButton>
@@ -1846,6 +1854,7 @@ const ActivitiesPage: React.FC = () => {
                 autoHideDuration={4000}
                 onClose={() => setSnackbar({ ...snackbar, open: false })}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                sx={{ bottom: { xs: 'calc(96px + env(safe-area-inset-bottom))' } }}
             >
                 <Alert
                     onClose={() => setSnackbar({ ...snackbar, open: false })}

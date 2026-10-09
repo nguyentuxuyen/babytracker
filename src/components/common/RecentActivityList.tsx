@@ -29,7 +29,7 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({ activities, lim
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: recent.length ? 1 : 0.5 }}>
                 <Typography sx={{ fontSize: 17, fontWeight: 700, color: '#101c22' }}>{t('home.recent')}</Typography>
                 {onSeeAll && recent.length > 0 && (
-                    <Button size="small" onClick={onSeeAll} sx={{ height: 32, px: 1, fontWeight: 600 }}>
+                    <Button size="small" onClick={onSeeAll} sx={{ height: 40, px: 1.5, fontWeight: 600 }}>
                         {t('home.seeAll')}
                     </Button>
                 )}

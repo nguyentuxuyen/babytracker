@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { localeTag } from '../i18n';
-import { Alert, Box, Button, Card, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { DeleteIcon, EditIcon } from '../components/common/icons';
 import DayStatsCard from '../components/common/DayStatsCard';
 import { formatGap, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel } from '../components/common/activityDisplay';
@@ -57,15 +57,54 @@ const TimelinePage: React.FC = () => {
     }, {});
     const timeGroups = Object.entries(groupedActivities);
 
-    const handleDelete = async (activityId: string) => {
-        if (!user?.uid || !window.confirm(t('timeline.confirmDelete'))) return;
-        const deleted = await firestore.deleteActivity(user.uid, activityId);
-        if (deleted) {
-            setActivities((current) => current.filter((activity) => activity.id !== activityId));
-        } else {
+    // Deletes wait a few seconds so the user can undo; the write happens when the timer fires.
+    const UNDO_DELAY_MS = 5000;
+    const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
+    const pendingDeleteRef = useRef<{ activity: Activity; timer: number } | null>(null);
+
+    const commitDelete = async (activity: Activity) => {
+        if (!user?.uid) return;
+        const deleted = await firestore.deleteActivity(user.uid, activity.id);
+        if (!deleted) {
+            setActivities((current) => [activity, ...current]);
             setError(t('timeline.deleteFailed'));
         }
     };
+
+    const flushPendingDelete = () => {
+        const pending = pendingDeleteRef.current;
+        if (!pending) return;
+        window.clearTimeout(pending.timer);
+        pendingDeleteRef.current = null;
+        void commitDelete(pending.activity);
+    };
+
+    const handleDelete = (activity: Activity) => {
+        if (!user?.uid) return;
+        flushPendingDelete();
+        setActivities((current) => current.filter((item) => item.id !== activity.id));
+        const timer = window.setTimeout(() => {
+            pendingDeleteRef.current = null;
+            setPendingDelete(null);
+            void commitDelete(activity);
+        }, UNDO_DELAY_MS);
+        pendingDeleteRef.current = { activity, timer };
+        setPendingDelete(activity);
+    };
+
+    const undoDelete = () => {
+        const pending = pendingDeleteRef.current;
+        if (!pending) return;
+        window.clearTimeout(pending.timer);
+        pendingDeleteRef.current = null;
+        setPendingDelete(null);
+        setActivities((current) => [...current, pending.activity]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    };
+
+    // Leaving the page still deletes what the user removed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => () => flushPendingDelete(), []);
 
     const openEdit = (activity: Activity) => {
         const details = activity.details as Record<string, unknown>;
@@ -240,8 +279,8 @@ const TimelinePage: React.FC = () => {
                                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                                                         <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{getActivityLabel(activity)}</Typography>
                                                         <Box sx={{ display: 'flex' }}>
-                                                            <Tooltip title={t('timeline.edit')}><IconButton aria-label={t('timeline.edit')} size="small" onClick={() => openEdit(activity)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                            <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} size="small" onClick={() => void handleDelete(activity.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                                            <Tooltip title={t('timeline.edit')}><IconButton aria-label={t('timeline.edit')} onClick={() => openEdit(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                                                            <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} onClick={() => handleDelete(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                                                         </Box>
                                                     </Box>
                                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -287,6 +326,13 @@ const TimelinePage: React.FC = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+            <Snackbar
+                open={Boolean(pendingDelete)}
+                message={t('timeline.deleted')}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                sx={{ bottom: { xs: 'calc(96px + env(safe-area-inset-bottom))' } }}
+                action={<Button color="primary" size="small" onClick={undoDelete} sx={{ fontWeight: 700, color: '#7dd3fc' }}>{t('timeline.undo')}</Button>}
+            />
         </Box>
     );
 };
