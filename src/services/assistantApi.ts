@@ -1,6 +1,7 @@
 import { auth } from '../firebase/config';
 import { AssistantCommand } from './assistantCore';
 import { firestore } from '../firebase/firestore';
+import i18n from '../i18n';
 
 export type AssistantApiResponse = {
     success: boolean;
@@ -34,7 +35,7 @@ const runLocalFallback = async (command: AssistantCommand, userId: string): Prom
         return {
             success: true,
             tool,
-            message: '記録を保存しました（ローカルモード）',
+            message: i18n.t('assistant.api.savedLocal'),
             data: { id: saved.id, activity: saved },
             source: 'local',
             reason: 'local parser matched a supported command'
@@ -44,25 +45,25 @@ const runLocalFallback = async (command: AssistantCommand, userId: string): Prom
     if (tool === 'add_food_item') {
         const foodName = String(params.foodName || '').trim();
         if (!foodName) {
-            throw new Error('食品名が必要です');
+            throw new Error(i18n.t('assistant.api.foodNameRequired'));
         }
 
         const ok = await firestore.addFoodItem(userId, foodName);
         if (!ok) {
-            throw new Error('食品を追加できませんでした');
+            throw new Error(i18n.t('assistant.api.foodAddFailed'));
         }
 
         return {
             success: true,
             tool,
-            message: '食品を追加しました（ローカルモード）',
+            message: i18n.t('assistant.api.foodAddedLocal'),
             data: { foodName },
             source: 'local',
             reason: 'local parser matched a supported command'
         };
     }
 
-    throw new Error(`未対応のツール: ${tool}`);
+    throw new Error(i18n.t('assistant.api.unsupportedTool', { tool }));
 };
 
 export const executeAssistantCommand = async (
@@ -71,7 +72,7 @@ export const executeAssistantCommand = async (
 ): Promise<AssistantApiResponse> => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
-        throw new Error('AIアシスタントを使うにはログインが必要です');
+        throw new Error(i18n.t('assistant.loginRequired'));
     }
 
     const shouldUseLocalParsing = isLocalhostRuntime() || command.tool !== 'unknown';
@@ -118,13 +119,13 @@ export const executeAssistantCommand = async (
     try {
         payload = await response.json();
     } catch {
-        throw new Error(`サーバーから無効なレスポンスが返されました (HTTP ${response.status})`);
+        throw new Error(i18n.t('assistant.api.invalidResponse', { status: response.status }));
     }
 
     if (!response.ok) {
         // Surface the real error to the UI — no silent swallowing
         const detail = payload?.details ? ` — ${payload.details}` : '';
-        throw new Error(`${payload?.error ?? 'サーバーエラー'}${detail} (HTTP ${response.status})`);
+        throw new Error(`${payload?.error ?? i18n.t('assistant.api.serverError')}${detail} (HTTP ${response.status})`);
     }
 
     return {

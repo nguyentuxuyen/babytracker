@@ -1,5 +1,6 @@
 import { ChangelogRelease } from '../types';
 import changelogSeed from '../config/changelogSeed.json';
+import { localeTag } from '../i18n';
 
 export const CHANGELOG_SEEN_STORAGE_KEY = 'babytracker.seenChangelogVersions';
 
@@ -13,7 +14,7 @@ export const fallbackChangelogReleases: ChangelogRelease[] = changelogSeed.relea
 }));
 
 export const formatChangelogDate = (value: Date): string => {
-  return value.toLocaleDateString('ja-JP', {
+  return value.toLocaleDateString(localeTag(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'

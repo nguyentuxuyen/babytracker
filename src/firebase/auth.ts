@@ -6,6 +6,7 @@ import {
     createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { auth } from './config';
+import i18n from '../i18n';
 
 export const loginUser = async (email: string, password: string): Promise<User> => {
     try {
@@ -13,23 +14,23 @@ export const loginUser = async (email: string, password: string): Promise<User> 
         return userCredential.user;
     } catch (error: any) {
         // Handle Firebase auth errors with user-friendly messages
-        let errorMessage = 'Đăng nhập thất bại';
+        let errorMessage = i18n.t('auth.loginFailed');
         
         switch (error.code) {
             case 'auth/user-not-found':
-                errorMessage = 'Tài khoản không tồn tại';
+                errorMessage = i18n.t('auth.userNotFound');
                 break;
             case 'auth/wrong-password':
-                errorMessage = 'Mật khẩu không đúng';
+                errorMessage = i18n.t('auth.wrongPassword');
                 break;
             case 'auth/invalid-email':
-                errorMessage = 'Email không hợp lệ';
+                errorMessage = i18n.t('auth.invalidEmail');
                 break;
             case 'auth/user-disabled':
-                errorMessage = 'Tài khoản đã bị khóa';
+                errorMessage = i18n.t('auth.userDisabled');
                 break;
             case 'auth/too-many-requests':
-                errorMessage = 'Quá nhiều lần thử. Vui lòng thử lại sau';
+                errorMessage = i18n.t('auth.tooManyRequests');
                 break;
             default:
                 errorMessage = error.message;
@@ -45,20 +46,20 @@ export const registerUser = async (email: string, password: string): Promise<Use
         return userCredential.user;
     } catch (error: any) {
         // Handle Firebase auth errors with user-friendly messages
-        let errorMessage = 'Đăng ký thất bại';
+        let errorMessage = i18n.t('auth.registerFailed');
         
         switch (error.code) {
             case 'auth/email-already-in-use':
-                errorMessage = 'Email đã được sử dụng';
+                errorMessage = i18n.t('auth.emailInUse');
                 break;
             case 'auth/invalid-email':
-                errorMessage = 'Email không hợp lệ';
+                errorMessage = i18n.t('auth.invalidEmail');
                 break;
             case 'auth/operation-not-allowed':
-                errorMessage = 'Chức năng đăng ký đã bị tắt';
+                errorMessage = i18n.t('auth.registerDisabled');
                 break;
             case 'auth/weak-password':
-                errorMessage = 'Mật khẩu quá yếu';
+                errorMessage = i18n.t('auth.weakPassword');
                 break;
             default:
                 errorMessage = error.message;

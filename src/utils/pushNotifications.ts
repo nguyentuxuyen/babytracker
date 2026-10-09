@@ -1,4 +1,5 @@
 import { User } from 'firebase/auth';
+import { currentLanguage } from '../i18n';
 
 const urlBase64ToUint8Array = (base64String: string) => {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -52,7 +53,8 @@ export const subscribeUserToPush = async (user: User, intervalMinutes: number) =
         body: JSON.stringify({
             subscription: subscription.toJSON(),
             enabled: true,
-            intervalMinutes
+            intervalMinutes,
+            language: currentLanguage()
         })
     });
 

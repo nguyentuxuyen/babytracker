@@ -11,6 +11,8 @@ import {
     Legend
 } from 'recharts';
 import { Box, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import { localeTag } from '../../i18n';
 import { Activity, Baby } from '../../types';
 import {
     WHO_WEIGHT_BOYS,
@@ -27,6 +29,8 @@ interface GrowthChartProps {
 
 const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
     const [viewMode, setViewMode] = React.useState<'combined' | 'weight' | 'height'>('combined');
+    const { t } = useTranslation();
+    const locale = localeTag();
 
     const gender = baby.gender || 'male';
     const weightStandards = gender === 'male' ? WHO_WEIGHT_BOYS : WHO_WEIGHT_GIRLS;
@@ -98,7 +102,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                     age: parseFloat(ageMonths.toFixed(1)),
                     weight: (a.details.weight && a.details.weight > 0) ? a.details.weight / 1000 : null, // Convert g to kg
                     height: (a.details.height && a.details.height > 0) ? a.details.height : null,
-                    date: date.toLocaleDateString()
+                    date: date.toLocaleDateString(locale)
                 };
             })
             .filter(m => m.age >= 0)
@@ -115,7 +119,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                 age: 0,
                 weight: (baby.birthWeight && baby.birthWeight > 0) ? baby.birthWeight / 1000 : null,
                 height: (baby.birthHeight && baby.birthHeight > 0) ? baby.birthHeight : null,
-                date: birthDate.toLocaleDateString()
+                date: birthDate.toLocaleDateString(locale)
             };
 
             // Only add if we don't have a 0 age point or to ensure birth data is included
@@ -125,7 +129,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
         }
 
         return { standards: data, measurements };
-    }, [baby, activities, weightStandards, heightStandards]);
+    }, [baby, activities, weightStandards, heightStandards, locale]);
 
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
@@ -136,19 +140,19 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                 return (
                     <Box sx={{ bgcolor: 'white', p: 1.5, border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: 1 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                            Age: {label} months
+                            {t('growth.ageMonths', { age: label })}
                         </Typography>
                         <Typography variant="caption" display="block" sx={{ mb: 1, color: 'text.secondary' }}>
-                            Date: {measurement.payload.date}
+                            {t('growth.date', { date: measurement.payload.date })}
                         </Typography>
                         {measurement.payload.weight && (
                             <Typography variant="body2" color="#13a4ec">
-                                Weight: {measurement.payload.weight} kg
+                                {t('growth.weight')}: {measurement.payload.weight} kg
                             </Typography>
                         )}
                         {measurement.payload.height && (
                             <Typography variant="body2" color="#10b981">
-                                Height: {measurement.payload.height} cm
+                                {t('growth.height')}: {measurement.payload.height} cm
                             </Typography>
                         )}
                     </Box>
@@ -157,7 +161,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
 
             return (
                 <Box sx={{ bgcolor: 'white', p: 1, border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                    <Typography variant="caption">Age: {label} months</Typography>
+                    <Typography variant="caption">{t('growth.ageMonths', { age: label })}</Typography>
                 </Box>
             );
         }
@@ -174,9 +178,9 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                     size="small"
                     sx={{ height: 32 }}
                 >
-                    <ToggleButton value="combined">Combined</ToggleButton>
-                    <ToggleButton value="weight">Weight</ToggleButton>
-                    <ToggleButton value="height">Height</ToggleButton>
+                    <ToggleButton value="combined">{t('growth.combined')}</ToggleButton>
+                    <ToggleButton value="weight">{t('growth.weight')}</ToggleButton>
+                    <ToggleButton value="height">{t('growth.height')}</ToggleButton>
                 </ToggleButtonGroup>
             </Box>
 
@@ -189,7 +193,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                             type="number" 
                             domain={[0, 'auto']} 
                             tickCount={12}
-                            label={{ value: 'Age (months)', position: 'bottom', offset: 0, fontSize: 12 }}
+                            label={{ value: t('growth.axisAge'), position: 'bottom', offset: 0, fontSize: 12 }}
                             allowDuplicatedCategory={false}
                         />
                         
@@ -198,7 +202,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                             <YAxis 
                                 yAxisId="weight" 
                                 orientation="left" 
-                                label={{ value: 'Weight (kg)', angle: -90, position: 'insideLeft', fontSize: 12, fill: '#13a4ec' }}
+                                label={{ value: t('growth.axisWeight'), angle: -90, position: 'insideLeft', fontSize: 12, fill: '#13a4ec' }}
                                 domain={[0, 'auto']}
                                 tick={{ fontSize: 11, fill: '#13a4ec' }}
                             />
@@ -209,7 +213,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                             <YAxis 
                                 yAxisId="height" 
                                 orientation={viewMode === 'combined' ? "right" : "left"} 
-                                label={{ value: 'Height (cm)', angle: 90, position: 'insideRight', fontSize: 12, fill: '#10b981' }}
+                                label={{ value: t('growth.axisHeight'), angle: 90, position: 'insideRight', fontSize: 12, fill: '#10b981' }}
                                 domain={[40, 'auto']}
                                 tick={{ fontSize: 11, fill: '#10b981' }}
                             />
@@ -229,7 +233,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     stroke="none"
                                     fill="#13a4ec"
                                     fillOpacity={0.1}
-                                    name="Weight Safe Zone"
+                                    name={t('growth.weightRange')}
                                 />
                                 <Line
                                     yAxisId="weight"
@@ -240,7 +244,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     strokeDasharray="3 3"
                                     strokeOpacity={0.5}
                                     dot={false}
-                                    name="Weight Median"
+                                    name={t('growth.weightMedian')}
                                 />
                                 <Line
                                     yAxisId="weight"
@@ -250,7 +254,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     stroke="#13a4ec"
                                     strokeWidth={2}
                                     dot={{ r: 4, fill: '#13a4ec', strokeWidth: 2, stroke: '#fff' }}
-                                    name="My Baby's Weight"
+                                    name={t('growth.babyWeight')}
                                     connectNulls
                                 />
                             </>
@@ -267,7 +271,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     stroke="none"
                                     fill="#10b981"
                                     fillOpacity={0.1}
-                                    name="Height Safe Zone"
+                                    name={t('growth.heightRange')}
                                 />
                                 <Line
                                     yAxisId="height"
@@ -278,7 +282,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     strokeDasharray="3 3"
                                     strokeOpacity={0.5}
                                     dot={false}
-                                    name="Height Median"
+                                    name={t('growth.heightMedian')}
                                 />
                                 <Line
                                     yAxisId="height"
@@ -288,7 +292,7 @@ const GrowthChart: React.FC<GrowthChartProps> = ({ baby, activities }) => {
                                     stroke="#10b981"
                                     strokeWidth={2}
                                     dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
-                                    name="My Baby's Height"
+                                    name={t('growth.babyHeight')}
                                     connectNulls
                                 />
                             </>

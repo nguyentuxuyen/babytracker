@@ -1,6 +1,8 @@
 import React from 'react';
 import { Box, IconButton, Tooltip, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { CalendarDaysIcon as CalendarMonthIcon } from './icons';
+import { localeTag } from '../../i18n';
 
 type RecentDaysStripProps = {
     selectedDate: Date;
@@ -15,6 +17,7 @@ const isSameDay = (left: Date, right: Date) => (
 );
 
 const RecentDaysStrip: React.FC<RecentDaysStripProps> = ({ selectedDate, onSelect, onOpenCalendar }) => {
+    const { t } = useTranslation();
     const today = new Date();
     const dates = Array.from({ length: 4 }, (_, index) => {
         const date = new Date(today);
@@ -52,14 +55,14 @@ const RecentDaysStrip: React.FC<RecentDaysStripProps> = ({ selectedDate, onSelec
                             }}
                         >
                             <Typography component="span" sx={{ fontSize: 11, lineHeight: 1.2 }}>
-                                {date.toLocaleDateString('ja-JP', { weekday: 'short' })}
+                                {date.toLocaleDateString(localeTag(), { weekday: 'short' })}
                             </Typography>
                             <Typography component="span" sx={{ fontSize: 18, lineHeight: 1.2, fontWeight: 700 }}>
                                 {date.getDate()}
                             </Typography>
                             {isSameDay(date, today) && (
                                 <Typography component="span" sx={{ fontSize: 9, lineHeight: 1.1, fontWeight: 700 }}>
-                                    今日
+                                    {t('common.today')}
                                 </Typography>
                             )}
                         </Box>
@@ -67,8 +70,8 @@ const RecentDaysStrip: React.FC<RecentDaysStripProps> = ({ selectedDate, onSelec
                 })}
             </Box>
             {onOpenCalendar && (
-                <Tooltip title="カレンダーを開く">
-                    <IconButton onClick={onOpenCalendar} aria-label="カレンダーを開く" size="small">
+                <Tooltip title={t('common.openCalendar')}>
+                    <IconButton onClick={onOpenCalendar} aria-label={t('common.openCalendar')} size="small">
                         <CalendarMonthIcon />
                     </IconButton>
                 </Tooltip>

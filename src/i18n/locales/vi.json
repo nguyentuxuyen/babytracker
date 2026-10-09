@@ -1,0 +1,498 @@
+{
+  "common": {
+    "baby": "Bé",
+    "loading": "Đang tải...",
+    "close": "Đóng",
+    "cancel": "Huỷ",
+    "save": "Lưu",
+    "add": "Thêm",
+    "all": "Tất cả",
+    "notes": "Ghi chú",
+    "on": "Bật",
+    "off": "Tắt",
+    "today": "Hôm nay",
+    "noData": "Chưa có dữ liệu",
+    "selectDate": "Chọn ngày",
+    "openCalendar": "Mở lịch",
+    "errorOccurred": "Đã xảy ra lỗi",
+    "errorDetail": "Chi tiết: {{message}}",
+    "retry": "Thử lại",
+    "unknownError": "Lỗi không xác định"
+  },
+  "settings": {
+    "language": "Ngôn ngữ"
+  },
+  "units": {
+    "hours": "{{count}} giờ",
+    "minutes": "{{count}} phút",
+    "hoursMinutes": "{{hours}} giờ {{minutes}} phút",
+    "times": "{{count}} lần"
+  },
+  "relative": {
+    "daysAgo": "{{count}} ngày trước",
+    "hoursAgo": "{{hours}} giờ trước",
+    "minutesAgo": "{{count}} phút trước",
+    "justNow": "Vừa xong"
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "records": "Nhật ký",
+    "add": "Thêm hoạt động",
+    "stats": "Thống kê",
+    "food": "Ăn dặm"
+  },
+  "header": {
+    "babyName": "Bé {{name}}",
+    "ageMonths": "{{count}} tháng",
+    "ageMonthsDays": "{{months}} tháng {{days}} ngày",
+    "ageDays": "{{count}} ngày",
+    "offline": "Ngoại tuyến",
+    "pendingSync": "{{count}} mục chờ đồng bộ",
+    "syncing": "Đang đồng bộ...",
+    "reminderEvery": "Nhắc mỗi {{count}} giờ",
+    "pushOn": "Thông báo đẩy: bật",
+    "changelog": "Có gì mới"
+  },
+  "menu": {
+    "babyInfo": "Thông tin bé",
+    "reminderOn": "Bật nhắc nhở",
+    "reminderOff": "Tắt nhắc nhở",
+    "notificationPermission": "Quyền thông báo",
+    "permission": {
+      "granted": "Đã cho phép",
+      "denied": "Đã chặn",
+      "default": "Chưa đặt",
+      "unsupported": "Không hỗ trợ"
+    },
+    "push": "Thông báo đẩy",
+    "enabled": "Bật",
+    "disabled": "Tắt",
+    "sendTestPush": "Gửi thông báo thử",
+    "logout": "Đăng xuất"
+  },
+  "changelog": {
+    "title": "Nội dung cập nhật",
+    "source": "Nguồn dữ liệu: {{source}}",
+    "local": "cục bộ"
+  },
+  "reminder": {
+    "title": "Nhắc nhở Baby Tracker",
+    "body": "Đến giờ cập nhật hoạt động cho bé 👶",
+    "bodyWithName": "Đến giờ cập nhật hoạt động cho bé {{name}} 👶"
+  },
+  "activityTypes": {
+    "feeding": "Cho ăn",
+    "sleep": "Ngủ",
+    "diaper": "Tã",
+    "measurement": "Đo lường",
+    "memo": "Ghi chú",
+    "bath": "Tắm",
+    "dailyRating": "Nhật ký"
+  },
+  "activities": {
+    "heading": "Hoạt động",
+    "editTitle": "Sửa hoạt động",
+    "addTitle": {
+      "feeding": "Thêm cữ ăn",
+      "sleep": "Thêm giấc ngủ",
+      "diaper": "Thêm thay tã",
+      "measurement": "Thêm số đo",
+      "bath": "Thêm lần tắm",
+      "memo": "Thêm ghi chú",
+      "default": "Thêm hoạt động"
+    },
+    "quick": {
+      "milk": "Sữa",
+      "diaper": "Tã",
+      "sleep": "Ngủ",
+      "bath": "Tắm",
+      "measurement": "Đo",
+      "memo": "Ghi chú",
+      "wakeUp": "Thức dậy"
+    },
+    "wakeWindow": {
+      "label": "Cảnh báo thời gian thức:",
+      "overtired": "Bé đã thức {{duration}}. Dễ bị quá mệt.",
+      "sleepSoon": "Bé đã thức {{duration}}. Sắp đến giờ ngủ tiếp."
+    },
+    "form": {
+      "type": "Loại hoạt động",
+      "diaperChange": "Thay tã",
+      "time": "Thời gian",
+      "timesBulk": "Thời gian (nhập nhiều)",
+      "addTime": "Thêm giờ"
+    },
+    "bulk": {
+      "label": "Nhập nhiều",
+      "progress": "Tiến độ: {{completed}}/{{total}}",
+      "errors": "Lỗi ({{count}}):",
+      "moreErrors": "... và {{count}} lỗi khác",
+      "errorAt": "Lỗi lúc {{time}}: {{message}}",
+      "creating": "Đang tạo {{completed}}/{{total}}...",
+      "createCount": "Tạo {{count}} bản ghi"
+    },
+    "snackbar": {
+      "offlineSynced": "Đã đồng bộ {{count}} bản ghi lưu khi ngoại tuyến.",
+      "loginAndSetupBaby": "Vui lòng đăng nhập và nhập thông tin bé.",
+      "loginBeforeAdd": "Vui lòng đăng nhập và nhập thông tin bé trước khi thêm hoạt động.",
+      "sleepTimerStarted": "Đã bắt đầu hẹn giờ ngủ. ⏱️",
+      "sleepTimerStartFailed": "Không bắt đầu được hẹn giờ ngủ.",
+      "sleepTimerStopFailed": "Không dừng được hẹn giờ ngủ.",
+      "sleepSaved": "Đã ghi giấc ngủ: {{count}} phút 😴",
+      "sleepSavedOffline": "Đã lưu giấc ngủ ngoại tuyến: {{count}} phút. Sẽ tự đồng bộ khi có mạng.",
+      "updated": "Đã cập nhật hoạt động.",
+      "updatedOffline": "Đã cập nhật ngoại tuyến. Sẽ tự đồng bộ khi có mạng.",
+      "enterAtLeastOneTime": "Vui lòng nhập ít nhất một mốc giờ.",
+      "duplicateTimes": "Có giờ bị trùng. Vui lòng kiểm tra lại.",
+      "invalidTimes": "Giờ không hợp lệ: {{times}}",
+      "bulkCreated": "Đã tạo {{count}} bản ghi.",
+      "bulkCreatedWithOffline": "Đã tạo {{count}} bản ghi ({{offline}} bản lưu ngoại tuyến, sẽ tự đồng bộ sau).",
+      "bulkPartial": "Đã tạo {{success}}/{{total}}, {{failed}} bản lỗi.",
+      "saved": "Đã lưu.",
+      "savedOffline": "Đã lưu ngoại tuyến. Sẽ tự đồng bộ khi có mạng.",
+      "saveFailed": "Lưu không thành công. Vui lòng thử lại."
+    }
+  },
+  "diaper": {
+    "urine": "Tè",
+    "stool": "Ị",
+    "color": {
+      "yellow": "Vàng",
+      "brown": "Nâu",
+      "gray": "Xám"
+    },
+    "consistency": {
+      "label": "Độ đặc",
+      "loose": "Lỏng",
+      "normal": "Bình thường",
+      "hard": "Khô"
+    }
+  },
+  "feeding": {
+    "milk": "Sữa",
+    "solid": "Ăn dặm",
+    "amountMl": "Lượng (ml)",
+    "amountG": "Lượng (g)",
+    "recentFoods": "Món gần đây",
+    "foodName": "Tên món",
+    "foodNamePlaceholder": "VD: cháo, cà rốt",
+    "reaction": {
+      "label": "Phản ứng của bé",
+      "enthusiastic": "Ăn ngon",
+      "normal": "Bình thường",
+      "dislike": "Không thích",
+      "allergic": "Dị ứng"
+    }
+  },
+  "sleep": {
+    "startTime": "Giờ bắt đầu",
+    "endTime": "Giờ kết thúc",
+    "endTimeWake": "Giờ kết thúc (thức dậy)",
+    "durationMinutes": "Thời lượng ngủ (phút)"
+  },
+  "measurement": {
+    "weightG": "Cân nặng (g)",
+    "heightCm": "Chiều cao (cm)",
+    "temperatureC": "Nhiệt độ (°C)"
+  },
+  "timeline": {
+    "title": "Nhật ký gần đây",
+    "summary": "Tóm tắt",
+    "sleeping": "Đang ngủ · {{duration}}",
+    "empty": "Chưa có hoạt động nào trong ngày này.",
+    "edit": "Sửa bản ghi",
+    "delete": "Xoá bản ghi",
+    "confirmDelete": "Xoá bản ghi này?",
+    "deleteFailed": "Không xoá được bản ghi.",
+    "updateFailed": "Không sửa được bản ghi ngoại tuyến, hoặc cập nhật thất bại.",
+    "loadFailed": "Không tải được hoạt động."
+  },
+  "foodHistory": {
+    "title": "Nhật ký ăn dặm",
+    "searchPlaceholder": "Tìm món...",
+    "filterByReaction": "Lọc theo phản ứng",
+    "dish": "Món ăn",
+    "amount": "Lượng: {{amount}}",
+    "empty": "Chưa có món nào được ghi.",
+    "noMatch": "Không tìm thấy bản ghi phù hợp."
+  },
+  "stats": {
+    "loading": "Đang tải thống kê...",
+    "tabs": {
+      "day": "Ngày",
+      "week": "Tuần",
+      "month": "Tháng",
+      "range": "Khoảng"
+    },
+    "period": {
+      "days": "{{count}} ngày",
+      "weeks": "{{count}} tuần",
+      "months": "{{count}} tháng",
+      "custom": "Tuỳ chọn"
+    },
+    "weekLabel": "Tuần {{n}}",
+    "selectRange": "Chọn khoảng thời gian",
+    "startDate": "Ngày bắt đầu",
+    "endDate": "Ngày kết thúc",
+    "rangeHintFromBirth": "Có thể chọn từ {{date}} (ngày sinh) đến hôm nay",
+    "rangeHint": "Chọn khoảng thời gian để xem thống kê",
+    "displayRange": "Phạm vi hiển thị",
+    "sliderHint": {
+      "day": "Kéo thanh trượt để chọn số ngày hiển thị",
+      "week": "Kéo thanh trượt để chọn số tuần hiển thị",
+      "month": "Kéo thanh trượt để chọn số tháng hiển thị"
+    },
+    "nutrition": "Dinh dưỡng",
+    "sleepAnalysis": "Phân tích giấc ngủ",
+    "sleepMinutes": "Ngủ (phút)",
+    "avgSleep": "Ngủ trung bình",
+    "longestStretch": "Giấc dài nhất",
+    "nightWakings": "Thức giấc đêm",
+    "perNight": "{{count}} lần / đêm",
+    "totalHours": "Tổng {{count}} giờ",
+    "growthChart": "Biểu đồ tăng trưởng (WHO)"
+  },
+  "growth": {
+    "combined": "Cả hai",
+    "weight": "Cân nặng",
+    "height": "Chiều cao",
+    "ageMonths": "Tuổi: {{age}} tháng",
+    "date": "Ngày: {{date}}",
+    "axisAge": "Tuổi (tháng)",
+    "axisWeight": "Cân nặng (kg)",
+    "axisHeight": "Chiều cao (cm)",
+    "weightRange": "Cân nặng chuẩn",
+    "weightMedian": "Cân nặng trung vị",
+    "babyWeight": "Cân nặng của bé",
+    "heightRange": "Chiều cao chuẩn",
+    "heightMedian": "Chiều cao trung vị",
+    "babyHeight": "Chiều cao của bé"
+  },
+  "babyInfo": {
+    "welcome": "Xin chào, {{name}}",
+    "user": "bạn",
+    "ageInDays": "{{name}} được {{count}} ngày tuổi",
+    "birthday": "Sinh nhật",
+    "notSet": "Chưa đặt",
+    "male": "Bé trai",
+    "female": "Bé gái",
+    "genderNotSet": "Chưa đặt giới tính",
+    "basicInfo": "Thông tin cơ bản",
+    "name": "Tên",
+    "birthDate": "Ngày sinh",
+    "dueDate": "Ngày dự sinh",
+    "gender": "Giới tính",
+    "birthWeight": "Cân nặng lúc sinh",
+    "birthHeight": "Chiều dài lúc sinh",
+    "healthInfo": "Thông tin sức khoẻ",
+    "bloodType": "Nhóm máu",
+    "allergies": "Dị ứng",
+    "medication": "Thuốc đang dùng",
+    "none": "Không",
+    "foodMenu": "Thực đơn ăn dặm",
+    "manageMenu": "Quản lý thực đơn",
+    "manageMenuTitle": "Quản lý thực đơn ăn dặm",
+    "foodMenuEmpty": "Chưa có món nào. Thêm món trong \"Quản lý thực đơn\".",
+    "addDish": "Thêm món mới",
+    "editProfile": "Sửa hồ sơ",
+    "editProfileTitle": "Sửa hồ sơ của bé"
+  },
+  "login": {
+    "subtitleLine1": "Theo dõi sinh hoạt, tăng trưởng",
+    "subtitleLine2": "và phát triển của bé trong một ứng dụng",
+    "modeEmail": "Email",
+    "email": "Địa chỉ email",
+    "password": "Mật khẩu",
+    "loginWithEmail": "Đăng nhập bằng email",
+    "continueWithGoogle": "Tiếp tục với Google",
+    "emailFailed": "Đăng nhập bằng email thất bại",
+    "googleFailed": "Đăng nhập bằng Google thất bại",
+    "agreePrefix": "Khi tiếp tục, bạn đồng ý với ",
+    "terms": "Điều khoản dịch vụ",
+    "agreeAnd": " và ",
+    "privacy": "Chính sách bảo mật",
+    "agreeSuffix": ""
+  },
+  "auth": {
+    "loginFailed": "Đăng nhập thất bại",
+    "userNotFound": "Tài khoản không tồn tại",
+    "wrongPassword": "Mật khẩu không đúng",
+    "invalidEmail": "Email không hợp lệ",
+    "userDisabled": "Tài khoản đã bị khóa",
+    "tooManyRequests": "Quá nhiều lần thử. Vui lòng thử lại sau",
+    "registerFailed": "Đăng ký thất bại",
+    "emailInUse": "Email đã được sử dụng",
+    "registerDisabled": "Chức năng đăng ký đã bị tắt",
+    "weakPassword": "Mật khẩu quá yếu"
+  },
+  "assistant": {
+    "recordWithAi": "Ghi bằng AI",
+    "placeholder": "VD: sữa 120ml 9:15",
+    "voice": "Nhập bằng giọng nói",
+    "stopVoice": "Dừng nhập giọng nói",
+    "voiceUnsupported": "Trình duyệt này không hỗ trợ nhập bằng giọng nói.",
+    "voiceFailed": "Không nhận diện được giọng nói. Vui lòng thử lại.",
+    "enterCommand": "Nhập một lệnh ngắn, VD: \"sữa 120ml 9:15\"",
+    "loginRequired": "Vui lòng đăng nhập để dùng trợ lý.",
+    "added": "Đã thêm bản ghi.",
+    "sourceLocal": "phân tích cục bộ",
+    "sourceAi": "phân tích bằng AI",
+    "failed": "Không xử lý được lệnh AI.",
+    "api": {
+      "savedLocal": "Đã lưu bản ghi (chế độ cục bộ)",
+      "foodNameRequired": "Cần nhập tên món",
+      "foodAddFailed": "Không thêm được món",
+      "foodAddedLocal": "Đã thêm món (chế độ cục bộ)",
+      "unsupportedTool": "Lệnh không được hỗ trợ: {{tool}}",
+      "invalidResponse": "Máy chủ trả về phản hồi không hợp lệ (HTTP {{status}})",
+      "serverError": "Lỗi máy chủ"
+    }
+  },
+  "milestones": {
+    "title": "Mốc phát triển",
+    "subtitle": "Theo dõi phát triển của bé",
+    "subtitleWithAge": "{{name}} - {{count}} tháng tuổi",
+    "current": "Hiện tại",
+    "noteLabel": "Lưu ý:",
+    "note": "Mỗi bé phát triển theo nhịp độ riêng. Những mốc này chỉ mang tính tham khảo. Nếu bé chậm hơn một vài mốc, đừng lo lắng quá mức. Tuy nhiên, nếu bé chậm nhiều mốc hoặc bạn có bất kỳ lo ngại nào, hãy tham khảo ý kiến bác sĩ nhi khoa.",
+    "addTitle": "Thêm mốc phát triển mới",
+    "itemTitle": "Tiêu đề",
+    "itemTitlePlaceholder": "VD: Nói câu 5-6 từ",
+    "itemDescription": "Mô tả",
+    "itemDescriptionPlaceholder": "Chi tiết về mốc này...",
+    "categories": {
+      "1": "Tháng 1: Sơ sinh (tuần 1-4)",
+      "2": "Tháng 2: Thích nghi & phản xạ (tuần 5-8)",
+      "3": "Tháng 3: Giao tiếp ban đầu (tuần 9-12)",
+      "4": "Tháng 4: Tương tác xã hội (tuần 13-16)",
+      "5": "Tháng 5: Phát triển vận động (tuần 17-20)",
+      "6": "Tháng 6: Khám phá cơ thể (tuần 21-24)",
+      "7": "Tháng 7: Ngồi và khám phá (tuần 25-28)",
+      "8": "Tháng 8: Phát triển tinh tế (tuần 29-32)",
+      "9": "Tháng 9: Bò và độc lập (tuần 33-36)",
+      "10": "Tháng 10: Di chuyển nhanh hơn (tuần 37-40)",
+      "11": "Tháng 11: Chuẩn bị bước đi (tuần 41-44)",
+      "12": "Tháng 12: Tập bước đi (tuần 45-48)",
+      "13": "Tháng 13 (1 tuổi): Những bước đầu tiên",
+      "14": "Tháng 14: Bước đi ổn định (14-15 tháng)",
+      "15": "Tháng 15: Học hỏi từ bắt chước (15-16 tháng)",
+      "16": "Tháng 16: Độc lập tăng cao (16-17 tháng)",
+      "17": "Tháng 17: Giao tiếp mở rộng (17-18 tháng)",
+      "18": "Tháng 18: Phát triển tinh tế (18-19 tháng)",
+      "19": "Tháng 19 (1.5 tuổi): Độc lập và sáng tạo"
+    }
+  },
+  "wonderWeeks": {
+    "title": "Tuần khủng hoảng",
+    "age": "Tuổi: {{count}} tuần",
+    "currentLeap": "Bé đang trong tuần khủng hoảng thứ {{id}}!",
+    "nextLeap": "Tuần khủng hoảng tiếp theo ({{id}}) bắt đầu khoảng tuần {{week}}.",
+    "noteFromDueDate": "Lưu ý: tính theo ngày dự sinh. Mỗi bé phát triển khác nhau.",
+    "noteFromBirth": "Lưu ý: tính theo ngày sinh. Mỗi bé phát triển khác nhau.",
+    "leapTitle": "Tuần khủng hoảng {{id}}: {{name}}",
+    "weeksRange": "(khoảng tuần {{start}}-{{end}})",
+    "newSkills": "Kỹ năng mới bé có thể học:",
+    "leaps": {
+      "1": {
+        "name": "Thế giới của những cảm giác thay đổi",
+        "description": "Bé trở nên nhạy cảm hơn với các giác quan. Bé có thể khóc nhiều hơn, đòi bú thường xuyên hơn và cần được âu yếm nhiều hơn.",
+        "skills": [
+          "Nhìn chăm chú hơn và lâu hơn.",
+          "Phản ứng rõ rệt hơn với âm thanh, mùi vị.",
+          "Có nụ cười đầu tiên có ý thức.",
+          "Hệ tiêu hóa phát triển, có thể ợ hơi nhiều hơn."
+        ]
+      },
+      "2": {
+        "name": "Thế giới của các khuôn mẫu",
+        "description": "Bé bắt đầu nhận ra các quy luật và khuôn mẫu trong thế giới xung quanh. Bé có thể kiểm soát cơ thể tốt hơn.",
+        "skills": [
+          "Phát hiện ra tay và chân của mình.",
+          "Tạo ra âm thanh và lắng nghe chúng.",
+          "Thích nhìn vào các hình ảnh có độ tương phản cao.",
+          "Giữ đầu ổn định hơn."
+        ]
+      },
+      "3": {
+        "name": "Thế giới của những chuyển đổi mượt mà",
+        "description": "Bé nhận thức được những thay đổi tinh tế trong âm thanh, chuyển động và cảm giác. Bé trở nên hoạt bát hơn.",
+        "skills": [
+          "Chuyển động mượt mà hơn, ít giật cục.",
+          "Theo dõi đồ vật bằng mắt và quay đầu theo.",
+          "Phát ra nhiều âm thanh bập bẹ đa dạng.",
+          "Đưa tay hoặc đồ vật vào miệng."
+        ]
+      },
+      "4": {
+        "name": "Thế giới của các sự kiện",
+        "description": "Đây là bước nhảy vọt lớn! Bé hiểu được chuỗi các sự kiện đơn giản và bắt đầu học về nguyên nhân - kết quả.",
+        "skills": [
+          "Nắm, bắt, và lắc đồ vật có chủ đích.",
+          "Lật từ ngửa sang sấp (hoặc ngược lại).",
+          "Phản ứng với tên của mình.",
+          "Bắt đầu ăn dặm (nếu được giới thiệu)."
+        ]
+      },
+      "5": {
+        "name": "Thế giới của các mối quan hệ",
+        "description": "Bé nhận thức được khoảng cách và mối quan hệ giữa các đồ vật, con người. Nỗi sợ người lạ có thể bắt đầu.",
+        "skills": [
+          "Hiểu rằng mẹ có thể rời đi và quay lại.",
+          "Bắt đầu bò hoặc trườn.",
+          "Chuyển đồ vật từ tay này sang tay kia.",
+          "Quan tâm đến các chi tiết nhỏ của đồ chơi."
+        ]
+      },
+      "6": {
+        "name": "Thế giới của các phân loại",
+        "description": "Bé bắt đầu phân loại mọi thứ. Bé hiểu rằng một con chó là con chó, dù nó to hay nhỏ, lông xù hay lông mượt.",
+        "skills": [
+          "Bắt chước các hành động và âm thanh.",
+          "Thể hiện cảm xúc rõ ràng hơn (vui, buồn, giận).",
+          "Chỉ vào những thứ bé muốn.",
+          "Bắt đầu vịn để đứng lên."
+        ]
+      },
+      "7": {
+        "name": "Thế giới của các chuỗi hành động",
+        "description": "Bé hiểu rằng để đạt được mục tiêu, cần phải thực hiện một chuỗi các hành động theo thứ tự.",
+        "skills": [
+          "Chơi các trò chơi lắp ráp, xếp chồng.",
+          "Hiểu các câu lệnh đơn giản như \"đưa cho mẹ\".",
+          "Vẫy tay chào tạm biệt.",
+          "Tập những bước đi đầu tiên."
+        ]
+      },
+      "8": {
+        "name": "Thế giới của các chương trình",
+        "description": "Bé hiểu rằng có nhiều cách khác nhau để đạt được cùng một mục tiêu và có thể lựa chọn \"chương trình\" phù hợp.",
+        "skills": [
+          "Bắt đầu có những cơn ăn vạ để thử thách giới hạn.",
+          "Sử dụng thìa hoặc dĩa.",
+          "Nói được nhiều từ hơn.",
+          "Giúp đỡ các công việc đơn giản trong nhà."
+        ]
+      },
+      "9": {
+        "name": "Thế giới của các nguyên tắc",
+        "description": "Bé bắt đầu thử nghiệm với các quy tắc và hậu quả. Bé học cách đàm phán và hiểu khái niệm \"của con\" và \"của mẹ\".",
+        "skills": [
+          "Chơi các trò chơi giả vờ phức tạp hơn.",
+          "Nhận biết và gọi tên các bộ phận cơ thể.",
+          "Nói được các câu ngắn.",
+          "Thể hiện sự độc lập, muốn tự làm mọi việc."
+        ]
+      },
+      "10": {
+        "name": "Thế giới của các hệ thống",
+        "description": "Bé nhận ra mình là một cá thể riêng biệt với các quy tắc và giá trị riêng. Bé phát triển ý thức về bản thân.",
+        "skills": [
+          "Hiểu và làm theo các quy tắc của gia đình.",
+          "Phát triển sự đồng cảm với người khác.",
+          "Có thể tự mặc quần áo đơn giản.",
+          "Kể lại các sự kiện đã xảy ra."
+        ]
+      }
+    }
+  }
+}

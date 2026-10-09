@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom';
 import { useHistory, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 import { useBaby } from '../contexts/BabyContext';
@@ -12,6 +13,8 @@ import RecentDaysStrip from '../components/common/RecentDaysStrip';
 import { BabyIcon, BathIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon } from '../components/common/icons';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { filterFoodItems } from '../utils/foodSearch';
+import i18n from '../i18n';
+import { formatHoursMinutes } from '../i18n/format';
 
 const RECENT_FOOD_CHIP_COUNT = 8;
 
@@ -80,10 +83,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
         if (this.state.hasError) {
             return (
                 <Box sx={{ p: 3, textAlign: 'center' }}>
-                    <Typography variant="h6" color="error">エラーが発生しました</Typography>
-                    <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>詳細: {this.state.errorMessage}</Typography>
+                    <Typography variant="h6" color="error">{i18n.t('common.errorOccurred')}</Typography>
+                    <Typography variant="body2" sx={{ mt: 1, mb: 2 }}>{i18n.t('common.errorDetail', { message: this.state.errorMessage })}</Typography>
                     <MuiButton onClick={() => this.setState({ hasError: false, errorMessage: '' })} variant="contained">
-                        再試行
+                        {i18n.t('common.retry')}
                     </MuiButton>
                 </Box>
             );
@@ -102,6 +105,7 @@ const ActivitiesPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [showAiComposer, setShowAiComposer] = useState(false);
     const { user: currentUser } = useAuth();
+    const { t } = useTranslation();
     
     const { ongoingSleep, elapsedSeconds: sleepElapsedTime, setOngoingSleep } = useSleepTimer(currentUser?.uid, baby?.id);
 
@@ -288,7 +292,7 @@ const ActivitiesPage: React.FC = () => {
                 loadActivities();
                 setSnackbar({
                     open: true,
-                    message: `オフライン保存した${syncedCount}件の記録を同期しました。`,
+                    message: t('activities.snackbar.offlineSynced', { count: syncedCount }),
                     severity: 'success'
                 });
             }
@@ -323,7 +327,7 @@ const ActivitiesPage: React.FC = () => {
         if (!currentUser?.uid || !baby?.id) {
             setSnackbar({
                 open: true,
-                message: 'ログインし、赤ちゃん情報を設定してください。',
+                message: t('activities.snackbar.loginAndSetupBaby'),
                 severity: 'warning'
             });
             return;
@@ -341,14 +345,14 @@ const ActivitiesPage: React.FC = () => {
             if (success) {
                 setSnackbar({
                     open: true,
-                    message: '睡眠タイマーを開始しました。⏱️',
+                    message: t('activities.snackbar.sleepTimerStarted'),
                     severity: 'success'
                 });
             } else {
                 setOngoingSleep(prev => (prev === started ? null : prev));
                 setSnackbar({
                     open: true,
-                    message: '睡眠タイマーの開始に失敗しました。',
+                    message: t('activities.snackbar.sleepTimerStartFailed'),
                     severity: 'error'
                 });
             }
@@ -398,7 +402,7 @@ const ActivitiesPage: React.FC = () => {
                 setOngoingSleep(prev => prev ?? stopped);
                 setSnackbar({
                     open: true,
-                    message: '睡眠タイマーの停止に失敗しました。',
+                    message: t('activities.snackbar.sleepTimerStopFailed'),
                     severity: 'error'
                 });
                 return;
@@ -416,8 +420,8 @@ const ActivitiesPage: React.FC = () => {
             setSnackbar({
                 open: true,
                 message: savedActivity.id.startsWith('offline-')
-                    ? `睡眠をオフライン保存しました: ${duration}分。オンライン時に自動同期されます。`
-                    : `睡眠を記録しました: ${duration}分 😴`,
+                    ? t('activities.snackbar.sleepSavedOffline', { count: duration })
+                    : t('activities.snackbar.sleepSaved', { count: duration }),
                 severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
             });
         } finally {
@@ -431,7 +435,7 @@ const ActivitiesPage: React.FC = () => {
         if (!currentUser?.uid || !baby?.id) {
             setSnackbar({
                 open: true,
-                message: 'アクティビティ追加前にログインし、赤ちゃん情報を設定してください。',
+                message: t('activities.snackbar.loginBeforeAdd'),
                 severity: 'warning'
             });
             return;
@@ -553,8 +557,8 @@ const ActivitiesPage: React.FC = () => {
                 setSnackbar({
                     open: true,
                     message: savedActivity.id.startsWith('offline-')
-                        ? 'オフラインで更新しました。オンライン時に自動同期されます。'
-                        : 'アクティビティを更新しました。',
+                        ? t('activities.snackbar.updatedOffline')
+                        : t('activities.snackbar.updated'),
                     severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                 });
                 setEditingActivity(null);
@@ -566,7 +570,7 @@ const ActivitiesPage: React.FC = () => {
                     if (validTimes.length === 0) {
                         setSnackbar({
                             open: true,
-                            message: '少なくとも1つの時刻を入力してください。',
+                            message: t('activities.snackbar.enterAtLeastOneTime'),
                             severity: 'warning'
                         });
                         return;
@@ -577,7 +581,7 @@ const ActivitiesPage: React.FC = () => {
                     if (uniqueTimes.length !== validTimes.length) {
                         setSnackbar({
                             open: true,
-                            message: '重複した時刻があります。確認してください。',
+                            message: t('activities.snackbar.duplicateTimes'),
                             severity: 'warning'
                         });
                         return;
@@ -588,7 +592,7 @@ const ActivitiesPage: React.FC = () => {
                     if (invalidTimes.length > 0) {
                         setSnackbar({
                             open: true,
-                            message: `無効な時刻: ${invalidTimes.join(', ')}`,
+                            message: t('activities.snackbar.invalidTimes', { times: invalidTimes.join(', ') }),
                             severity: 'warning'
                         });
                         return;
@@ -630,7 +634,7 @@ const ActivitiesPage: React.FC = () => {
                         } catch (error) {
                             setBulkProgress(prev => ({ 
                                 ...prev, 
-                                errors: [...prev.errors, `${time} でエラー: ${error instanceof Error ? error.message : 'Unknown error'}`]
+                                errors: [...prev.errors, t('activities.bulk.errorAt', { time, message: error instanceof Error ? error.message : t('common.unknownError') })]
                             }));
                         }
                     }
@@ -646,14 +650,14 @@ const ActivitiesPage: React.FC = () => {
                         setSnackbar({
                             open: true,
                             message: offlineCount > 0
-                                ? `${successCount}件の記録を作成しました（${offlineCount}件はオフライン保存、後で自動同期）。`
-                                : `${successCount}件の記録を作成しました。`,
+                                ? t('activities.snackbar.bulkCreatedWithOffline', { count: successCount, offline: offlineCount })
+                                : t('activities.snackbar.bulkCreated', { count: successCount }),
                             severity: offlineCount > 0 ? 'info' : 'success'
                         });
                     } else {
                         setSnackbar({
                             open: true,
-                            message: `${validTimes.length}件中 ${successCount}件を作成、${errorCount}件でエラー。`,
+                            message: t('activities.snackbar.bulkPartial', { total: validTimes.length, success: successCount, failed: errorCount }),
                             severity: 'warning'
                         });
                     }
@@ -670,8 +674,8 @@ const ActivitiesPage: React.FC = () => {
                     setSnackbar({
                         open: true,
                         message: savedActivity.id.startsWith('offline-')
-                            ? 'オフライン保存しました。オンライン時に自動同期されます。'
-                            : '記録を保存しました。',
+                            ? t('activities.snackbar.savedOffline')
+                            : t('activities.snackbar.saved'),
                         severity: savedActivity.id.startsWith('offline-') ? 'info' : 'success'
                     });
                 }
@@ -710,7 +714,7 @@ const ActivitiesPage: React.FC = () => {
         } catch (error) {
             setSnackbar({
                 open: true,
-                message: '保存中にエラーが発生しました。もう一度お試しください。',
+                message: t('activities.snackbar.saveFailed'),
                 severity: 'error'
             });
         } finally {
@@ -720,13 +724,14 @@ const ActivitiesPage: React.FC = () => {
 
     const getActivityTitle = (type: string) => {
         switch (type) {
-            case 'feeding': return '授乳を追加';
-            case 'sleep': return '睡眠を追加';
-            case 'diaper': return 'おむつを追加';
-            case 'measurement': return '計測を追加';
-            case 'bath': return 'お風呂を追加';
-            case 'memo': return 'メモを追加';
-            default: return 'アクティビティを追加';
+            case 'feeding':
+            case 'sleep':
+            case 'diaper':
+            case 'measurement':
+            case 'bath':
+            case 'memo':
+                return t(`activities.addTitle.${type}`);
+            default: return t('activities.addTitle.default');
         }
     };
 
@@ -780,15 +785,15 @@ const ActivitiesPage: React.FC = () => {
             if (diffHours >= 2.5) {
                 const hours = Math.floor(diffHours);
                 const mins = Math.floor((diffHours - hours) * 60);
-                return `${hours > 0 ? `${hours}時間` : ''}${mins > 0 ? `${mins}分` : ''}起きています。過覚醒になりやすい時間です。`;
+                return t('activities.wakeWindow.overtired', { duration: formatHoursMinutes(hours, mins) });
             } else if (diffHours >= 2) {
                 const hours = Math.floor(diffHours);
                 const mins = Math.floor((diffHours - hours) * 60);
-                return `${hours > 0 ? `${hours}時間` : ''}${mins > 0 ? `${mins}分` : ''}起きています。そろそろ次の睡眠時間です。`;
+                return t('activities.wakeWindow.sleepSoon', { duration: formatHoursMinutes(hours, mins) });
             }
         }
         return null;
-    }, [activities, ongoingSleep, currentTime, selectedDate]);
+    }, [activities, ongoingSleep, currentTime, selectedDate, t]);
 
     return (
         <ErrorBoundary>
@@ -838,7 +843,7 @@ const ActivitiesPage: React.FC = () => {
         }}
         >
             <Dialog open={showAiComposer} onClose={() => setShowAiComposer(false)} fullWidth maxWidth="sm">
-                <DialogTitle>AIで記録</DialogTitle>
+                <DialogTitle>{t('assistant.recordWithAi')}</DialogTitle>
                 <DialogContent sx={{ pt: 1 }}>
                     <AssistantComposer
                         babyId={baby?.id}
@@ -847,7 +852,7 @@ const ActivitiesPage: React.FC = () => {
                     />
                 </DialogContent>
                 <DialogActions>
-                    <MuiButton onClick={() => setShowAiComposer(false)}>閉じる</MuiButton>
+                    <MuiButton onClick={() => setShowAiComposer(false)}>{t('common.close')}</MuiButton>
                 </DialogActions>
             </Dialog>
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
@@ -856,7 +861,7 @@ const ActivitiesPage: React.FC = () => {
                 {wakeWindowWarning && (
                     <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.25, ...liquidGlassStyle, borderRadius: '12px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            覚醒時間アラート: <Box component="span" sx={{ fontWeight: 400 }}>{wakeWindowWarning}</Box>
+                            {t('activities.wakeWindow.label')} <Box component="span" sx={{ fontWeight: 400 }}>{wakeWindowWarning}</Box>
                         </Typography>
                     </Alert>
                 )}
@@ -877,33 +882,33 @@ const ActivitiesPage: React.FC = () => {
                             if (year && month && day) setSelectedDate(new Date(year, month - 1, day));
                         }}
                         sx={{ mb: 1.5, width: '100%' }}
-                        inputProps={{ 'aria-label': '日付を選択' }}
+                        inputProps={{ 'aria-label': t('common.selectDate') }}
                     />
                 )}
 
                 {/* Quick Actions - New Design */}
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
-                        アクティビティ
+                        {t('activities.heading')}
                     </Typography>
                     <Grid container spacing={2}>
                         {[
                             { 
-                                label: 'ミルク',
+                                label: t('activities.quick.milk'),
                                 type: 'feeding', 
                                 icon: (
                                     <MilkIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
-                                label: 'おむつ',
+                                label: t('activities.quick.diaper'),
                                 type: 'diaper', 
                                 icon: (
                                     <BabyIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
-                                label: '睡眠',
+                                label: t('activities.quick.sleep'),
                                 type: 'sleep', 
                                 icon: (
                                     <SleepIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
@@ -911,21 +916,21 @@ const ActivitiesPage: React.FC = () => {
                                 isSleepTimer: true // Special flag for sleep timer
                             },
                             { 
-                                label: 'お風呂',
+                                label: t('activities.quick.bath'),
                                 type: 'bath', 
                                 icon: (
                                     <BathIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
-                                label: '計測',
+                                label: t('activities.quick.measurement'),
                                 type: 'measurement', 
                                 icon: (
                                     <MeasurementIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
                                 )
                             },
                             { 
-                                label: 'メモ',
+                                label: t('activities.quick.memo'),
                                 type: 'memo', 
                                 icon: (
                                     <MemoIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
@@ -955,10 +960,10 @@ const ActivitiesPage: React.FC = () => {
                                 const diffHours = diffMs / (1000 * 60 * 60);
                                 const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-                                if (diffDays > 0) return `${diffDays}日前`;
-                                if (diffHours >= 1) return `${diffHours.toFixed(1)}時間前`;
-                                if (diffMinutes >= 1) return `${Math.floor(diffMinutes)}分前`;
-                                return 'たった今';
+                                if (diffDays > 0) return t('relative.daysAgo', { count: diffDays });
+                                if (diffHours >= 1) return t('relative.hoursAgo', { hours: diffHours.toFixed(1) });
+                                if (diffMinutes >= 1) return t('relative.minutesAgo', { count: Math.floor(diffMinutes) });
+                                return t('relative.justNow');
                             };
 
                             const timeSince = getTimeSinceLastActivity(action.type);
@@ -1032,7 +1037,7 @@ const ActivitiesPage: React.FC = () => {
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                         {action.icon}
                                         <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#101c22' }}>
-                                            {(action as any).isSleepTimer && ongoingSleep ? '起床' : action.label}
+                                            {(action as any).isSleepTimer && ongoingSleep ? t('activities.quick.wakeUp') : action.label}
                                         </Typography>
                                     </Box>
                                     {(action as any).isSleepTimer && ongoingSleep ? (
@@ -1047,7 +1052,7 @@ const ActivitiesPage: React.FC = () => {
                                     ) : timeSince ? (
                                         <Typography sx={{ 
                                             fontSize: '12px', 
-                                            color: timeSince === 'データなし' ? '#b0b8bf' : '#9ca3af',
+                                            color: '#9ca3af',
                                             fontWeight: 500,
                                             pl: 5
                                         }}>
@@ -1060,7 +1065,7 @@ const ActivitiesPage: React.FC = () => {
                                             fontWeight: 500,
                                             pl: 5
                                         }}>
-                                            データなし
+                                            {t('common.noData')}
                                         </Typography>
                                     )}
                                 </Box>
@@ -1138,12 +1143,12 @@ const ActivitiesPage: React.FC = () => {
                         <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2, flexShrink: 0 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                 <Typography variant="h6" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, color: '#101c22' }}>
-                                    {editingActivity ? 'アクティビティを編集' : getActivityTitle(formData.type)}
+                                    {editingActivity ? t('activities.editTitle') : getActivityTitle(formData.type)}
                                 </Typography>
                                 {!editingActivity && (
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <Typography variant="caption" sx={{ color: '#6b7f8a', fontSize: { xs: '12px', sm: '13px' }, display: { xs: 'none', sm: 'block' } }}>
-                                            一括入力
+                                            {t('activities.bulk.label')}
                                         </Typography>
                                         <MuiButton
                                             size="small"
@@ -1168,7 +1173,7 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            {isBulkMode ? '有効' : '無効'}
+                                            {isBulkMode ? t('common.on') : t('common.off')}
                                         </MuiButton>
                                     </Box>
                                 )}
@@ -1203,11 +1208,11 @@ const ActivitiesPage: React.FC = () => {
                                 {/* Activity Type Select - Hidden when opened from quick action */}
                                 {!hideActivityType && (
                                     <FormControl fullWidth>
-                                        <InputLabel id="activity-type-label" sx={{ color: '#6b7f8a' }}>アクティビティ種別</InputLabel>
+                                        <InputLabel id="activity-type-label" sx={{ color: '#6b7f8a' }}>{t('activities.form.type')}</InputLabel>
                                         <Select
                                             labelId="activity-type-label"
                                             value={formData.type}
-                                            label="アクティビティ種別"
+                                            label={t('activities.form.type')}
                                             onChange={(e) => {
                                                 const newType = e.target.value as any;
                                                 if (newType === 'diaper') {
@@ -1247,12 +1252,12 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            <MenuItem value="feeding">🍼 授乳</MenuItem>
-                                            <MenuItem value="sleep">😴 睡眠</MenuItem>
-                                            <MenuItem value="diaper">👶 おむつ交換</MenuItem>
-                                            <MenuItem value="bath">🛁 お風呂</MenuItem>
-                                            <MenuItem value="measurement">📏 計測</MenuItem>
-                                            <MenuItem value="memo">📝 メモ</MenuItem>
+                                            <MenuItem value="feeding">🍼 {t('activityTypes.feeding')}</MenuItem>
+                                            <MenuItem value="sleep">😴 {t('activityTypes.sleep')}</MenuItem>
+                                            <MenuItem value="diaper">👶 {t('activities.form.diaperChange')}</MenuItem>
+                                            <MenuItem value="bath">🛁 {t('activityTypes.bath')}</MenuItem>
+                                            <MenuItem value="measurement">📏 {t('activityTypes.measurement')}</MenuItem>
+                                            <MenuItem value="memo">📝 {t('activityTypes.memo')}</MenuItem>
                                         </Select>
                                     </FormControl>
                                 )}
@@ -1261,7 +1266,7 @@ const ActivitiesPage: React.FC = () => {
                                 {formData.type !== 'sleep' && (!isBulkMode ? (
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                         <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a' }}>
-                                            時間
+                                            {t('activities.form.time')}
                                         </Typography>
                                         <input
                                             type="time"
@@ -1283,7 +1288,7 @@ const ActivitiesPage: React.FC = () => {
                                 ) : (
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#101c22', fontSize: '14px' }}>
-                                            時間（一括）
+                                            {t('activities.form.timesBulk')}
                                         </Typography>
                                         {bulkTimes.map((time, index) => (
                                             <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1353,7 +1358,7 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            + 時間を追加
+                                            + {t('activities.form.addTime')}
                                         </MuiButton>
                                     </Box>
                                 ))}
@@ -1374,7 +1379,7 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                 />
                                             }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>おしっこ</Typography>}
+                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>{t('diaper.urine')}</Typography>}
                                         />
                                         <FormControlLabel
                                             control={
@@ -1389,7 +1394,7 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                 />
                                             }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>うんち</Typography>}
+                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>{t('diaper.stool')}</Typography>}
                                         />
 
                                         {formData.isStool && (
@@ -1417,16 +1422,16 @@ const ActivitiesPage: React.FC = () => {
                                                                     }}
                                                                 />
                                                             }
-                                                            label={<Typography sx={{ fontSize: '13px', color: '#101c22' }}>{color === 'vàng' ? '黄色' : color === 'nâu' ? '茶色' : '灰色'}</Typography>}
+                                                            label={<Typography sx={{ fontSize: '13px', color: '#101c22' }}>{t(`diaper.color.${color === 'vàng' ? 'yellow' : color === 'nâu' ? 'brown' : 'gray'}`)}</Typography>}
                                                         />
                                                     ))}
                                                 </Box>
                                                 <FormControl fullWidth>
-                                                    <InputLabel id="stool-consistency-label" sx={{ color: '#6b7f8a' }}>形状</InputLabel>
+                                                    <InputLabel id="stool-consistency-label" sx={{ color: '#6b7f8a' }}>{t('diaper.consistency.label')}</InputLabel>
                                                     <Select
                                                         labelId="stool-consistency-label"
                                                         value={formData.stoolConsistency || 'bình thường'}
-                                                        label="形状"
+                                                        label={t('diaper.consistency.label')}
                                                         onChange={(e) => setFormData({ ...formData, stoolConsistency: e.target.value as 'lỏng' | 'bình thường' | 'khô' })}
                                                         sx={{
                                                             bgcolor: '#e3e8eb',
@@ -1452,9 +1457,9 @@ const ActivitiesPage: React.FC = () => {
                                                             }
                                                         }}
                                                     >
-                                                        <MenuItem value="lỏng">やわらかい</MenuItem>
-                                                        <MenuItem value="bình thường">普通</MenuItem>
-                                                        <MenuItem value="khô">かたい</MenuItem>
+                                                        <MenuItem value="lỏng">{t('diaper.consistency.loose')}</MenuItem>
+                                                        <MenuItem value="bình thường">{t('diaper.consistency.normal')}</MenuItem>
+                                                        <MenuItem value="khô">{t('diaper.consistency.hard')}</MenuItem>
                                                     </Select>
                                                 </FormControl>
                                             </Box>
@@ -1478,13 +1483,13 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                         >
-                                            <Tab label="ミルク" />
-                                            <Tab label="離乳食" />
+                                            <Tab label={t('feeding.milk')} />
+                                            <Tab label={t('feeding.solid')} />
                                         </Tabs>
 
                                         {formData.foodType !== 'solid' ? (
                                             <TextField
-                                                label="量 (ml)"
+                                                label={t('feeding.amountMl')}
                                                 type="number"
                                                 inputMode="decimal"
                                                 inputProps={{ inputMode: 'decimal', pattern: '[0-9]*' }}
@@ -1516,7 +1521,7 @@ const ActivitiesPage: React.FC = () => {
                                                 {foodItems.length > 0 && (
                                                     <Box>
                                                         <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7f8a', mb: 0.75 }}>
-                                                            最近の食品
+                                                            {t('feeding.recentFoods')}
                                                         </Typography>
                                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                                                             {foodItems.slice(0, RECENT_FOOD_CHIP_COUNT).map((item) => {
@@ -1576,8 +1581,8 @@ const ActivitiesPage: React.FC = () => {
                                                     renderInput={(params) => (
                                                         <TextField
                                                             {...params}
-                                                            label="食品名"
-                                                            placeholder="例: おかゆ、にんじん"
+                                                            label={t('feeding.foodName')}
+                                                            placeholder={t('feeding.foodNamePlaceholder')}
                                                             onFocus={() => {
                                                                 // Scroll the Autocomplete element into view, aligning it to the top or center of viewport
                                                                 setTimeout(() => {
@@ -1610,7 +1615,7 @@ const ActivitiesPage: React.FC = () => {
                                                     )}
                                                 />
                                                 <TextField
-                                                    label="量 (g)"
+                                                    label={t('feeding.amountG')}
                                                     type="number"
                                                     inputMode="decimal"
                                                     inputProps={{ inputMode: 'decimal', pattern: '[0-9]*' }}
@@ -1638,12 +1643,12 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                 />
                                                 <FormControl fullWidth>
-                                                    <InputLabel id="food-preference-label">赤ちゃんの反応</InputLabel>
+                                                    <InputLabel id="food-preference-label">{t('feeding.reaction.label')}</InputLabel>
                                                     <Select
                                                         labelId="food-preference-label"
                                                         id="food-preference-select"
                                                         value={formData.foodPreference ?? 'normal'}
-                                                        label="赤ちゃんの反応"
+                                                        label={t('feeding.reaction.label')}
                                                         onChange={(e) => setFormData(prev => ({ ...prev, foodPreference: (e.target.value as 'enthusiastic' | 'normal' | 'dislike' | 'allergic') || 'normal' }))}
                                                         sx={{
                                                             '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
@@ -1662,10 +1667,10 @@ const ActivitiesPage: React.FC = () => {
                                                             }
                                                         }}
                                                     >
-                                                        <MenuItem value="enthusiastic" sx={{ color: '#101c22' }}>よく食べる</MenuItem>
-                                                        <MenuItem value="normal" sx={{ color: '#101c22' }}>普通</MenuItem>
-                                                        <MenuItem value="dislike" sx={{ color: '#101c22' }}>嫌がる</MenuItem>
-                                                        <MenuItem value="allergic" sx={{ color: '#d32f2f' }}>アレルギー</MenuItem>
+                                                        <MenuItem value="enthusiastic" sx={{ color: '#101c22' }}>{t('feeding.reaction.enthusiastic')}</MenuItem>
+                                                        <MenuItem value="normal" sx={{ color: '#101c22' }}>{t('feeding.reaction.normal')}</MenuItem>
+                                                        <MenuItem value="dislike" sx={{ color: '#101c22' }}>{t('feeding.reaction.dislike')}</MenuItem>
+                                                        <MenuItem value="allergic" sx={{ color: '#d32f2f' }}>{t('feeding.reaction.allergic')}</MenuItem>
                                                     </Select>
                                                 </FormControl>
                                             </Box>
@@ -1679,7 +1684,7 @@ const ActivitiesPage: React.FC = () => {
                                         <Box sx={{ display: 'flex', gap: 2 }}>
                                             <Box sx={{ flex: 1 }}>
                                                 <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    開始時刻
+                                                    {t('sleep.startTime')}
                                                 </Typography>
                                                 <TextField
                                                     type="time"
@@ -1750,7 +1755,7 @@ const ActivitiesPage: React.FC = () => {
                                             </Box>
                                             <Box sx={{ flex: 1 }}>
                                                 <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    終了時刻（起床）
+                                                    {t('sleep.endTimeWake')}
                                                 </Typography>
                                                 <TextField
                                                     type="time"
@@ -1832,7 +1837,7 @@ const ActivitiesPage: React.FC = () => {
                                             </Box>
                                         </Box>
                                         <TextField
-                                            label="睡眠時間（分）"
+                                            label={t('sleep.durationMinutes')}
                                             type="number"
                                             value={formData.duration}
                                             disabled={true}
@@ -1871,7 +1876,7 @@ const ActivitiesPage: React.FC = () => {
                                     <>
                                         <Box sx={{ display: 'flex', gap: 2 }}>
                                             <TextField
-                                                label="体重 (g)"
+                                                label={t('measurement.weightG')}
                                                 type="number"
                                                 value={formData.weight}
                                                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
@@ -1903,7 +1908,7 @@ const ActivitiesPage: React.FC = () => {
                                                 }}
                                             />
                                             <TextField
-                                                label="身長 (cm)"
+                                                label={t('measurement.heightCm')}
                                                 type="number"
                                                 value={formData.height}
                                                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
@@ -1936,7 +1941,7 @@ const ActivitiesPage: React.FC = () => {
                                             />
                                         </Box>
                                         <TextField
-                                            label="体温 (°C)"
+                                            label={t('measurement.temperatureC')}
                                             type="number"
                                             value={formData.temperature}
                                             onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
@@ -1973,7 +1978,7 @@ const ActivitiesPage: React.FC = () => {
                                 {/* Notes Field */}
                                 {(formData.type === 'feeding' || formData.type === 'sleep' || formData.type === 'diaper' || formData.type === 'measurement' || formData.type === 'memo' || formData.type === 'bath') && (
                                     <TextField
-                                        label="メモ"
+                                        label={t('common.notes')}
                                         value={formData.notes}
                                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                         fullWidth
@@ -2015,7 +2020,7 @@ const ActivitiesPage: React.FC = () => {
                                         border: '1px solid #e5e7eb' 
                                     }}>
                                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#101c22', mb: 1.5, fontSize: '14px' }}>
-                                            進捗: {bulkProgress.completed}/{bulkProgress.total}
+                                            {t('activities.bulk.progress', { completed: bulkProgress.completed, total: bulkProgress.total })}
                                         </Typography>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ flex: 1 }}>
@@ -2045,7 +2050,7 @@ const ActivitiesPage: React.FC = () => {
                                         {bulkProgress.errors.length > 0 && (
                                             <Box sx={{ mt: 1.5 }}>
                                                 <Typography variant="caption" sx={{ color: '#ff4444', display: 'block', fontWeight: 600 }}>
-                                                    ⚠️ エラー ({bulkProgress.errors.length}):
+                                                    ⚠️ {t('activities.bulk.errors', { count: bulkProgress.errors.length })}
                                                 </Typography>
                                                 {bulkProgress.errors.slice(0, 3).map((error, index) => (
                                                     <Typography key={index} variant="caption" sx={{ color: '#ff4444', display: 'block', ml: 1, fontSize: '12px' }}>
@@ -2054,7 +2059,7 @@ const ActivitiesPage: React.FC = () => {
                                                 ))}
                                                 {bulkProgress.errors.length > 3 && (
                                                     <Typography variant="caption" sx={{ color: '#ff4444', display: 'block', ml: 1, fontSize: '12px' }}>
-                                                        • ... 他 {bulkProgress.errors.length - 3} 件
+                                                        • {t('activities.bulk.moreErrors', { count: bulkProgress.errors.length - 3 })}
                                                     </Typography>
                                                 )}
                                             </Box>
@@ -2102,7 +2107,7 @@ const ActivitiesPage: React.FC = () => {
                                         }
                                     }}
                                 >
-                                    キャンセル
+                                    {t('common.cancel')}
                                 </MuiButton>
                                 <MuiButton
                                     type="submit"
@@ -2129,12 +2134,12 @@ const ActivitiesPage: React.FC = () => {
                                     }}
                                 >
                                     {loading && isBulkMode 
-                                        ? `作成中 ${bulkProgress.completed}/${bulkProgress.total}...`
+                                        ? t('activities.bulk.creating', { completed: bulkProgress.completed, total: bulkProgress.total })
                                         : editingActivity 
-                                            ? '保存' 
+                                            ? t('common.save') 
                                             : isBulkMode 
-                                                ? `${bulkTimes.filter(t => t.trim()).length}件を作成`
-                                                : '保存'
+                                                ? t('activities.bulk.createCount', { count: bulkTimes.filter(time => time.trim()).length })
+                                                : t('common.save')
                                     }
                                 </MuiButton>
                             </Box>

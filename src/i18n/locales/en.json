@@ -1,0 +1,516 @@
+{
+  "common": {
+    "baby": "Baby",
+    "loading": "Loading...",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "add": "Add",
+    "all": "All",
+    "notes": "Notes",
+    "on": "On",
+    "off": "Off",
+    "today": "Today",
+    "noData": "No data",
+    "selectDate": "Select date",
+    "openCalendar": "Open calendar",
+    "errorOccurred": "Something went wrong",
+    "errorDetail": "Details: {{message}}",
+    "retry": "Try again",
+    "unknownError": "Unknown error"
+  },
+  "settings": {
+    "language": "Language"
+  },
+  "units": {
+    "hours_one": "{{count}} hr",
+    "hours_other": "{{count}} hrs",
+    "minutes": "{{count}} min",
+    "hoursMinutes": "{{hours}} h {{minutes}} min",
+    "times_one": "{{count}} time",
+    "times_other": "{{count}} times"
+  },
+  "relative": {
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "hoursAgo": "{{hours}} h ago",
+    "minutesAgo": "{{count}} min ago",
+    "justNow": "Just now"
+  },
+  "nav": {
+    "home": "Home",
+    "records": "Log",
+    "add": "Add record",
+    "stats": "Stats",
+    "food": "Meals"
+  },
+  "header": {
+    "babyName": "{{name}}",
+    "ageMonths_one": "{{count}} month",
+    "ageMonths_other": "{{count}} months",
+    "ageMonthsDays": "{{months}} mo {{days}} d",
+    "ageDays_one": "{{count}} day",
+    "ageDays_other": "{{count}} days",
+    "offline": "Offline",
+    "pendingSync": "{{count}} waiting to sync",
+    "syncing": "Syncing...",
+    "reminderEvery_one": "Reminder every hour",
+    "reminderEvery_other": "Reminder every {{count}} hrs",
+    "pushOn": "Push: on",
+    "changelog": "What's new"
+  },
+  "menu": {
+    "babyInfo": "Baby info",
+    "reminderOn": "Turn reminders on",
+    "reminderOff": "Turn reminders off",
+    "notificationPermission": "Notifications",
+    "permission": {
+      "granted": "Allowed",
+      "denied": "Blocked",
+      "default": "Not set",
+      "unsupported": "Not supported"
+    },
+    "push": "Push notifications",
+    "enabled": "On",
+    "disabled": "Off",
+    "sendTestPush": "Send test notification",
+    "logout": "Log out"
+  },
+  "changelog": {
+    "title": "What's new",
+    "source": "Source: {{source}}",
+    "local": "local"
+  },
+  "reminder": {
+    "title": "Baby Tracker Reminder",
+    "body": "Time to update the log 👶",
+    "bodyWithName": "Time to update {{name}}'s log 👶"
+  },
+  "activityTypes": {
+    "feeding": "Feeding",
+    "sleep": "Sleep",
+    "diaper": "Diaper",
+    "measurement": "Measurement",
+    "memo": "Memo",
+    "bath": "Bath",
+    "dailyRating": "Journal"
+  },
+  "activities": {
+    "heading": "Activities",
+    "editTitle": "Edit activity",
+    "addTitle": {
+      "feeding": "Add feeding",
+      "sleep": "Add sleep",
+      "diaper": "Add diaper",
+      "measurement": "Add measurement",
+      "bath": "Add bath",
+      "memo": "Add memo",
+      "default": "Add activity"
+    },
+    "quick": {
+      "milk": "Milk",
+      "diaper": "Diaper",
+      "sleep": "Sleep",
+      "bath": "Bath",
+      "measurement": "Measure",
+      "memo": "Memo",
+      "wakeUp": "Woke up"
+    },
+    "wakeWindow": {
+      "label": "Wake window:",
+      "overtired": "Awake for {{duration}}. Baby may be getting overtired.",
+      "sleepSoon": "Awake for {{duration}}. Next nap is coming up."
+    },
+    "form": {
+      "type": "Activity type",
+      "diaperChange": "Diaper change",
+      "time": "Time",
+      "timesBulk": "Times (bulk)",
+      "addTime": "Add time"
+    },
+    "bulk": {
+      "label": "Bulk entry",
+      "progress": "Progress: {{completed}}/{{total}}",
+      "errors_one": "{{count}} error:",
+      "errors_other": "{{count}} errors:",
+      "moreErrors": "... and {{count}} more",
+      "errorAt": "Error at {{time}}: {{message}}",
+      "creating": "Creating {{completed}}/{{total}}...",
+      "createCount_one": "Create {{count}} record",
+      "createCount_other": "Create {{count}} records"
+    },
+    "snackbar": {
+      "offlineSynced_one": "Synced {{count}} record saved offline.",
+      "offlineSynced_other": "Synced {{count}} records saved offline.",
+      "loginAndSetupBaby": "Please log in and set up your baby's info.",
+      "loginBeforeAdd": "Please log in and set up your baby's info before adding activities.",
+      "sleepTimerStarted": "Sleep timer started. ⏱️",
+      "sleepTimerStartFailed": "Could not start the sleep timer.",
+      "sleepTimerStopFailed": "Could not stop the sleep timer.",
+      "sleepSaved": "Sleep saved: {{count}} min 😴",
+      "sleepSavedOffline": "Sleep saved offline: {{count}} min. It will sync when you are back online.",
+      "updated": "Activity updated.",
+      "updatedOffline": "Updated offline. It will sync when you are back online.",
+      "enterAtLeastOneTime": "Enter at least one time.",
+      "duplicateTimes": "Some times are duplicated. Please check them.",
+      "invalidTimes": "Invalid times: {{times}}",
+      "bulkCreated_one": "Created {{count}} record.",
+      "bulkCreated_other": "Created {{count}} records.",
+      "bulkCreatedWithOffline_one": "Created {{count}} record ({{offline}} saved offline, will sync later).",
+      "bulkCreatedWithOffline_other": "Created {{count}} records ({{offline}} saved offline, will sync later).",
+      "bulkPartial": "Created {{success}} of {{total}}, {{failed}} failed.",
+      "saved": "Saved.",
+      "savedOffline": "Saved offline. It will sync when you are back online.",
+      "saveFailed": "Could not save. Please try again."
+    }
+  },
+  "diaper": {
+    "urine": "Pee",
+    "stool": "Poop",
+    "color": {
+      "yellow": "Yellow",
+      "brown": "Brown",
+      "gray": "Gray"
+    },
+    "consistency": {
+      "label": "Consistency",
+      "loose": "Loose",
+      "normal": "Normal",
+      "hard": "Hard"
+    }
+  },
+  "feeding": {
+    "milk": "Milk",
+    "solid": "Solids",
+    "amountMl": "Amount (ml)",
+    "amountG": "Amount (g)",
+    "recentFoods": "Recent foods",
+    "foodName": "Food",
+    "foodNamePlaceholder": "e.g. rice porridge, carrot",
+    "reaction": {
+      "label": "Baby's reaction",
+      "enthusiastic": "Ate well",
+      "normal": "Normal",
+      "dislike": "Disliked",
+      "allergic": "Allergy"
+    }
+  },
+  "sleep": {
+    "startTime": "Start time",
+    "endTime": "End time",
+    "endTimeWake": "End time (woke up)",
+    "durationMinutes": "Sleep duration (min)"
+  },
+  "measurement": {
+    "weightG": "Weight (g)",
+    "heightCm": "Height (cm)",
+    "temperatureC": "Temperature (°C)"
+  },
+  "timeline": {
+    "title": "Recent log",
+    "summary": "Summary",
+    "sleeping": "Sleeping · {{duration}}",
+    "empty": "No records for this day.",
+    "edit": "Edit record",
+    "delete": "Delete record",
+    "confirmDelete": "Delete this record?",
+    "deleteFailed": "Could not delete the record.",
+    "updateFailed": "Offline records cannot be edited, or the update failed.",
+    "loadFailed": "Could not load activities."
+  },
+  "foodHistory": {
+    "title": "Solid food log",
+    "searchPlaceholder": "Search dishes...",
+    "filterByReaction": "Filter by reaction",
+    "dish": "Dish",
+    "amount": "Amount: {{amount}}",
+    "empty": "No dishes logged yet.",
+    "noMatch": "No matching records."
+  },
+  "stats": {
+    "loading": "Loading stats...",
+    "tabs": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "range": "Range"
+    },
+    "period": {
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "weeks_one": "{{count}} week",
+      "weeks_other": "{{count}} weeks",
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "custom": "Custom range"
+    },
+    "weekLabel": "Week {{n}}",
+    "selectRange": "Select a range",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "rangeHintFromBirth": "You can pick any range from {{date}} (birthday) to today",
+    "rangeHint": "Pick a range to see stats",
+    "displayRange": "Display range",
+    "sliderHint": {
+      "day": "Use the slider to set how many days to show",
+      "week": "Use the slider to set how many weeks to show",
+      "month": "Use the slider to set how many months to show"
+    },
+    "nutrition": "Nutrition",
+    "sleepAnalysis": "Sleep analysis",
+    "sleepMinutes": "Sleep (min)",
+    "avgSleep": "Avg sleep",
+    "longestStretch": "Longest stretch",
+    "nightWakings": "Night wakings",
+    "perNight": "{{count}} / night",
+    "totalHours_one": "{{count}} hr total",
+    "totalHours_other": "{{count}} hrs total",
+    "growthChart": "Growth chart (WHO)"
+  },
+  "growth": {
+    "combined": "Combined",
+    "weight": "Weight",
+    "height": "Height",
+    "ageMonths": "Age: {{age}} months",
+    "date": "Date: {{date}}",
+    "axisAge": "Age (months)",
+    "axisWeight": "Weight (kg)",
+    "axisHeight": "Height (cm)",
+    "weightRange": "Weight normal range",
+    "weightMedian": "Weight median",
+    "babyWeight": "Baby's weight",
+    "heightRange": "Height normal range",
+    "heightMedian": "Height median",
+    "babyHeight": "Baby's height"
+  },
+  "babyInfo": {
+    "welcome": "Welcome, {{name}}",
+    "user": "there",
+    "ageInDays_one": "{{name}} is {{count}} day old",
+    "ageInDays_other": "{{name}} is {{count}} days old",
+    "birthday": "Birthday",
+    "notSet": "Not set",
+    "male": "Boy",
+    "female": "Girl",
+    "genderNotSet": "Gender not set",
+    "basicInfo": "Basic info",
+    "name": "Name",
+    "birthDate": "Date of birth",
+    "dueDate": "Due date",
+    "gender": "Gender",
+    "birthWeight": "Birth weight",
+    "birthHeight": "Birth length",
+    "healthInfo": "Health info",
+    "bloodType": "Blood type",
+    "allergies": "Allergies",
+    "medication": "Medication",
+    "none": "None",
+    "foodMenu": "Solid food menu",
+    "manageMenu": "Manage menu",
+    "manageMenuTitle": "Manage solid food menu",
+    "foodMenuEmpty": "No dishes yet. Add some from \"Manage menu\".",
+    "addDish": "Add a new dish",
+    "editProfile": "Edit profile",
+    "editProfileTitle": "Edit baby profile"
+  },
+  "login": {
+    "subtitleLine1": "Track your baby's day, growth",
+    "subtitleLine2": "and development in one app",
+    "modeEmail": "Email",
+    "email": "Email address",
+    "password": "Password",
+    "loginWithEmail": "Log in with email",
+    "continueWithGoogle": "Continue with Google",
+    "emailFailed": "Failed to log in with email",
+    "googleFailed": "Failed to log in with Google",
+    "agreePrefix": "By continuing, you agree to our ",
+    "terms": "Terms of Service",
+    "agreeAnd": " and ",
+    "privacy": "Privacy Policy",
+    "agreeSuffix": ""
+  },
+  "auth": {
+    "loginFailed": "Login failed",
+    "userNotFound": "No account found for this email",
+    "wrongPassword": "Incorrect password",
+    "invalidEmail": "Invalid email address",
+    "userDisabled": "This account has been disabled",
+    "tooManyRequests": "Too many attempts. Please try again later",
+    "registerFailed": "Sign-up failed",
+    "emailInUse": "This email is already in use",
+    "registerDisabled": "Sign-up is disabled",
+    "weakPassword": "Password is too weak"
+  },
+  "assistant": {
+    "recordWithAi": "Log with AI",
+    "placeholder": "e.g. milk 120ml 9:15",
+    "voice": "Voice input",
+    "stopVoice": "Stop voice input",
+    "voiceUnsupported": "Voice input is not available in this browser.",
+    "voiceFailed": "Could not recognise your voice. Please try again.",
+    "enterCommand": "Type a short command, e.g. \"milk 120ml 9:15\"",
+    "loginRequired": "Please log in to use the assistant.",
+    "added": "Record added.",
+    "sourceLocal": "parsed locally",
+    "sourceAi": "parsed by AI",
+    "failed": "Could not process the AI command.",
+    "api": {
+      "savedLocal": "Record saved (local mode)",
+      "foodNameRequired": "A food name is required",
+      "foodAddFailed": "Could not add the food",
+      "foodAddedLocal": "Food added (local mode)",
+      "unsupportedTool": "Unsupported command: {{tool}}",
+      "invalidResponse": "The server returned an invalid response (HTTP {{status}})",
+      "serverError": "Server error"
+    }
+  },
+  "milestones": {
+    "title": "Milestones",
+    "subtitle": "Track your baby's development",
+    "subtitleWithAge_one": "{{name}} - {{count}} month old",
+    "subtitleWithAge_other": "{{name}} - {{count}} months old",
+    "current": "Now",
+    "noteLabel": "Note:",
+    "note": "Every baby develops at their own pace. These milestones are only a guide. If your baby is behind on a few, don't worry too much. If they are behind on many, or you have any concerns, talk to your pediatrician.",
+    "addTitle": "Add a new milestone",
+    "itemTitle": "Title",
+    "itemTitlePlaceholder": "e.g. Says 5-6 word sentences",
+    "itemDescription": "Description",
+    "itemDescriptionPlaceholder": "Details about this milestone...",
+    "categories": {
+      "1": "Month 1: Newborn (weeks 1-4)",
+      "2": "Month 2: Adapting & reflexes (weeks 5-8)",
+      "3": "Month 3: First communication (weeks 9-12)",
+      "4": "Month 4: Social interaction (weeks 13-16)",
+      "5": "Month 5: Motor development (weeks 17-20)",
+      "6": "Month 6: Exploring the body (weeks 21-24)",
+      "7": "Month 7: Sitting & exploring (weeks 25-28)",
+      "8": "Month 8: Fine motor skills (weeks 29-32)",
+      "9": "Month 9: Crawling & independence (weeks 33-36)",
+      "10": "Month 10: Moving faster (weeks 37-40)",
+      "11": "Month 11: Getting ready to walk (weeks 41-44)",
+      "12": "Month 12: Learning to walk (weeks 45-48)",
+      "13": "Month 13 (1 year): First steps",
+      "14": "Month 14: Steady walking (14-15 months)",
+      "15": "Month 15: Learning by imitation (15-16 months)",
+      "16": "Month 16: Growing independence (16-17 months)",
+      "17": "Month 17: Expanding communication (17-18 months)",
+      "18": "Month 18: Fine motor skills (18-19 months)",
+      "19": "Month 19 (1.5 years): Independence & creativity"
+    }
+  },
+  "wonderWeeks": {
+    "title": "Wonder Weeks",
+    "age_one": "Age: {{count}} week",
+    "age_other": "Age: {{count}} weeks",
+    "currentLeap": "Your baby is in leap {{id}} right now!",
+    "nextLeap": "The next leap ({{id}}) starts around week {{week}}.",
+    "noteFromDueDate": "Note: calculated from the due date. Every baby develops differently.",
+    "noteFromBirth": "Note: calculated from the birth date. Every baby develops differently.",
+    "leapTitle": "Leap {{id}}: {{name}}",
+    "weeksRange": "(around weeks {{start}}-{{end}})",
+    "newSkills": "New skills your baby may learn:",
+    "leaps": {
+      "1": {
+        "name": "The World of Changing Sensations",
+        "description": "Your baby becomes more sensitive to their senses. They may cry more, want to feed more often and need more cuddles.",
+        "skills": [
+          "Looks at things longer and more intently.",
+          "Reacts more clearly to sounds, smells and tastes.",
+          "Gives the first deliberate smile.",
+          "Digestion develops; may burp more."
+        ]
+      },
+      "2": {
+        "name": "The World of Patterns",
+        "description": "Your baby starts to notice rules and patterns in the world around them and gains better control of their body.",
+        "skills": [
+          "Discovers their own hands and feet.",
+          "Makes sounds and listens to them.",
+          "Likes looking at high-contrast pictures.",
+          "Holds their head more steadily."
+        ]
+      },
+      "3": {
+        "name": "The World of Smooth Transitions",
+        "description": "Your baby notices subtle changes in sound, movement and feeling, and becomes more lively.",
+        "skills": [
+          "Moves more smoothly and less jerkily.",
+          "Follows objects with their eyes and turns their head.",
+          "Makes a wider range of babbling sounds.",
+          "Brings hands or objects to the mouth."
+        ]
+      },
+      "4": {
+        "name": "The World of Events",
+        "description": "A big leap! Your baby understands short sequences of events and starts to learn about cause and effect.",
+        "skills": [
+          "Grabs, holds and shakes objects on purpose.",
+          "Rolls from back to tummy (or the other way).",
+          "Responds to their own name.",
+          "Starts solid foods (if introduced)."
+        ]
+      },
+      "5": {
+        "name": "The World of Relationships",
+        "description": "Your baby becomes aware of distance and relationships between objects and people. Stranger anxiety may begin.",
+        "skills": [
+          "Understands that a parent can leave and come back.",
+          "Starts crawling or scooting.",
+          "Passes objects from one hand to the other.",
+          "Takes an interest in small details of toys."
+        ]
+      },
+      "6": {
+        "name": "The World of Categories",
+        "description": "Your baby starts sorting things into groups. A dog is a dog, whether it is big or small, fluffy or smooth.",
+        "skills": [
+          "Imitates actions and sounds.",
+          "Shows emotions more clearly (happy, sad, angry).",
+          "Points at things they want.",
+          "Starts pulling up to stand."
+        ]
+      },
+      "7": {
+        "name": "The World of Sequences",
+        "description": "Your baby understands that reaching a goal takes a series of actions in the right order.",
+        "skills": [
+          "Plays stacking and building games.",
+          "Understands simple requests like \"give it to mommy\".",
+          "Waves bye-bye.",
+          "Practises first steps."
+        ]
+      },
+      "8": {
+        "name": "The World of Programs",
+        "description": "Your baby understands there are different ways to reach the same goal and can choose the right \"program\".",
+        "skills": [
+          "Starts having tantrums to test limits.",
+          "Uses a spoon or fork.",
+          "Says more words.",
+          "Helps with simple household tasks."
+        ]
+      },
+      "9": {
+        "name": "The World of Principles",
+        "description": "Your baby starts experimenting with rules and consequences, learns to negotiate and understands \"mine\" and \"mommy's\".",
+        "skills": [
+          "Plays more complex pretend games.",
+          "Recognises and names body parts.",
+          "Speaks in short sentences.",
+          "Shows independence and wants to do everything alone."
+        ]
+      },
+      "10": {
+        "name": "The World of Systems",
+        "description": "Your baby realises they are a separate person with their own rules and values, and develops a sense of self.",
+        "skills": [
+          "Understands and follows family rules.",
+          "Develops empathy for others.",
+          "Can put on simple clothes alone.",
+          "Retells things that happened."
+        ]
+      }
+    }
+  }
+}

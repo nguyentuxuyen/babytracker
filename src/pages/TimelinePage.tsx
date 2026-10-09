@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n, { localeTag } from '../i18n';
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { BabyIcon, BathIcon, DeleteIcon, EditIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon } from '../components/common/icons';
 import { useAuth } from '../hooks/useAuth';
@@ -9,16 +11,7 @@ import { Activity } from '../types';
 import RecentDaysStrip from '../components/common/RecentDaysStrip';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { calculateStatsForDate } from '../utils/dailyStats';
-
-const activityLabels: Record<string, string> = {
-    feeding: '授乳',
-    sleep: '睡眠',
-    diaper: 'おむつ',
-    measurement: '計測',
-    memo: 'メモ',
-    bath: 'お風呂',
-    dailyRating: '日記'
-};
+import { formatHoursMinutes } from '../i18n/format';
 
 const activityColors: Record<string, string> = {
     feeding: '#13a4ec',
@@ -55,10 +48,10 @@ const getActivityDetails = (activity: Activity) => {
         const amount = details.amount
             ? `${details.amount}${details.foodType === 'solid' ? 'g' : 'ml'}`
             : '';
-        const food = details.foodType === 'solid' ? String(details.foodItem || 'Solid Food') : '';
+        const food = details.foodType === 'solid' ? String(details.foodItem || i18n.t('feeding.solid')) : '';
         return [food ? `${food} (${amount})` : amount].filter(Boolean);
     }
-    if (activity.type === 'sleep') return details.duration ? [`${details.duration}min`] : [];
+    if (activity.type === 'sleep') return details.duration ? [i18n.t('units.minutes', { count: Number(details.duration) })] : [];
     if (activity.type === 'measurement') {
         return [
             details.weight ? `${details.weight}g` : '',
@@ -67,7 +60,7 @@ const getActivityDetails = (activity: Activity) => {
         ].filter(Boolean);
     }
     if (activity.type === 'diaper') {
-        return [details.isUrine ? 'おしっこ' : '', details.isStool ? 'うんち' : ''].filter(Boolean);
+        return [details.isUrine ? i18n.t('diaper.urine') : '', details.isStool ? i18n.t('diaper.stool') : ''].filter(Boolean);
     }
     return details.notes ? [String(details.notes)] : [];
 };
@@ -75,6 +68,8 @@ const getActivityDetails = (activity: Activity) => {
 const TimelinePage: React.FC = () => {
     const { user } = useAuth();
     const { baby } = useBaby();
+    const { t } = useTranslation();
+    const locale = localeTag();
     const { selectedDate, setSelectedDate } = useDateContext();
     const { ongoingSleep, elapsedSeconds } = useSleepTimer(user?.uid, baby?.id);
     const [activities, setActivities] = useState<Activity[]>([]);
@@ -103,7 +98,7 @@ const TimelinePage: React.FC = () => {
     }, [selectedDate]);
     const yesterdayStats = useMemo(() => calculateStatsForDate(activities as any, previousDate), [activities, previousDate]);
     const groupedActivities = selectedActivities.reduce<Record<string, Activity[]>>((groups, activity) => {
-        const time = new Date(activity.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const time = new Date(activity.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
         if (!groups[time]) groups[time] = [];
         groups[time].push(activity);
         return groups;
@@ -111,12 +106,12 @@ const TimelinePage: React.FC = () => {
     const timeGroups = Object.entries(groupedActivities);
 
     const handleDelete = async (activityId: string) => {
-        if (!user?.uid || !window.confirm('この記録を削除しますか？')) return;
+        if (!user?.uid || !window.confirm(t('timeline.confirmDelete'))) return;
         const deleted = await firestore.deleteActivity(user.uid, activityId);
         if (deleted) {
             setActivities((current) => current.filter((activity) => activity.id !== activityId));
         } else {
-            setError('記録を削除できませんでした。');
+            setError(t('timeline.deleteFailed'));
         }
     };
 
@@ -184,7 +179,7 @@ const TimelinePage: React.FC = () => {
                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
             setEditingActivity(null);
         } else {
-            setError('オフライン記録は編集できないか、更新に失敗しました。');
+            setError(t('timeline.updateFailed'));
         }
         setSavingEdit(false);
     };
@@ -199,7 +194,7 @@ const TimelinePage: React.FC = () => {
                 const data = await firestore.getActivitiesByDateRange(user.uid, selectedDate, 2);
                 if (!cancelled) setActivities(data);
             } catch {
-                if (!cancelled) setError('アクティビティを読み込めませんでした。');
+                if (!cancelled) setError(i18n.t('timeline.loadFailed'));
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -214,7 +209,7 @@ const TimelinePage: React.FC = () => {
     return (
         <Box sx={{ p: { xs: 1, sm: 2 }, width: '100%', maxWidth: 'none', mx: 'auto' }}>
             <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
-                最近の記録
+                {t('timeline.title')}
             </Typography>
             <RecentDaysStrip
                 selectedDate={selectedDate}
@@ -231,32 +226,32 @@ const TimelinePage: React.FC = () => {
                         if (year && month && day) setSelectedDate(new Date(year, month - 1, day));
                     }}
                     sx={{ mb: 2 }}
-                    inputProps={{ 'aria-label': '日付を選択' }}
+                    inputProps={{ 'aria-label': t('common.selectDate') }}
                 />
             )}
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {selectedDate.toLocaleDateString('ja-JP', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                {selectedDate.toLocaleDateString(locale, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
             </Typography>
             {ongoingSleep && (
                 <Alert severity="info" sx={{ mb: 2, py: 0.25 }}>
-                    睡眠中 · {Math.floor(elapsedSeconds / 3600)}時間 {Math.floor((elapsedSeconds % 3600) / 60)}分
+                    {t('timeline.sleeping', { duration: formatHoursMinutes(Math.floor(elapsedSeconds / 3600), Math.floor((elapsedSeconds % 3600) / 60)) })}
                 </Alert>
             )}
             <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>サマリー</Typography>
+                <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>{t('timeline.summary')}</Typography>
                 <Stack spacing={1}>
                     {[
-                        { label: selectedDate.toLocaleDateString('ja-JP', { weekday: 'short', month: 'short', day: 'numeric' }), stats: todayStats },
-                        { label: previousDate.toLocaleDateString('ja-JP', { weekday: 'short', month: 'short', day: 'numeric' }), stats: yesterdayStats }
+                        { label: selectedDate.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), stats: todayStats },
+                        { label: previousDate.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), stats: yesterdayStats }
                     ].map(({ label, stats }) => (
                         <Card key={label} variant="outlined" sx={{ borderRadius: 1.5 }}>
                             <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
                                 <Typography variant="body2" sx={{ color: '#6b7f8a', fontWeight: 700, mb: 0.75 }}>{label}</Typography>
                                 <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 0.8fr) minmax(0, 0.8fr)', gap: 0.75, '& .MuiTypography-body1': { fontSize: 15, whiteSpace: 'nowrap' } }}>
-                                    <Box><Typography variant="caption" color="text.secondary">ミルク</Typography><Typography fontWeight={700}>{stats.feeding.count}回 · {stats.feeding.totalAmount}ml</Typography></Box>
-                                    <Box><Typography variant="caption" color="text.secondary">離乳食</Typography><Typography fontWeight={700}>{stats.solid.count}回 · {stats.solid.totalAmount}g</Typography></Box>
-                                    <Box><Typography variant="caption" color="text.secondary">おしっこ</Typography><Typography fontWeight={700}>{stats.urine.count}</Typography></Box>
-                                    <Box><Typography variant="caption" color="text.secondary">うんち</Typography><Typography fontWeight={700}>{stats.stool.count}</Typography></Box>
+                                    <Box><Typography variant="caption" color="text.secondary">{t('feeding.milk')}</Typography><Typography fontWeight={700}>{t('units.times', { count: stats.feeding.count })} · {stats.feeding.totalAmount}ml</Typography></Box>
+                                    <Box><Typography variant="caption" color="text.secondary">{t('feeding.solid')}</Typography><Typography fontWeight={700}>{t('units.times', { count: stats.solid.count })} · {stats.solid.totalAmount}g</Typography></Box>
+                                    <Box><Typography variant="caption" color="text.secondary">{t('diaper.urine')}</Typography><Typography fontWeight={700}>{stats.urine.count}</Typography></Box>
+                                    <Box><Typography variant="caption" color="text.secondary">{t('diaper.stool')}</Typography><Typography fontWeight={700}>{stats.stool.count}</Typography></Box>
                                 </Box>
                             </CardContent>
                         </Card>
@@ -267,7 +262,7 @@ const TimelinePage: React.FC = () => {
             {loading && <CircularProgress size={28} />}
             {error && <Alert severity="error">{error}</Alert>}
             {!loading && !error && selectedActivities.length === 0 && (
-                <Typography color="text.secondary">この日の記録はありません。</Typography>
+                <Typography color="text.secondary">{t('timeline.empty')}</Typography>
             )}
             <Stack spacing={2}>
                 {timeGroups.map(([time, activitiesInGroup], groupIndex) => (
@@ -299,10 +294,10 @@ const TimelinePage: React.FC = () => {
                                                 </Box>
                                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
-                                                        <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{activityLabels[activity.type] || activity.type}</Typography>
+                                                        <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{t(`activityTypes.${activity.type}`, { defaultValue: activity.type })}</Typography>
                                                         <Box sx={{ display: 'flex' }}>
-                                                            <Tooltip title="記録を編集"><IconButton aria-label="記録を編集" size="small" onClick={() => openEdit(activity)}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                            <Tooltip title="記録を削除"><IconButton aria-label="記録を削除" size="small" onClick={() => void handleDelete(activity.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                                            <Tooltip title={t('timeline.edit')}><IconButton aria-label={t('timeline.edit')} size="small" onClick={() => openEdit(activity)}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                                                            <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} size="small" onClick={() => void handleDelete(activity.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                                                         </Box>
                                                     </Box>
                                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -319,26 +314,26 @@ const TimelinePage: React.FC = () => {
                 ))}
             </Stack>
             <Dialog open={Boolean(editingActivity)} onClose={() => setEditingActivity(null)} fullWidth maxWidth="xs">
-                <DialogTitle>記録を編集</DialogTitle>
+                <DialogTitle>{t('timeline.edit')}</DialogTitle>
                 <DialogContent>
                     {editingActivity && editingActivity.type !== 'sleep' && (
-                        <TextField label="時刻" type="time" value={editTime} onChange={(event) => setEditTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} sx={{ mt: 1 }} />
+                        <TextField label={t('activities.form.time')} type="time" value={editTime} onChange={(event) => setEditTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} sx={{ mt: 1 }} />
                     )}
                     {editingActivity?.type === 'feeding' && (
-                        <TextField label="量 (ml)" type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
+                        <TextField label={t('feeding.amountMl')} type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
                     )}
                     {editingActivity?.type === 'sleep' && (
                         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, mt: 1 }}>
-                            <TextField label="開始時刻" type="time" value={editSleepStartTime} onChange={(event) => setEditSleepStartTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
-                            <TextField label="終了時刻" type="time" value={editSleepEndTime} onChange={(event) => setEditSleepEndTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+                            <TextField label={t('sleep.startTime')} type="time" value={editSleepStartTime} onChange={(event) => setEditSleepStartTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+                            <TextField label={t('sleep.endTime')} type="time" value={editSleepEndTime} onChange={(event) => setEditSleepEndTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} />
                         </Box>
                     )}
-                    <TextField label="メモ" value={editNotes} onChange={(event) => setEditNotes(event.target.value)} fullWidth multiline minRows={2} size="small" sx={{ mt: 2 }} />
+                    <TextField label={t('common.notes')} value={editNotes} onChange={(event) => setEditNotes(event.target.value)} fullWidth multiline minRows={2} size="small" sx={{ mt: 2 }} />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setEditingActivity(null)}>キャンセル</Button>
+                    <Button onClick={() => setEditingActivity(null)}>{t('common.cancel')}</Button>
                     <Button variant="contained" onClick={() => void saveEdit()} disabled={savingEdit}>
-                        {savingEdit ? <CircularProgress size={16} color="inherit" /> : '保存'}
+                        {savingEdit ? <CircularProgress size={16} color="inherit" /> : t('common.save')}
                     </Button>
                 </DialogActions>
             </Dialog>

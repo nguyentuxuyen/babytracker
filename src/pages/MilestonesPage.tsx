@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Checkbox, IconButton, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { useHistory } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useBaby } from '../contexts/BabyContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
@@ -227,6 +228,7 @@ const MilestonesPage: React.FC = () => {
     const history = useHistory();
     const { baby } = useBaby();
     const { currentUser, loading: authLoading } = useAuth();
+    const { t } = useTranslation();
     
     const [milestonesData, setMilestonesData] = useState<Milestone[]>(defaultMilestones);
     const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -483,10 +485,10 @@ const MilestonesPage: React.FC = () => {
                     </IconButton>
                     <Box sx={{ flex: 1 }}>
                         <Typography sx={{ fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
-                            Milestones
+                            {t('milestones.title')}
                         </Typography>
                         <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
-                            {baby?.name ? `${baby.name} - ${currentAgeMonths} tháng tuổi` : 'Theo dõi phát triển của bé'}
+                            {baby?.name ? t('milestones.subtitleWithAge', { name: baby.name, count: currentAgeMonths }) : t('milestones.subtitle')}
                         </Typography>
                     </Box>
                 </Box>
@@ -544,7 +546,7 @@ const MilestonesPage: React.FC = () => {
                                             </svg>
                                         </IconButton>
                                         <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#101c22' }}>
-                                            {category.category}
+                                            {t(`milestones.categories.${category.id}`, { defaultValue: category.category })}
                                         </Typography>
                                     </Box>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -558,7 +560,7 @@ const MilestonesPage: React.FC = () => {
                                                 fontSize: '12px',
                                                 fontWeight: 600
                                             }}>
-                                                Hiện tại
+                                                {t('milestones.current')}
                                             </Box>
                                         )}
                                         <IconButton
@@ -674,9 +676,7 @@ const MilestonesPage: React.FC = () => {
                 borderRadius: '12px'
             }}>
                 <Typography sx={{ fontSize: '13px', color: '#9a3412', lineHeight: 1.6 }}>
-                    <strong>Lưu ý:</strong> Mỗi bé phát triển theo nhịp độ riêng. Những mốc này chỉ mang tính tham khảo. 
-                    Nếu bé chậm hơn một vài mốc, đừng lo lắng quá mức. Tuy nhiên, nếu bé chậm nhiều mốc hoặc bạn có bất kỳ 
-                    lo ngại nào, hãy tham khảo ý kiến bác sĩ nhi khoa.
+                    <strong>{t('milestones.noteLabel')}</strong> {t('milestones.note')}
                 </Typography>
             </Box>
 
@@ -697,26 +697,26 @@ const MilestonesPage: React.FC = () => {
                     color: '#101c22',
                     borderBottom: '1px solid #e5e7eb'
                 }}>
-                    Thêm mốc phát triển mới
+                    {t('milestones.addTitle')}
                 </DialogTitle>
                 <DialogContent sx={{ pt: 3 }}>
                     <TextField
                         autoFocus
                         fullWidth
-                        label="タイトル"
+                        label={t('milestones.itemTitle')}
                         value={newItemTitle}
                         onChange={(e) => setNewItemTitle(e.target.value)}
                         sx={{ mb: 2 }}
-                        placeholder="例: 5〜6語の文章を話す"
+                        placeholder={t('milestones.itemTitlePlaceholder')}
                     />
                     <TextField
                         fullWidth
-                        label="説明"
+                        label={t('milestones.itemDescription')}
                         value={newItemDescription}
                         onChange={(e) => setNewItemDescription(e.target.value)}
                         multiline
                         rows={3}
-                        placeholder="この発達記録の詳細..."
+                        placeholder={t('milestones.itemDescriptionPlaceholder')}
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 2, borderTop: '1px solid #e5e7eb' }}>
@@ -732,7 +732,7 @@ const MilestonesPage: React.FC = () => {
                             fontWeight: 600
                         }}
                     >
-                        キャンセル
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         onClick={handleAddItem}
@@ -746,7 +746,7 @@ const MilestonesPage: React.FC = () => {
                             '&:disabled': { bgcolor: '#e5e7eb', color: '#9ca3af' }
                         }}
                     >
-                        Thêm
+                        {t('common.add')}
                     </Button>
                 </DialogActions>
             </Dialog>

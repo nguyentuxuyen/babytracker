@@ -1,11 +1,13 @@
 import React from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import { HomeIcon, ChartIcon as ShowChartIcon, FoodIcon as RestaurantIcon, HistoryIcon, AddIcon } from '../common/icons';
 
 const BottomNav: React.FC = () => {
     const history = useHistory();
     const location = useLocation();
+    const { t } = useTranslation();
 
     const getNavValue = () => {
         const path = location.pathname;
@@ -71,7 +73,7 @@ const BottomNav: React.FC = () => {
                 }}
             >
                 <BottomNavigationAction 
-                    label="ホーム" 
+                    label={t('nav.home')} 
                     icon={<HomeIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
@@ -85,7 +87,7 @@ const BottomNav: React.FC = () => {
                     }}
                 />
                 <BottomNavigationAction
-                    label="記録"
+                    label={t('nav.records')}
                     icon={<HistoryIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
@@ -101,6 +103,7 @@ const BottomNav: React.FC = () => {
                 />
                 <BottomNavigationAction
                     label=""
+                    aria-label={t('nav.add')}
                     icon={<AddIcon />}
                     sx={{
                         minWidth: 68,
@@ -119,7 +122,7 @@ const BottomNav: React.FC = () => {
                     }}
                 />
                 <BottomNavigationAction
-                    label="分析"
+                    label={t('nav.stats')}
                     icon={<ShowChartIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {
@@ -130,7 +133,7 @@ const BottomNav: React.FC = () => {
                     }}
                 />
                 <BottomNavigationAction
-                    label="食事"
+                    label={t('nav.food')}
                     icon={<RestaurantIcon />}
                     sx={{
                         '& .MuiBottomNavigationAction-label': {

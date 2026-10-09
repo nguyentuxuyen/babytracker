@@ -1,0 +1,498 @@
+{
+  "common": {
+    "baby": "赤ちゃん",
+    "loading": "読み込み中...",
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "add": "追加",
+    "all": "すべて",
+    "notes": "メモ",
+    "on": "有効",
+    "off": "無効",
+    "today": "今日",
+    "noData": "データなし",
+    "selectDate": "日付を選択",
+    "openCalendar": "カレンダーを開く",
+    "errorOccurred": "エラーが発生しました",
+    "errorDetail": "詳細: {{message}}",
+    "retry": "再試行",
+    "unknownError": "不明なエラー"
+  },
+  "settings": {
+    "language": "言語"
+  },
+  "units": {
+    "hours": "{{count}}時間",
+    "minutes": "{{count}}分",
+    "hoursMinutes": "{{hours}}時間{{minutes}}分",
+    "times": "{{count}}回"
+  },
+  "relative": {
+    "daysAgo": "{{count}}日前",
+    "hoursAgo": "{{hours}}時間前",
+    "minutesAgo": "{{count}}分前",
+    "justNow": "たった今"
+  },
+  "nav": {
+    "home": "ホーム",
+    "records": "記録",
+    "add": "記録を追加",
+    "stats": "分析",
+    "food": "食事"
+  },
+  "header": {
+    "babyName": "{{name}}くん",
+    "ageMonths": "{{count}}か月",
+    "ageMonthsDays": "{{months}}か月{{days}}日",
+    "ageDays": "{{count}}日",
+    "offline": "オフライン",
+    "pendingSync": "{{count}}件 同期待ち",
+    "syncing": "同期中...",
+    "reminderEvery": "リマインダー {{count}}時間ごと",
+    "pushOn": "プッシュ通知: オン",
+    "changelog": "変更履歴"
+  },
+  "menu": {
+    "babyInfo": "赤ちゃん情報",
+    "reminderOn": "リマインダーをオン",
+    "reminderOff": "リマインダーをオフ",
+    "notificationPermission": "通知の許可",
+    "permission": {
+      "granted": "許可",
+      "denied": "拒否",
+      "default": "未設定",
+      "unsupported": "非対応"
+    },
+    "push": "プッシュ通知",
+    "enabled": "有効",
+    "disabled": "無効",
+    "sendTestPush": "テスト通知を送信",
+    "logout": "ログアウト"
+  },
+  "changelog": {
+    "title": "更新内容",
+    "source": "データソース: {{source}}",
+    "local": "ローカル"
+  },
+  "reminder": {
+    "title": "Baby Tracker リマインダー",
+    "body": "記録を更新する時間です 👶",
+    "bodyWithName": "{{name}}の記録を更新する時間です 👶"
+  },
+  "activityTypes": {
+    "feeding": "授乳",
+    "sleep": "睡眠",
+    "diaper": "おむつ",
+    "measurement": "計測",
+    "memo": "メモ",
+    "bath": "お風呂",
+    "dailyRating": "日記"
+  },
+  "activities": {
+    "heading": "アクティビティ",
+    "editTitle": "アクティビティを編集",
+    "addTitle": {
+      "feeding": "授乳を追加",
+      "sleep": "睡眠を追加",
+      "diaper": "おむつを追加",
+      "measurement": "計測を追加",
+      "bath": "お風呂を追加",
+      "memo": "メモを追加",
+      "default": "アクティビティを追加"
+    },
+    "quick": {
+      "milk": "ミルク",
+      "diaper": "おむつ",
+      "sleep": "睡眠",
+      "bath": "お風呂",
+      "measurement": "計測",
+      "memo": "メモ",
+      "wakeUp": "起床"
+    },
+    "wakeWindow": {
+      "label": "覚醒時間アラート:",
+      "overtired": "{{duration}}起きています。過覚醒になりやすい時間です。",
+      "sleepSoon": "{{duration}}起きています。そろそろ次の睡眠時間です。"
+    },
+    "form": {
+      "type": "アクティビティ種別",
+      "diaperChange": "おむつ交換",
+      "time": "時刻",
+      "timesBulk": "時刻（一括）",
+      "addTime": "時刻を追加"
+    },
+    "bulk": {
+      "label": "一括入力",
+      "progress": "進捗: {{completed}}/{{total}}",
+      "errors": "エラー ({{count}}):",
+      "moreErrors": "... 他 {{count}} 件",
+      "errorAt": "{{time}} でエラー: {{message}}",
+      "creating": "作成中 {{completed}}/{{total}}...",
+      "createCount": "{{count}}件を作成"
+    },
+    "snackbar": {
+      "offlineSynced": "オフライン保存した{{count}}件の記録を同期しました。",
+      "loginAndSetupBaby": "ログインし、赤ちゃん情報を設定してください。",
+      "loginBeforeAdd": "アクティビティ追加前にログインし、赤ちゃん情報を設定してください。",
+      "sleepTimerStarted": "睡眠タイマーを開始しました。⏱️",
+      "sleepTimerStartFailed": "睡眠タイマーの開始に失敗しました。",
+      "sleepTimerStopFailed": "睡眠タイマーの停止に失敗しました。",
+      "sleepSaved": "睡眠を記録しました: {{count}}分 😴",
+      "sleepSavedOffline": "睡眠をオフライン保存しました: {{count}}分。オンライン時に自動同期されます。",
+      "updated": "アクティビティを更新しました。",
+      "updatedOffline": "オフラインで更新しました。オンライン時に自動同期されます。",
+      "enterAtLeastOneTime": "少なくとも1つの時刻を入力してください。",
+      "duplicateTimes": "重複した時刻があります。確認してください。",
+      "invalidTimes": "無効な時刻: {{times}}",
+      "bulkCreated": "{{count}}件の記録を作成しました。",
+      "bulkCreatedWithOffline": "{{count}}件の記録を作成しました（{{offline}}件はオフライン保存、後で自動同期）。",
+      "bulkPartial": "{{total}}件中 {{success}}件を作成、{{failed}}件でエラー。",
+      "saved": "記録を保存しました。",
+      "savedOffline": "オフライン保存しました。オンライン時に自動同期されます。",
+      "saveFailed": "保存中にエラーが発生しました。もう一度お試しください。"
+    }
+  },
+  "diaper": {
+    "urine": "おしっこ",
+    "stool": "うんち",
+    "color": {
+      "yellow": "黄色",
+      "brown": "茶色",
+      "gray": "灰色"
+    },
+    "consistency": {
+      "label": "形状",
+      "loose": "やわらかい",
+      "normal": "普通",
+      "hard": "かたい"
+    }
+  },
+  "feeding": {
+    "milk": "ミルク",
+    "solid": "離乳食",
+    "amountMl": "量 (ml)",
+    "amountG": "量 (g)",
+    "recentFoods": "最近の食品",
+    "foodName": "食品名",
+    "foodNamePlaceholder": "例: おかゆ、にんじん",
+    "reaction": {
+      "label": "赤ちゃんの反応",
+      "enthusiastic": "よく食べる",
+      "normal": "普通",
+      "dislike": "嫌がる",
+      "allergic": "アレルギー"
+    }
+  },
+  "sleep": {
+    "startTime": "開始時刻",
+    "endTime": "終了時刻",
+    "endTimeWake": "終了時刻（起床）",
+    "durationMinutes": "睡眠時間（分）"
+  },
+  "measurement": {
+    "weightG": "体重 (g)",
+    "heightCm": "身長 (cm)",
+    "temperatureC": "体温 (°C)"
+  },
+  "timeline": {
+    "title": "最近の記録",
+    "summary": "サマリー",
+    "sleeping": "睡眠中 · {{duration}}",
+    "empty": "この日の記録はありません。",
+    "edit": "記録を編集",
+    "delete": "記録を削除",
+    "confirmDelete": "この記録を削除しますか？",
+    "deleteFailed": "記録を削除できませんでした。",
+    "updateFailed": "オフライン記録は編集できないか、更新に失敗しました。",
+    "loadFailed": "アクティビティを読み込めませんでした。"
+  },
+  "foodHistory": {
+    "title": "離乳食の記録",
+    "searchPlaceholder": "料理を検索...",
+    "filterByReaction": "反応で絞り込む",
+    "dish": "料理",
+    "amount": "量: {{amount}}",
+    "empty": "記録された料理はありません。",
+    "noMatch": "一致する記録が見つかりません。"
+  },
+  "stats": {
+    "loading": "統計を読み込んでいます...",
+    "tabs": {
+      "day": "日",
+      "week": "週",
+      "month": "月",
+      "range": "期間"
+    },
+    "period": {
+      "days": "{{count}}日間",
+      "weeks": "{{count}}週間",
+      "months": "{{count}}か月間",
+      "custom": "期間指定"
+    },
+    "weekLabel": "第{{n}}週",
+    "selectRange": "期間を選択",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "rangeHintFromBirth": "{{date}}（誕生日）から今日までの範囲で選択できます",
+    "rangeHint": "期間を選択して統計を表示します",
+    "displayRange": "表示範囲",
+    "sliderHint": {
+      "day": "表示する日数をスライダーで調整します",
+      "week": "表示する週数をスライダーで調整します",
+      "month": "表示する月数をスライダーで調整します"
+    },
+    "nutrition": "栄養摂取",
+    "sleepAnalysis": "睡眠分析",
+    "sleepMinutes": "睡眠 (分)",
+    "avgSleep": "平均睡眠時間",
+    "longestStretch": "最長連続睡眠",
+    "nightWakings": "夜間覚醒",
+    "perNight": "{{count}} 回 / 夜",
+    "totalHours": "合計 {{count}}時間",
+    "growthChart": "成長曲線 (WHO)"
+  },
+  "growth": {
+    "combined": "両方",
+    "weight": "体重",
+    "height": "身長",
+    "ageMonths": "月齢: {{age}}か月",
+    "date": "日付: {{date}}",
+    "axisAge": "月齢（か月）",
+    "axisWeight": "体重 (kg)",
+    "axisHeight": "身長 (cm)",
+    "weightRange": "体重の標準範囲",
+    "weightMedian": "体重の中央値",
+    "babyWeight": "赤ちゃんの体重",
+    "heightRange": "身長の標準範囲",
+    "heightMedian": "身長の中央値",
+    "babyHeight": "赤ちゃんの身長"
+  },
+  "babyInfo": {
+    "welcome": "ようこそ、{{name}}さん",
+    "user": "ユーザー",
+    "ageInDays": "{{name}}は生後{{count}}日",
+    "birthday": "誕生日",
+    "notSet": "未設定",
+    "male": "男の子",
+    "female": "女の子",
+    "genderNotSet": "性別未設定",
+    "basicInfo": "基本情報",
+    "name": "名前",
+    "birthDate": "生年月日",
+    "dueDate": "出産予定日",
+    "gender": "性別",
+    "birthWeight": "出生体重",
+    "birthHeight": "出生身長",
+    "healthInfo": "健康情報",
+    "bloodType": "血液型",
+    "allergies": "アレルギー",
+    "medication": "服薬",
+    "none": "なし",
+    "foodMenu": "離乳食メニュー",
+    "manageMenu": "メニュー管理",
+    "manageMenuTitle": "離乳食メニュー管理",
+    "foodMenuEmpty": "まだ料理が登録されていません。「メニュー管理」から追加してください。",
+    "addDish": "新しい料理を追加",
+    "editProfile": "プロフィール編集",
+    "editProfileTitle": "赤ちゃんのプロフィール編集"
+  },
+  "login": {
+    "subtitleLine1": "赤ちゃんの記録、成長、発達を",
+    "subtitleLine2": "ひとつのアプリで管理しましょう",
+    "modeEmail": "メール",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "loginWithEmail": "メールでログイン",
+    "continueWithGoogle": "Googleで続行",
+    "emailFailed": "メールでのログインに失敗しました",
+    "googleFailed": "Googleでのログインに失敗しました",
+    "agreePrefix": "続行すると、",
+    "terms": "利用規約",
+    "agreeAnd": "と",
+    "privacy": "プライバシーポリシー",
+    "agreeSuffix": "に同意したものとみなされます"
+  },
+  "auth": {
+    "loginFailed": "ログインに失敗しました",
+    "userNotFound": "アカウントが存在しません",
+    "wrongPassword": "パスワードが正しくありません",
+    "invalidEmail": "メールアドレスが無効です",
+    "userDisabled": "アカウントは無効化されています",
+    "tooManyRequests": "試行回数が多すぎます。しばらくしてから再度お試しください",
+    "registerFailed": "登録に失敗しました",
+    "emailInUse": "このメールアドレスは既に使用されています",
+    "registerDisabled": "登録機能は無効になっています",
+    "weakPassword": "パスワードが弱すぎます"
+  },
+  "assistant": {
+    "recordWithAi": "AIで記録",
+    "placeholder": "例: ミルク120ml 9:15",
+    "voice": "音声入力",
+    "stopVoice": "音声入力を停止",
+    "voiceUnsupported": "このブラウザでは音声入力を利用できません。",
+    "voiceFailed": "音声を認識できませんでした。もう一度お試しください。",
+    "enterCommand": "短いコマンドを入力してください。例: \"ミルク120ml 9:15\"",
+    "loginRequired": "アシスタントを使うにはログインが必要です。",
+    "added": "記録を追加しました。",
+    "sourceLocal": "ローカル解析",
+    "sourceAi": "AI解析",
+    "failed": "AIコマンドを処理できませんでした。",
+    "api": {
+      "savedLocal": "記録を保存しました（ローカルモード）",
+      "foodNameRequired": "食品名が必要です",
+      "foodAddFailed": "食品を追加できませんでした",
+      "foodAddedLocal": "食品を追加しました（ローカルモード）",
+      "unsupportedTool": "未対応のツール: {{tool}}",
+      "invalidResponse": "サーバーから無効なレスポンスが返されました (HTTP {{status}})",
+      "serverError": "サーバーエラー"
+    }
+  },
+  "milestones": {
+    "title": "発達の目安",
+    "subtitle": "赤ちゃんの発達を記録",
+    "subtitleWithAge": "{{name}} - {{count}}か月",
+    "current": "現在",
+    "noteLabel": "注意:",
+    "note": "発達のペースは赤ちゃんによって異なります。これらの目安は参考です。いくつか遅れていても心配しすぎないでください。ただし、多くの項目で遅れがある場合や気になることがある場合は、小児科医に相談してください。",
+    "addTitle": "新しい発達の目安を追加",
+    "itemTitle": "タイトル",
+    "itemTitlePlaceholder": "例: 5〜6語の文章を話す",
+    "itemDescription": "説明",
+    "itemDescriptionPlaceholder": "この発達記録の詳細...",
+    "categories": {
+      "1": "1か月: 新生児期（1〜4週）",
+      "2": "2か月: 適応と反射（5〜8週）",
+      "3": "3か月: はじめてのコミュニケーション（9〜12週）",
+      "4": "4か月: 人とのやりとり（13〜16週）",
+      "5": "5か月: 運動の発達（17〜20週）",
+      "6": "6か月: からだの探索（21〜24週）",
+      "7": "7か月: おすわりと探索（25〜28週）",
+      "8": "8か月: 細かな動きの発達（29〜32週）",
+      "9": "9か月: はいはいと自立（33〜36週）",
+      "10": "10か月: 動きが速くなる（37〜40週）",
+      "11": "11か月: 歩く準備（41〜44週）",
+      "12": "12か月: 歩く練習（45〜48週）",
+      "13": "13か月（1歳）: はじめの一歩",
+      "14": "14か月: 安定した歩行（14〜15か月）",
+      "15": "15か月: まねから学ぶ（15〜16か月）",
+      "16": "16か月: 自立心が高まる（16〜17か月）",
+      "17": "17か月: ことばが広がる（17〜18か月）",
+      "18": "18か月: 細かな動きの発達（18〜19か月）",
+      "19": "19か月（1歳半）: 自立と創造"
+    }
+  },
+  "wonderWeeks": {
+    "title": "ワンダーウィーク",
+    "age": "月齢: {{count}}週",
+    "currentLeap": "現在、ワンダーウィーク {{id}} の期間です！",
+    "nextLeap": "次のワンダーウィーク（{{id}}）は{{week}}週頃に始まります。",
+    "noteFromDueDate": "注意: 出産予定日を基準に計算しています。発達には個人差があります。",
+    "noteFromBirth": "注意: 出生時を基準に計算しています。発達には個人差があります。",
+    "leapTitle": "ワンダーウィーク {{id}}: {{name}}",
+    "weeksRange": "（{{start}}〜{{end}}週頃）",
+    "newSkills": "身につく可能性のある新しいスキル:",
+    "leaps": {
+      "1": {
+        "name": "感覚の変化の世界",
+        "description": "感覚が敏感になります。よく泣いたり、授乳の回数が増えたり、抱っこを求めたりすることが増えます。",
+        "skills": [
+          "より長く、じっと見つめるようになる。",
+          "音やにおい、味にはっきり反応する。",
+          "意識的な最初の笑顔が見られる。",
+          "消化器が発達し、げっぷが増えることがある。"
+        ]
+      },
+      "2": {
+        "name": "パターンの世界",
+        "description": "まわりの世界の規則性やパターンに気づき始めます。体をうまくコントロールできるようになります。",
+        "skills": [
+          "自分の手や足を発見する。",
+          "声を出して、その音を聞く。",
+          "コントラストの強い絵を見るのが好きになる。",
+          "首がより安定する。"
+        ]
+      },
+      "3": {
+        "name": "なめらかな変化の世界",
+        "description": "音や動き、感覚の微妙な変化に気づくようになり、活発になります。",
+        "skills": [
+          "動きがなめらかになり、ぎこちなさが減る。",
+          "目で物を追い、頭を動かしてついていく。",
+          "さまざまな喃語を発する。",
+          "手や物を口に持っていく。"
+        ]
+      },
+      "4": {
+        "name": "出来事の世界",
+        "description": "大きな飛躍の時期です！簡単な出来事のつながりを理解し、原因と結果を学び始めます。",
+        "skills": [
+          "意図して物をつかんだり、振ったりする。",
+          "寝返りをする（あおむけからうつぶせ、またはその逆）。",
+          "自分の名前に反応する。",
+          "離乳食を始める（始めた場合）。"
+        ]
+      },
+      "5": {
+        "name": "関係性の世界",
+        "description": "物や人との距離や関係に気づくようになります。人見知りが始まることもあります。",
+        "skills": [
+          "ママがいなくなっても戻ってくることを理解する。",
+          "はいはいやずりばいを始める。",
+          "物を片方の手からもう片方へ持ち替える。",
+          "おもちゃの細かい部分に興味を持つ。"
+        ]
+      },
+      "6": {
+        "name": "カテゴリーの世界",
+        "description": "物事を分類し始めます。大きくても小さくても、ふわふわでもつるつるでも、犬は犬だと理解します。",
+        "skills": [
+          "動作や音をまねする。",
+          "感情をよりはっきり表す（うれしい、悲しい、怒り）。",
+          "欲しいものを指さす。",
+          "つかまり立ちを始める。"
+        ]
+      },
+      "7": {
+        "name": "順序の世界",
+        "description": "目的を達成するには、一連の行動を順番に行う必要があることを理解します。",
+        "skills": [
+          "積み木や組み立て遊びをする。",
+          "「ママにちょうだい」など簡単な指示を理解する。",
+          "バイバイと手を振る。",
+          "最初の一歩を練習する。"
+        ]
+      },
+      "8": {
+        "name": "プログラムの世界",
+        "description": "同じ目的を達成するにはいろいろな方法があり、合った「プログラム」を選べることを理解します。",
+        "skills": [
+          "限界を試すようにかんしゃくを起こし始める。",
+          "スプーンやフォークを使う。",
+          "話せる言葉が増える。",
+          "簡単な家事を手伝う。"
+        ]
+      },
+      "9": {
+        "name": "原則の世界",
+        "description": "ルールとその結果を試し始めます。交渉することを学び、「自分のもの」と「ママのもの」を理解します。",
+        "skills": [
+          "より複雑なごっこ遊びをする。",
+          "体の部位がわかり、名前を言える。",
+          "短い文を話す。",
+          "自立心を見せ、何でも自分でやりたがる。"
+        ]
+      },
+      "10": {
+        "name": "システムの世界",
+        "description": "自分が独自のルールや価値観をもつ一人の人間であることに気づき、自我が発達します。",
+        "skills": [
+          "家族のルールを理解し、守る。",
+          "他の人への共感が育つ。",
+          "簡単な服を自分で着られる。",
+          "起きた出来事を話せる。"
+        ]
+      }
+    }
+  }
+}

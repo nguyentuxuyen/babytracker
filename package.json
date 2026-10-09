@@ -21,9 +21,11 @@
     "@vercel/node": "^3.0.0",
     "firebase": "^9.23.0",
     "firebase-admin": "^12.7.0",
+    "i18next": "^22.5.1",
     "lucide-react": "^0.544.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "react-i18next": "^12.3.1",
     "react-router-dom": "^5.2.0",
     "recharts": "^2.12.7",
     "web-push": "^3.6.7"
