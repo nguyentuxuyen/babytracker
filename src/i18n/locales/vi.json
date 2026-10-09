@@ -33,7 +33,8 @@
     "daysAgo": "{{count}} ngày trước",
     "hoursAgo": "{{hours}} giờ trước",
     "minutesAgo": "{{count}} phút trước",
-    "justNow": "Vừa xong"
+    "justNow": "Vừa xong",
+    "hoursMinutesAgo": "{{hours}} giờ {{minutes}} phút trước"
   },
   "nav": {
     "home": "Trang chủ",
@@ -70,7 +71,8 @@
     "disabled": "Tắt",
     "sendTestPush": "Gửi thông báo thử",
     "logout": "Đăng xuất",
-    "editTranslations": "Sửa bản dịch"
+    "editTranslations": "Sửa bản dịch",
+    "account": "Tài khoản"
   },
   "changelog": {
     "title": "Nội dung cập nhật",
@@ -157,7 +159,7 @@
   },
   "diaper": {
     "urine": "Tè",
-    "stool": "Ị",
+    "stool": "Phân",
     "color": {
       "yellow": "Vàng",
       "brown": "Nâu",
@@ -168,7 +170,10 @@
       "loose": "Lỏng",
       "normal": "Bình thường",
       "hard": "Khô"
-    }
+    },
+    "kind": "Loại",
+    "both": "Cả hai",
+    "colorLabel": "Màu sắc"
   },
   "feeding": {
     "milk": "Sữa",
@@ -207,7 +212,9 @@
     "confirmDelete": "Xoá bản ghi này?",
     "deleteFailed": "Không xoá được bản ghi.",
     "updateFailed": "Không sửa được bản ghi ngoại tuyến, hoặc cập nhật thất bại.",
-    "loadFailed": "Không tải được hoạt động."
+    "loadFailed": "Không tải được hoạt động.",
+    "deleted": "Đã xoá bản ghi",
+    "undo": "Hoàn tác"
   },
   "foodHistory": {
     "title": "Nhật ký ăn dặm",
@@ -348,7 +355,14 @@
       "unsupportedTool": "Lệnh không được hỗ trợ: {{tool}}",
       "invalidResponse": "Máy chủ trả về phản hồi không hợp lệ (HTTP {{status}})",
       "serverError": "Lỗi máy chủ"
-    }
+    },
+    "examples": {
+      "milk": "sữa 120ml",
+      "sleep": "ngủ 1 tiếng",
+      "diaper": "thay tã, tè",
+      "bath": "tắm lúc 19:00"
+    },
+    "hint": "Gõ hoặc nói như nhắn tin, AI sẽ tự ghi lại."
   },
   "translations": {
     "title": "Sửa bản dịch",
@@ -514,5 +528,12 @@
   "errorBoundary": {
     "title": "Đã có lỗi xảy ra",
     "reload": "Tải lại"
+  },
+  "home": {
+    "summaryTitle": "Tóm tắt trong ngày",
+    "recent": "Gần đây",
+    "seeAll": "Xem tất cả",
+    "previousDay": "Hôm trước: {{value}}",
+    "diaperValue": "Tè {{urine}} · Phân {{stool}}"
   }
 }

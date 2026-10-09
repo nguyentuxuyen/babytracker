@@ -67,7 +67,7 @@ const LoginPage: React.FC = () => {
         <Box
             sx={{
                 minHeight: '100vh',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(160deg, #38bdf8 0%, #13a4ec 45%, #0b6fa8 100%)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
@@ -147,9 +147,9 @@ const LoginPage: React.FC = () => {
                                 textTransform: 'none',
                                 borderRadius: '10px',
                                 ...(loginMode === 'email' ? {
-                                    bgcolor: '#667eea',
+                                    bgcolor: '#13a4ec',
                                     color: '#ffffff',
-                                    '&:hover': { bgcolor: '#5568d3' }
+                                    '&:hover': { bgcolor: '#0f93d6' }
                                 } : {
                                     borderColor: '#e2e8f0',
                                     color: '#718096',
@@ -168,9 +168,9 @@ const LoginPage: React.FC = () => {
                                 textTransform: 'none',
                                 borderRadius: '10px',
                                 ...(loginMode === 'google' ? {
-                                    bgcolor: '#667eea',
+                                    bgcolor: '#13a4ec',
                                     color: '#ffffff',
-                                    '&:hover': { bgcolor: '#5568d3' }
+                                    '&:hover': { bgcolor: '#0f93d6' }
                                 } : {
                                     borderColor: '#e2e8f0',
                                     color: '#718096',
@@ -232,17 +232,17 @@ const LoginPage: React.FC = () => {
                                 size="large"
                                 disabled={loading}
                                 sx={{
-                                    bgcolor: '#667eea',
+                                    bgcolor: '#13a4ec',
                                     color: '#ffffff',
                                     fontSize: '16px',
                                     fontWeight: 600,
                                     py: 1.75,
                                     borderRadius: '12px',
                                     textTransform: 'none',
-                                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                                    boxShadow: '0 4px 12px rgba(19, 164, 236, 0.3)',
                                     '&:hover': {
-                                        bgcolor: '#5568d3',
-                                        boxShadow: '0 6px 16px rgba(102, 126, 234, 0.4)'
+                                        bgcolor: '#0f93d6',
+                                        boxShadow: '0 6px 16px rgba(19, 164, 236, 0.4)'
                                     },
                                     '&:disabled': {
                                         bgcolor: '#a5b4fc'
@@ -285,7 +285,7 @@ const LoginPage: React.FC = () => {
                             }}
                         >
                             {loading ? (
-                                <CircularProgress size={24} sx={{ color: '#667eea' }} />
+                                <CircularProgress size={24} sx={{ color: '#13a4ec' }} />
                             ) : (
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
                                     <svg width="20" height="20" viewBox="0 0 48 48">

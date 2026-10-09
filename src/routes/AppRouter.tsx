@@ -34,7 +34,7 @@ const AppRouter: React.FC = () => {
                     
                         {/* Private routes with bottom padding for BottomNav */}
                         <Route path="/">
-                            <Box sx={{ pb: { xs: '76px', sm: '80px' } }}>
+                            <Box sx={{ pb: 'calc(88px + env(safe-area-inset-bottom))' }}>
                                 <Switch>
                                     <PrivateRoute path="/" exact component={ActivitiesPageNew} />
                                     <PrivateRoute path="/baby-info" component={BabyInfoPageNew} />

@@ -48,7 +48,7 @@ const typography = {
 
 const theme = createTheme({
   palette: {
-    primary: { main: colors.primary, light: colors.primaryLight },
+    primary: { main: colors.primary, light: colors.primaryLight, contrastText: '#ffffff' },
     secondary: { main: colors.info },
     error: { main: colors.danger },
     warning: { main: colors.warning },

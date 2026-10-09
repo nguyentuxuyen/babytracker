@@ -74,6 +74,12 @@ describe('parseAssistantCommand', () => {
     expect(new Date(parse('bú 12.5ml').params.timestamp)).toEqual(new Date(2026, 9, 9, 14, 20));
   });
 
+  it('reads 時間 as a duration, not a clock time', () => {
+    const { params } = parse('1時間寝た');
+    expect(params.details.duration).toBe(60);
+    expect(new Date(params.timestamp)).toEqual(new Date(2026, 9, 9, 14, 20));
+  });
+
   it('produces params that pass the activity schema without undefined values', () => {
     ['bé ngủ', 'cho bú', 'đổi tã', 'bú 100ml lúc 9h'].forEach((text) => {
       const { params } = parse(text);

@@ -19,10 +19,10 @@ const isSameDay = (left: Date, right: Date) => (
 const RecentDaysStrip: React.FC<RecentDaysStripProps> = ({ selectedDate, onSelect, onOpenCalendar }) => {
     const { t } = useTranslation();
     const today = new Date();
-    const dates = Array.from({ length: 4 }, (_, index) => {
+    const dates = Array.from({ length: 7 }, (_, index) => {
         const date = new Date(today);
         date.setHours(0, 0, 0, 0);
-        date.setDate(date.getDate() - (3 - index));
+        date.setDate(date.getDate() - (6 - index));
         return date;
     });
 
@@ -39,19 +39,20 @@ const RecentDaysStrip: React.FC<RecentDaysStripProps> = ({ selectedDate, onSelec
                             onClick={() => onSelect(date)}
                             aria-pressed={selected}
                             sx={{
-                                flex: '0 0 58px',
-                                minHeight: 58,
-                                border: selected ? '2px solid #13a4ec' : '1px solid #dbe4ea',
-                                borderRadius: 2,
-                                bgcolor: selected ? '#e0f2fe' : '#ffffff',
-                                color: selected ? '#0369a1' : '#475569',
+                                flex: '1 0 40px',
+                                minHeight: 56,
+                                minWidth: 40,
+                                border: selected ? '1px solid #13a4ec' : '1px solid #e5e7eb',
+                                borderRadius: '14px',
+                                bgcolor: selected ? '#13a4ec' : '#ffffff',
+                                color: selected ? '#ffffff' : '#475569',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 px: 0.5,
-                                '&:hover': { bgcolor: '#e0f2fe' }
+                                '&:hover': { bgcolor: selected ? '#0f93d6' : '#f0f9ff' }
                             }}
                         >
                             <Typography component="span" sx={{ fontSize: 11, lineHeight: 1.2 }}>
@@ -60,18 +61,24 @@ const RecentDaysStrip: React.FC<RecentDaysStripProps> = ({ selectedDate, onSelec
                             <Typography component="span" sx={{ fontSize: 18, lineHeight: 1.2, fontWeight: 700 }}>
                                 {date.getDate()}
                             </Typography>
-                            {isSameDay(date, today) && (
-                                <Typography component="span" sx={{ fontSize: 9, lineHeight: 1.1, fontWeight: 700 }}>
-                                    {t('common.today')}
-                                </Typography>
-                            )}
+                            <Box
+                                component="span"
+                                aria-label={isSameDay(date, today) ? t('common.today') : undefined}
+                                sx={{
+                                    width: 5,
+                                    height: 5,
+                                    mt: '3px',
+                                    borderRadius: '50%',
+                                    bgcolor: isSameDay(date, today) ? (selected ? '#ffffff' : '#13a4ec') : 'transparent'
+                                }}
+                            />
                         </Box>
                     );
                 })}
             </Box>
             {onOpenCalendar && (
                 <Tooltip title={t('common.openCalendar')}>
-                    <IconButton onClick={onOpenCalendar} aria-label={t('common.openCalendar')} size="small">
+                    <IconButton onClick={onOpenCalendar} aria-label={t('common.openCalendar')} sx={{ width: 44, height: 44 }}>
                         <CalendarMonthIcon />
                     </IconButton>
                 </Tooltip>

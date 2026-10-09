@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, Component, ReactNode } fro
 import ReactDOM from 'react-dom';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Grid, Snackbar, Alert, Checkbox, FormControlLabel, Tabs, Tab, Autocomplete, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Button as MuiButton, TextField, MenuItem, Select, InputLabel, FormControl, IconButton, Grid, Snackbar, Alert, InputAdornment, Autocomplete, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
@@ -10,24 +10,25 @@ import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { AssistantComposer } from '../components/common/AssistantComposer';
 import RecentDaysStrip from '../components/common/RecentDaysStrip';
-import { BabyIcon, BathIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon } from '../components/common/icons';
+import { BabyIcon, BathIcon, CloseIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon } from '../components/common/icons';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { filterFoodItems } from '../utils/foodSearch';
 import i18n from '../i18n';
 import { formatHoursMinutes } from '../i18n/format';
+import DayStatsCard from '../components/common/DayStatsCard';
+import RecentActivityList from '../components/common/RecentActivityList';
+import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityDisplay';
+import { ChoiceChips, SectionLabel, SegmentedControl, fieldSx, nativeTimeInputStyle } from '../components/common/FormControls';
+import { calculateStatsForDate } from '../utils/dailyStats';
+
+const isSameLocalDay = (left: Date, right: Date) => (
+    left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate()
+);
 
 const RECENT_FOOD_CHIP_COUNT = 8;
-
-// 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
-const liquidGlassStyle = {
-    background: 'rgba(255, 255, 255, 0.94)',
-    backdropFilter: 'none',
-    WebkitBackdropFilter: 'none',
-    border: '1px solid rgba(255, 255, 255, 0.5)', // Viền trắng phát sáng nhẹ
-    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)', // Bóng đổ màu xanh tím nhẹ tạo chiều sâu
-    borderRadius: '24px', // Bo góc lớn mềm mại
-    transition: 'all 0.3s ease', // Hiệu ứng chuyển động mượt như nước
-};
+const MILK_AMOUNT_PRESETS = [60, 90, 120, 150, 180];
 
 const normalizeFoodName = (value: string) => value.trim();
 
@@ -671,6 +672,8 @@ const ActivitiesPage: React.FC = () => {
                         details: savedActivity.details
                     } as Activity;
                     setActivities([localActivity, ...(activities || [])]);
+                    // A short buzz confirms the save on phones that support it.
+                    navigator.vibrate?.(15);
                     setSnackbar({
                         open: true,
                         message: firestore.isPendingWrite(savedActivity.id)
@@ -737,6 +740,11 @@ const ActivitiesPage: React.FC = () => {
 
 
     // WAKE WINDOW warning
+    // Colour of the open sheet: matches the activity (milk blue, solid pink, diaper amber...).
+    const formAccent = formData.type === 'feeding' && formData.foodType === 'solid'
+        ? ACTIVITY_COLORS.solid
+        : ACTIVITY_COLORS[formData.type] || ACTIVITY_COLORS.feeding;
+
     const wakeWindowWarning = useMemo(() => {
         if (!activities || activities.length === 0 || ongoingSleep) return null;
 
@@ -777,54 +785,17 @@ const ActivitiesPage: React.FC = () => {
 
     return (
         <ErrorBoundary>
-        <Box sx={{
-            minHeight: 'auto',
-            p: 0,
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            // 2. TẠO NỀN FLUID (QUAN TRỌNG ĐỂ THẤY HIỆU ỨNG KÍNH)
-            background: '#f0f4f8',
-            position: 'relative',
-            overflow: 'hidden',
-            // Blob 1: Màu xanh
-            '&::before': {
-                content: '""',
-                position: 'fixed',
-                top: '-10%',
-                left: '-10%',
-                width: '60%',
-                height: '60%',
-                borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%', // Hình dáng méo mó tự nhiên
-                background: 'linear-gradient(135deg, #a5f3fc 0%, #3b82f6 100%)',
-                filter: 'blur(60px)',
-                opacity: 0.6,
-                zIndex: 0,
-                animation: 'float 10s infinite ease-in-out'
-            },
-            // Blob 2: Màu cam/hồng
-            '&::after': {
-                content: '""',
-                position: 'fixed',
-                bottom: '-10%',
-                right: '-10%',
-                width: '60%',
-                height: '60%',
-                borderRadius: '60% 40% 30% 70% / 60% 50% 40% 50%',
-                background: 'linear-gradient(135deg, #fde68a 0%, #f472b6 100%)',
-                filter: 'blur(60px)',
-                opacity: 0.5,
-                zIndex: 0,
-                animation: 'float 12s infinite ease-in-out reverse'
-            },
-            '@keyframes float': {
-                '0%': { transform: 'translate(0, 0) rotate(0deg)' },
-                '50%': { transform: 'translate(20px, 20px) rotate(5deg)' },
-                '100%': { transform: 'translate(0, 0) rotate(0deg)' }
-            }
-        }}
-        >
-            <Dialog open={showAiComposer} onClose={() => setShowAiComposer(false)} fullWidth maxWidth="sm">
-                <DialogTitle>{t('assistant.recordWithAi')}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
+        <Box sx={{ minHeight: 'auto', p: 0, bgcolor: '#f6f7f8', position: 'relative' }}>
+            <Dialog
+                open={showAiComposer}
+                onClose={() => setShowAiComposer(false)}
+                fullWidth
+                maxWidth="sm"
+                PaperProps={{ sx: { borderRadius: '24px', m: 2, width: 'calc(100% - 32px)' } }}
+            >
+                <DialogTitle sx={{ fontWeight: 700, fontSize: 20, pb: 0.5 }}>{t('assistant.recordWithAi')}</DialogTitle>
+                <DialogContent sx={{ pt: '12px !important' }}>
+                    <Typography sx={{ fontSize: 13, color: '#6b7f8a', mb: 1.5 }}>{t('assistant.hint')}</Typography>
                     <AssistantComposer
                         babyId={baby?.id}
                         selectedDate={selectedDate}
@@ -839,7 +810,7 @@ const ActivitiesPage: React.FC = () => {
                 <Box>
                 {/* WAKE WINDOWS WARNING BANNER */}
                 {wakeWindowWarning && (
-                    <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.25, ...liquidGlassStyle, borderRadius: '12px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
+                    <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.5, bgcolor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '16px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             {t('activities.wakeWindow.label')} <Box component="span" sx={{ fontWeight: 400 }}>{wakeWindowWarning}</Box>
                         </Typography>
@@ -871,27 +842,27 @@ const ActivitiesPage: React.FC = () => {
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
                         {t('activities.heading')}
                     </Typography>
-                    <Grid container spacing={2}>
+                    <Grid container spacing={1.5}>
                         {[
                             { 
                                 label: t('activities.quick.milk'),
                                 type: 'feeding', 
                                 icon: (
-                                    <MilkIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <MilkIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.diaper'),
                                 type: 'diaper', 
                                 icon: (
-                                    <BabyIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <BabyIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.sleep'),
                                 type: 'sleep', 
                                 icon: (
-                                    <SleepIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <SleepIcon sx={{ fontSize: 22 }} />
                                 ),
                                 isSleepTimer: true // Special flag for sleep timer
                             },
@@ -899,21 +870,21 @@ const ActivitiesPage: React.FC = () => {
                                 label: t('activities.quick.bath'),
                                 type: 'bath', 
                                 icon: (
-                                    <BathIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <BathIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.measurement'),
                                 type: 'measurement', 
                                 icon: (
-                                    <MeasurementIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <MeasurementIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.memo'),
                                 type: 'memo', 
                                 icon: (
-                                    <MemoIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <MemoIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                         ].map(action => {
@@ -941,7 +912,13 @@ const ActivitiesPage: React.FC = () => {
                                 const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
                                 if (diffDays > 0) return t('relative.daysAgo', { count: diffDays });
-                                if (diffHours >= 1) return t('relative.hoursAgo', { hours: diffHours.toFixed(1) });
+                                if (diffHours >= 1) {
+                                    const wholeHours = Math.floor(diffHours);
+                                    const restMinutes = Math.floor(diffMinutes - wholeHours * 60);
+                                    return restMinutes > 0 && wholeHours < 10
+                                        ? t('relative.hoursMinutesAgo', { hours: wholeHours, minutes: restMinutes })
+                                        : t('relative.hoursAgo', { hours: wholeHours });
+                                }
                                 if (diffMinutes >= 1) return t('relative.minutesAgo', { count: Math.floor(diffMinutes) });
                                 return t('relative.justNow');
                             };
@@ -976,7 +953,13 @@ const ActivitiesPage: React.FC = () => {
                                             temperature: ''
                                         } as any;
 
-                                        if (action.type === 'diaper') {
+                                        if (action.type === 'feeding') {
+                                            // Start from the last bottle so a repeat feed is one tap on Save.
+                                            const lastMilk = (activities || [])
+                                                .filter((item) => item.type === 'feeding' && item.details?.foodType !== 'solid' && Number(item.details?.amount) > 0)
+                                                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                                            setFormData({ ...baseForm, foodType: 'milk', amount: lastMilk ? String(lastMilk.details.amount) : '' });
+                                        } else if (action.type === 'diaper') {
                                             setFormData({
                                                 ...baseForm,
                                                 isUrine: true,
@@ -992,67 +975,64 @@ const ActivitiesPage: React.FC = () => {
                                     }}
                                     sx={{
                                         display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: 1,
-                                        p: 2,
-                                        // Style kính trong cho nút bấm
-                                        bgcolor: (action as any).isSleepTimer && ongoingSleep 
-                                            ? 'rgba(254, 243, 199, 0.7)' 
-                                            : 'rgba(255, 255, 255, 0.5)',
-                                        backdropFilter: 'none',
+                                        alignItems: 'center',
+                                        gap: 1.5,
+                                        p: 1.5,
+                                        minHeight: 72,
+                                        bgcolor: (action as any).isSleepTimer && ongoingSleep ? '#fffbeb' : '#ffffff',
                                         borderRadius: '20px',
-                                        border: (action as any).isSleepTimer && ongoingSleep 
-                                            ? '2px solid #f59e0b' 
-                                            : '1px solid rgba(255, 255, 255, 0.6)',
-                                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
+                                        border: (action as any).isSleepTimer && ongoingSleep
+                                            ? '2px solid #f59e0b'
+                                            : '1px solid #e5e7eb',
                                         cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            bgcolor: 'rgba(255, 255, 255, 0.7)',
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.06)'
-                                        }
+                                        transition: 'transform 0.15s, box-shadow 0.15s',
+                                        '&:hover': { boxShadow: '0 6px 16px rgba(15, 23, 42, 0.06)' },
+                                        '&:active': { transform: 'scale(0.98)' }
                                     }}
                                 >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <Box sx={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '50%',
+                                        flexShrink: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: ACTIVITY_COLORS[action.type],
+                                        bgcolor: `${ACTIVITY_COLORS[action.type]}18`
+                                    }}>
                                         {action.icon}
-                                        <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#101c22' }}>
+                                    </Box>
+                                    <Box sx={{ minWidth: 0 }}>
+                                        <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#101c22', lineHeight: 1.3 }} noWrap>
                                             {(action as any).isSleepTimer && ongoingSleep ? t('activities.quick.wakeUp') : action.label}
                                         </Typography>
+                                        {(action as any).isSleepTimer && ongoingSleep ? (
+                                            <Typography sx={{ fontSize: 13, color: '#d97706', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} noWrap>
+                                                <TimerIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }} />{Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
+                                            </Typography>
+                                        ) : (
+                                            <Typography sx={{ fontSize: 12, color: timeSince ? '#6b7f8a' : '#b0b8bf', fontWeight: 500 }} noWrap>
+                                                {timeSince || t('common.noData')}
+                                            </Typography>
+                                        )}
                                     </Box>
-                                    {(action as any).isSleepTimer && ongoingSleep ? (
-                                        <Typography sx={{ 
-                                            fontSize: '14px', 
-                                            color: '#f59e0b',
-                                            fontWeight: 600,
-                                            pl: 5
-                                        }}>
-                                            <TimerIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />{Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
-                                        </Typography>
-                                    ) : timeSince ? (
-                                        <Typography sx={{ 
-                                            fontSize: '12px', 
-                                            color: '#9ca3af',
-                                            fontWeight: 500,
-                                            pl: 5
-                                        }}>
-                                            {timeSince}
-                                        </Typography>
-                                    ) : (
-                                        <Typography sx={{ 
-                                            fontSize: '12px',
-                                            color: '#b0b8bf',
-                                            fontWeight: 500,
-                                            pl: 5
-                                        }}>
-                                            {t('common.noData')}
-                                        </Typography>
-                                    )}
                                 </Box>
                             </Grid>
                             );
                         })}
                     </Grid>
+                </Box>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+                    <DayStatsCard
+                        title={t('home.summaryTitle')}
+                        stats={calculateStatsForDate((activities || []) as any, selectedDate)}
+                    />
+                    <RecentActivityList
+                        activities={(activities || []).filter((activity) => isSameLocalDay(new Date(activity.timestamp), selectedDate))}
+                        onSeeAll={() => history.push('/timeline')}
+                    />
                 </Box>
 
                 </Box>
@@ -1083,9 +1063,8 @@ const ActivitiesPage: React.FC = () => {
                     <Box 
                         onClick={(e) => e.stopPropagation()}
                         sx={{
-                            bgcolor: 'rgba(255, 255, 255, 0.9)',
-                            backdropFilter: 'blur(20px)',
-                            borderRadius: { xs: '20px 20px 0 0', sm: '24px 24px 0 0' },
+                            bgcolor: '#ffffff',
+                            borderRadius: '28px 28px 0 0',
                             width: '100%',
                             maxWidth: { xs: '100%', sm: 600 },
                             minHeight: { xs: '50vh', sm: 'auto' },
@@ -1120,44 +1099,62 @@ const ActivitiesPage: React.FC = () => {
                         </Box>
 
                         {/* Header */}
-                        <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2, flexShrink: 0 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="h6" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, color: '#101c22' }}>
-                                    {editingActivity ? t('activities.editTitle') : getActivityTitle(formData.type)}
-                                </Typography>
-                                {!editingActivity && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="caption" sx={{ color: '#6b7f8a', fontSize: { xs: '12px', sm: '13px' }, display: { xs: 'none', sm: 'block' } }}>
-                                            {t('activities.bulk.label')}
-                                        </Typography>
-                                        <MuiButton
-                                            size="small"
-                                            variant={isBulkMode ? "contained" : "outlined"}
-                                            onClick={() => {
-                                                setIsBulkMode(!isBulkMode);
-                                                if (!isBulkMode) {
-                                                    setBulkTimes([formData.time]);
-                                                }
-                                            }}
-                                            sx={{ 
-                                                minWidth: 'auto', 
-                                                px: 1.5,
-                                                py: 0.5,
-                                                fontSize: '12px',
-                                                bgcolor: isBulkMode ? '#13a4ec' : 'transparent',
-                                                color: isBulkMode ? '#ffffff' : '#6b7f8a',
-                                                borderColor: '#e5e7eb',
-                                                '&:hover': {
-                                                    bgcolor: isBulkMode ? '#0e8fd4' : '#f6f7f8',
-                                                    borderColor: '#e5e7eb'
-                                                }
-                                            }}
-                                        >
-                                            {isBulkMode ? t('common.on') : t('common.off')}
-                                        </MuiButton>
-                                    </Box>
-                                )}
+                        <Box sx={{ px: 2, pb: 2, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box sx={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: formAccent,
+                                bgcolor: `${formAccent}18`,
+                                '& svg': { fontSize: 22 }
+                            }}>
+                                {getActivityIcon({ type: formData.type, details: { foodType: formData.foodType } })}
                             </Box>
+                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: 19, fontWeight: 700, color: '#101c22' }} noWrap>
+                                {editingActivity ? t('activities.editTitle') : getActivityTitle(formData.type)}
+                            </Typography>
+                            {!editingActivity && (
+                                <Box
+                                    component="button"
+                                    type="button"
+                                    aria-pressed={isBulkMode}
+                                    onClick={() => {
+                                        setIsBulkMode(!isBulkMode);
+                                        if (!isBulkMode) {
+                                            setBulkTimes([formData.time]);
+                                        }
+                                    }}
+                                    sx={{
+                                        flexShrink: 0,
+                                        height: 40,
+                                        px: 1.5,
+                                        borderRadius: '999px',
+                                        border: `1.5px solid ${isBulkMode ? '#13a4ec' : '#e2e8f0'}`,
+                                        bgcolor: isBulkMode ? '#e0f2fe' : '#ffffff',
+                                        color: isBulkMode ? '#0369a1' : '#64748b',
+                                        fontFamily: 'inherit',
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {t('activities.bulk.label')}
+                                </Box>
+                            )}
+                            <IconButton
+                                aria-label={t('common.close')}
+                                onClick={() => {
+                                    setShowForm(false);
+                                    setHideActivityType(false);
+                                }}
+                                sx={{ flexShrink: 0, bgcolor: '#f1f5f9', width: 40, height: 40, '&:hover': { bgcolor: '#e2e8f0' } }}
+                            >
+                                <CloseIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
                         </Box>
 
                         {/* Form Content - Scrollable */}
@@ -1209,8 +1206,8 @@ const ActivitiesPage: React.FC = () => {
                                                 }
                                             }}
                                             sx={{
-                                                bgcolor: '#e3e8eb',
-                                                borderRadius: '12px',
+                                                bgcolor: '#f1f5f9',
+                                                borderRadius: '14px',
                                                 '& .MuiOutlinedInput-notchedOutline': {
                                                     border: 'none'
                                                 },
@@ -1244,25 +1241,14 @@ const ActivitiesPage: React.FC = () => {
 
                                 {/* Time Input - Single or Multiple */}
                                 {formData.type !== 'sleep' && (!isBulkMode ? (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                        <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a' }}>
-                                            {t('activities.form.time')}
-                                        </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                        <SectionLabel>{t('activities.form.time')}</SectionLabel>
                                         <input
                                             type="time"
+                                            aria-label={t('activities.form.time')}
                                             value={formData.time}
                                             onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px 16px',
-                                                fontSize: '16px',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                backgroundColor: '#e3e8eb',
-                                                color: '#101c22',
-                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                                boxSizing: 'border-box'
-                                            }}
+                                            style={nativeTimeInputStyle}
                                         />
                                     </Box>
                                 ) : (
@@ -1282,22 +1268,7 @@ const ActivitiesPage: React.FC = () => {
                                                     }}
                                                     InputLabelProps={{ shrink: true }}
                                                     inputProps={{ step: 60 }}
-                                                    sx={{ 
-                                                        flex: 1,
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': {
-                                                                border: 'none'
-                                                            },
-                                                            '&:hover fieldset': {
-                                                                border: 'none'
-                                                            },
-                                                            '&.Mui-focused fieldset': {
-                                                                border: '2px solid #13a4ec'
-                                                            }
-                                                        }
-                                                    }}
+                                                    variant="filled" hiddenLabel sx={{ ...fieldSx, flex: 1 }}
                                                 />
                                                 <IconButton 
                                                     onClick={() => {
@@ -1343,132 +1314,92 @@ const ActivitiesPage: React.FC = () => {
                                     </Box>
                                 ))}
 
-                                {/* Diaper Checkboxes */}
+                                {/* Diaper: what was in it, then stool details */}
                                 {formData.type === 'diaper' && (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox 
-                                                    checked={!!formData.isUrine} 
-                                                    onChange={(e) => setFormData({ ...formData, isUrine: e.target.checked })}
-                                                    sx={{
-                                                        color: '#13a4ec',
-                                                        '&.Mui-checked': {
-                                                            color: '#13a4ec'
-                                                        }
-                                                    }}
-                                                />
-                                            }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>{t('diaper.urine')}</Typography>}
-                                        />
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox 
-                                                    checked={!!formData.isStool} 
-                                                    onChange={(e) => setFormData({ ...formData, isStool: e.target.checked })}
-                                                    sx={{
-                                                        color: '#13a4ec',
-                                                        '&.Mui-checked': {
-                                                            color: '#13a4ec'
-                                                        }
-                                                    }}
-                                                />
-                                            }
-                                            label={<Typography sx={{ fontSize: '14px', color: '#101c22' }}>{t('diaper.stool')}</Typography>}
-                                        />
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        <Box>
+                                            <SectionLabel>{t('diaper.kind')}</SectionLabel>
+                                            <SegmentedControl
+                                                color={ACTIVITY_COLORS.diaper}
+                                                value={formData.isUrine && formData.isStool ? 'both' : formData.isStool ? 'stool' : 'urine'}
+                                                onChange={(kind) => setFormData({
+                                                    ...formData,
+                                                    isUrine: kind !== 'stool',
+                                                    isStool: kind !== 'urine',
+                                                    stoolColor: kind !== 'urine' && !(formData.stoolColor && formData.stoolColor.length) ? ['vàng'] : formData.stoolColor
+                                                })}
+                                                options={[
+                                                    { value: 'urine', label: t('diaper.urine') },
+                                                    { value: 'stool', label: t('diaper.stool') },
+                                                    { value: 'both', label: t('diaper.both') }
+                                                ]}
+                                            />
+                                        </Box>
 
                                         {formData.isStool && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pl: 4 }}>
-                                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                    {(['vàng', 'nâu', 'xám'] as const).map((color) => (
-                                                        <FormControlLabel
-                                                            key={color}
-                                                            control={
-                                                                <Checkbox
-                                                                    checked={Array.isArray(formData.stoolColor) ? formData.stoolColor.includes(color) : false}
-                                                                    onChange={(e) => {
-                                                                        const prev = Array.isArray(formData.stoolColor) ? formData.stoolColor : [];
-                                                                        if (e.target.checked) {
-                                                                            setFormData({ ...formData, stoolColor: Array.from(new Set([...prev, color])) });
-                                                                        } else {
-                                                                            setFormData({ ...formData, stoolColor: prev.filter((c) => c !== color) });
-                                                                        }
-                                                                    }}
-                                                                    sx={{
-                                                                        color: '#13a4ec',
-                                                                        '&.Mui-checked': {
-                                                                            color: '#13a4ec'
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            }
-                                                            label={<Typography sx={{ fontSize: '13px', color: '#101c22' }}>{t(`diaper.color.${color === 'vàng' ? 'yellow' : color === 'nâu' ? 'brown' : 'gray'}`)}</Typography>}
-                                                        />
-                                                    ))}
+                                            <>
+                                                <Box>
+                                                    <SectionLabel>{t('diaper.colorLabel')}</SectionLabel>
+                                                    <ChoiceChips
+                                                        color={ACTIVITY_COLORS.diaper}
+                                                        selected={Array.isArray(formData.stoolColor) ? formData.stoolColor : []}
+                                                        onToggle={(color) => {
+                                                            const prev = Array.isArray(formData.stoolColor) ? formData.stoolColor : [];
+                                                            setFormData({
+                                                                ...formData,
+                                                                stoolColor: prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
+                                                            });
+                                                        }}
+                                                        options={[
+                                                            { value: 'vàng' as const, label: t('diaper.color.yellow'), dot: '#facc15' },
+                                                            { value: 'nâu' as const, label: t('diaper.color.brown'), dot: '#92400e' },
+                                                            { value: 'xám' as const, label: t('diaper.color.gray'), dot: '#9ca3af' }
+                                                        ]}
+                                                    />
                                                 </Box>
-                                                <FormControl fullWidth>
-                                                    <InputLabel id="stool-consistency-label" sx={{ color: '#6b7f8a' }}>{t('diaper.consistency.label')}</InputLabel>
-                                                    <Select
-                                                        labelId="stool-consistency-label"
+                                                <Box>
+                                                    <SectionLabel>{t('diaper.consistency.label')}</SectionLabel>
+                                                    <SegmentedControl
+                                                        color={ACTIVITY_COLORS.diaper}
                                                         value={formData.stoolConsistency || 'bình thường'}
-                                                        label={t('diaper.consistency.label')}
-                                                        onChange={(e) => setFormData({ ...formData, stoolConsistency: e.target.value as 'lỏng' | 'bình thường' | 'khô' })}
-                                                        sx={{
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& .MuiOutlinedInput-notchedOutline': {
-                                                                border: 'none'
-                                                            },
-                                                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                                                                border: 'none'
-                                                            },
-                                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                                                border: '2px solid #13a4ec'
-                                                            }
-                                                        }}
-                                                        MenuProps={{
-                                                            disableScrollLock: true,
-                                                            sx: { zIndex: 13000 },
-                                                            PaperProps: {
-                                                                sx: { 
-                                                                    borderRadius: '12px',
-                                                                    marginTop: '8px'
-                                                                }
-                                                            }
-                                                        }}
-                                                    >
-                                                        <MenuItem value="lỏng">{t('diaper.consistency.loose')}</MenuItem>
-                                                        <MenuItem value="bình thường">{t('diaper.consistency.normal')}</MenuItem>
-                                                        <MenuItem value="khô">{t('diaper.consistency.hard')}</MenuItem>
-                                                    </Select>
-                                                </FormControl>
-                                            </Box>
+                                                        onChange={(value) => setFormData({ ...formData, stoolConsistency: value })}
+                                                        options={[
+                                                            { value: 'lỏng', label: t('diaper.consistency.loose') },
+                                                            { value: 'bình thường', label: t('diaper.consistency.normal') },
+                                                            { value: 'khô', label: t('diaper.consistency.hard') }
+                                                        ]}
+                                                    />
+                                                </Box>
+                                            </>
                                         )}
                                     </Box>
                                 )}
 
                                 {/* Feeding Type Tabs */}
                                 {formData.type === 'feeding' && (
-                                    <Box sx={{ width: '100%', mb: 2 }}>
-                                        <Tabs
-                                            value={formData.foodType === 'solid' ? 1 : 0}
-                                            onChange={(_, newValue) => setFormData({ ...formData, foodType: newValue === 0 ? 'milk' : 'solid' })}
-                                            variant="fullWidth"
-                                            sx={{
-                                                mb: 2,
-                                                '& .MuiTab-root': {
-                                                    textTransform: 'none',
-                                                    fontWeight: 600,
-                                                    fontSize: '15px'
-                                                }
-                                            }}
-                                        >
-                                            <Tab label={t('feeding.milk')} />
-                                            <Tab label={t('feeding.solid')} />
-                                        </Tabs>
+                                    <Box sx={{ width: '100%' }}>
+                                        <Box sx={{ mb: 2 }}>
+                                            <SegmentedControl
+                                                color={formData.foodType === 'solid' ? ACTIVITY_COLORS.solid : ACTIVITY_COLORS.feeding}
+                                                value={formData.foodType === 'solid' ? 'solid' : 'milk'}
+                                                onChange={(value) => setFormData({ ...formData, foodType: value })}
+                                                options={[
+                                                    { value: 'milk', label: t('feeding.milk'), icon: <MilkIcon /> },
+                                                    { value: 'solid', label: t('feeding.solid'), icon: <FoodIcon /> }
+                                                ]}
+                                            />
+                                        </Box>
 
                                         {formData.foodType !== 'solid' ? (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                            <ChoiceChips
+                                                color={ACTIVITY_COLORS.feeding}
+                                                selected={[Number(formData.amount)]}
+                                                onToggle={(amount) => setFormData({ ...formData, amount: String(amount) })}
+                                                options={MILK_AMOUNT_PRESETS.map((amount) => ({ value: amount, label: `${amount}ml` }))}
+                                            />
                                             <TextField
+                                                InputProps={{ endAdornment: <InputAdornment position="end">ml</InputAdornment> }}
                                                 label={t('feeding.amountMl')}
                                                 type="number"
                                                 inputMode="decimal"
@@ -1476,26 +1407,9 @@ const ActivitiesPage: React.FC = () => {
                                                 value={formData.amount}
                                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                                 fullWidth
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': { border: 'none' },
-                                                        '&:hover fieldset': { border: 'none' },
-                                                        '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#e3e8eb',
-                                                        paddingRight: '4px',
-                                                        '&.MuiInputLabel-shrink': {
-                                                            backgroundColor: '#ffffff',
-                                                            paddingLeft: '4px',
-                                                            paddingRight: '4px'
-                                                        }
-                                                    }
-                                                }}
+                                                variant="filled" sx={fieldSx}
                                             />
+                                            </Box>
                                         ) : (
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                 {foodItems.length > 0 && (
@@ -1517,9 +1431,9 @@ const ActivitiesPage: React.FC = () => {
                                                                         sx={{
                                                                             maxWidth: '100%',
                                                                             fontWeight: 600,
-                                                                            color: selected ? '#ffffff' : '#101c22',
-                                                                            bgcolor: selected ? '#13a4ec' : '#e3e8eb',
-                                                                            '&:hover': { bgcolor: selected ? '#13a4ec' : '#d5dce0' }
+                                                                            color: selected ? '#ffffff' : '#334155',
+                                                                            bgcolor: selected ? ACTIVITY_COLORS.solid : '#f1f5f9',
+                                                                            '&:hover': { bgcolor: selected ? ACTIVITY_COLORS.solid : '#e2e8f0' }
                                                                         }}
                                                                     />
                                                                 );
@@ -1572,25 +1486,7 @@ const ActivitiesPage: React.FC = () => {
                                                                     }
                                                                 }, 300); // Slight delay to allow keyboard to appear
                                                             }}
-                                                            sx={{
-                                                                '& .MuiOutlinedInput-root': {
-                                                                    bgcolor: '#e3e8eb',
-                                                                    borderRadius: '12px',
-                                                                    '& fieldset': { border: 'none' },
-                                                                    '&:hover fieldset': { border: 'none' },
-                                                                    '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                                },
-                                                                '& .MuiInputLabel-root': {
-                                                                    color: '#6b7f8a',
-                                                                    backgroundColor: '#e3e8eb',
-                                                                    paddingRight: '4px',
-                                                                    '&.MuiInputLabel-shrink': {
-                                                                        backgroundColor: '#ffffff',
-                                                                        paddingLeft: '4px',
-                                                                        paddingRight: '4px'
-                                                                    }
-                                                                }
-                                                            }}
+                                                            variant="filled" sx={fieldSx}
                                                         />
                                                     )}
                                                 />
@@ -1602,57 +1498,22 @@ const ActivitiesPage: React.FC = () => {
                                                     value={formData.amount}
                                                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                                     fullWidth
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': { border: 'none' },
-                                                            '&:hover fieldset': { border: 'none' },
-                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                        },
-                                                        '& .MuiInputLabel-root': {
-                                                            color: '#6b7f8a',
-                                                            backgroundColor: '#e3e8eb',
-                                                            paddingRight: '4px',
-                                                            '&.MuiInputLabel-shrink': {
-                                                                backgroundColor: '#ffffff',
-                                                                paddingLeft: '4px',
-                                                                paddingRight: '4px'
-                                                            }
-                                                        }
-                                                    }}
+                                                    variant="filled" sx={fieldSx}
                                                 />
-                                                <FormControl fullWidth>
-                                                    <InputLabel id="food-preference-label">{t('feeding.reaction.label')}</InputLabel>
-                                                    <Select
-                                                        labelId="food-preference-label"
-                                                        id="food-preference-select"
-                                                        value={formData.foodPreference ?? 'normal'}
-                                                        label={t('feeding.reaction.label')}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, foodPreference: (e.target.value as 'enthusiastic' | 'normal' | 'dislike' | 'allergic') || 'normal' }))}
-                                                        sx={{
-                                                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: '2px solid #13a4ec' },
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px'
-                                                        }}
-                                                        MenuProps={{
-                                                            disableScrollLock: true,
-                                                            sx: { zIndex: 13000 },
-                                                            PaperProps: {
-                                                                sx: { 
-                                                                    borderRadius: '12px',
-                                                                    marginTop: '8px'
-                                                                }
-                                                            }
-                                                        }}
-                                                    >
-                                                        <MenuItem value="enthusiastic" sx={{ color: '#101c22' }}>{t('feeding.reaction.enthusiastic')}</MenuItem>
-                                                        <MenuItem value="normal" sx={{ color: '#101c22' }}>{t('feeding.reaction.normal')}</MenuItem>
-                                                        <MenuItem value="dislike" sx={{ color: '#101c22' }}>{t('feeding.reaction.dislike')}</MenuItem>
-                                                        <MenuItem value="allergic" sx={{ color: '#d32f2f' }}>{t('feeding.reaction.allergic')}</MenuItem>
-                                                    </Select>
-                                                </FormControl>
+                                                <Box>
+                                                    <SectionLabel>{t('feeding.reaction.label')}</SectionLabel>
+                                                    <ChoiceChips
+                                                        color={ACTIVITY_COLORS.solid}
+                                                        selected={[formData.foodPreference ?? 'normal']}
+                                                        onToggle={(value) => setFormData(prev => ({ ...prev, foodPreference: value }))}
+                                                        options={[
+                                                            { value: 'enthusiastic' as const, label: t('feeding.reaction.enthusiastic') },
+                                                            { value: 'normal' as const, label: t('feeding.reaction.normal') },
+                                                            { value: 'dislike' as const, label: t('feeding.reaction.dislike') },
+                                                            { value: 'allergic' as const, label: t('feeding.reaction.allergic'), danger: true }
+                                                        ]}
+                                                    />
+                                                </Box>
                                             </Box>
                                         )}
                                     </Box>
@@ -1663,9 +1524,7 @@ const ActivitiesPage: React.FC = () => {
                                     <>
                                         <Box sx={{ display: 'flex', gap: 2 }}>
                                             <Box sx={{ flex: 1 }}>
-                                                <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    {t('sleep.startTime')}
-                                                </Typography>
+                                                <SectionLabel>{t('sleep.startTime')}</SectionLabel>
                                                 <TextField
                                                     type="time"
                                                     value={(() => {
@@ -1722,21 +1581,11 @@ const ActivitiesPage: React.FC = () => {
                                                         setFormData({ ...formData, notes: newNotes, duration: newDuration });
                                                     }}
                                                     fullWidth
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': { border: 'none' },
-                                                            '&:hover fieldset': { border: 'none' },
-                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                        }
-                                                    }}
+                                                    variant="filled" hiddenLabel sx={fieldSx}
                                                 />
                                             </Box>
                                             <Box sx={{ flex: 1 }}>
-                                                <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 0.5 }}>
-                                                    {t('sleep.endTimeWake')}
-                                                </Typography>
+                                                <SectionLabel>{t('sleep.endTimeWake')}</SectionLabel>
                                                 <TextField
                                                     type="time"
                                                     value={(() => {
@@ -1804,15 +1653,7 @@ const ActivitiesPage: React.FC = () => {
                                                         setFormData({ ...formData, timestamp: newTimestamp.toISOString(), duration: newDuration, notes: currentNotes });
                                                     }}
                                                     fullWidth
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            bgcolor: '#e3e8eb',
-                                                            borderRadius: '12px',
-                                                            '& fieldset': { border: 'none' },
-                                                            '&:hover fieldset': { border: 'none' },
-                                                            '&.Mui-focused fieldset': { border: '2px solid #13a4ec' }
-                                                        }
-                                                    }}
+                                                    variant="filled" hiddenLabel sx={fieldSx}
                                                 />
                                             </Box>
                                         </Box>
@@ -1822,31 +1663,7 @@ const ActivitiesPage: React.FC = () => {
                                             value={formData.duration}
                                             disabled={true}
                                             fullWidth
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    bgcolor: '#f0f2f5',
-                                                    borderRadius: '12px',
-                                                    '& fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&:hover fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&.Mui-focused fieldset': {
-                                                        border: 'none'
-                                                    }
-                                                },
-                                                '& .MuiInputLabel-root': {
-                                                    color: '#6b7f8a',
-                                                    backgroundColor: '#f0f2f5',
-                                                    paddingRight: '4px',
-                                                    '&.MuiInputLabel-shrink': {
-                                                        backgroundColor: '#ffffff',
-                                                        paddingLeft: '4px',
-                                                        paddingRight: '4px'
-                                                    }
-                                                }
-                                            }}
+                                            variant="filled" sx={fieldSx}
                                         />
                                     </>
                                 )}
@@ -1861,31 +1678,7 @@ const ActivitiesPage: React.FC = () => {
                                                 value={formData.weight}
                                                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                                                 fullWidth
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&:hover fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&.Mui-focused fieldset': {
-                                                            border: '2px solid #13a4ec'
-                                                        }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#e3e8eb',
-                                                        paddingRight: '4px',
-                                                        '&.MuiInputLabel-shrink': {
-                                                            backgroundColor: '#ffffff',
-                                                            paddingLeft: '4px',
-                                                            paddingRight: '4px'
-                                                        }
-                                                    }
-                                                }}
+                                                variant="filled" sx={fieldSx}
                                             />
                                             <TextField
                                                 label={t('measurement.heightCm')}
@@ -1893,31 +1686,7 @@ const ActivitiesPage: React.FC = () => {
                                                 value={formData.height}
                                                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
                                                 fullWidth
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        bgcolor: '#e3e8eb',
-                                                        borderRadius: '12px',
-                                                        '& fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&:hover fieldset': {
-                                                            border: 'none'
-                                                        },
-                                                        '&.Mui-focused fieldset': {
-                                                            border: '2px solid #13a4ec'
-                                                        }
-                                                    },
-                                                    '& .MuiInputLabel-root': {
-                                                        color: '#6b7f8a',
-                                                        backgroundColor: '#e3e8eb',
-                                                        paddingRight: '4px',
-                                                        '&.MuiInputLabel-shrink': {
-                                                            backgroundColor: '#ffffff',
-                                                            paddingLeft: '4px',
-                                                            paddingRight: '4px'
-                                                        }
-                                                    }
-                                                }}
+                                                variant="filled" sx={fieldSx}
                                             />
                                         </Box>
                                         <TextField
@@ -1926,31 +1695,7 @@ const ActivitiesPage: React.FC = () => {
                                             value={formData.temperature}
                                             onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
                                             fullWidth
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    bgcolor: '#e3e8eb',
-                                                    borderRadius: '12px',
-                                                    '& fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&:hover fieldset': {
-                                                        border: 'none'
-                                                    },
-                                                    '&.Mui-focused fieldset': {
-                                                        border: '2px solid #13a4ec'
-                                                    }
-                                                },
-                                                '& .MuiInputLabel-root': {
-                                                    color: '#6b7f8a',
-                                                    backgroundColor: '#e3e8eb',
-                                                    paddingRight: '4px',
-                                                    '&.MuiInputLabel-shrink': {
-                                                        backgroundColor: '#ffffff',
-                                                        paddingLeft: '4px',
-                                                        paddingRight: '4px'
-                                                    }
-                                                }
-                                            }}
+                                            variant="filled" sx={fieldSx}
                                         />
                                     </>
                                 )}
@@ -1964,30 +1709,7 @@ const ActivitiesPage: React.FC = () => {
                                         fullWidth
                                         multiline
                                         minRows={2}
-                                        sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                bgcolor: '#e3e8eb',
-                                                borderRadius: '12px',
-                                                '& fieldset': {
-                                                    border: 'none'
-                                                },
-                                                '&:hover fieldset': {
-                                                },
-                                                '&.Mui-focused fieldset': {
-                                                    border: '2px solid #13a4ec'
-                                                }
-                                            },
-                                            '& .MuiInputLabel-root': {
-                                                color: '#6b7f8a',
-                                                backgroundColor: '#e3e8eb',
-                                                paddingRight: '4px',
-                                                '&.MuiInputLabel-shrink': {
-                                                    backgroundColor: '#ffffff',
-                                                    paddingLeft: '4px',
-                                                    paddingRight: '4px'
-                                                }
-                                            }
-                                        }}
+                                        variant="filled" sx={fieldSx}
                                     />
                                     )}
 
@@ -2057,9 +1779,8 @@ const ActivitiesPage: React.FC = () => {
                                 sm: 3 
                             },
                             pt: 2,
-                            borderTop: '1px solid rgba(0, 0, 0, 0.05)',
-                            bgcolor: 'rgba(255, 255, 255, 0.8)',
-                            backdropFilter: 'blur(10px)',
+                            borderTop: '1px solid #f1f5f9',
+                            bgcolor: '#ffffff',
                             flexShrink: 0,
                             position: 'sticky',
                             bottom: 0,
@@ -2071,20 +1792,17 @@ const ActivitiesPage: React.FC = () => {
                                         setShowForm(false);
                                         setHideActivityType(false);
                                     }}
-                                    variant="outlined"
+                                    variant="text"
                                     fullWidth
                                     sx={{
-                                        borderRadius: '12px',
-                                        height: { xs: 44, sm: 48 },
-                                        borderColor: '#e5e7eb',
-                                        color: '#6b7f8a',
+                                        borderRadius: '14px',
+                                        height: 52,
+                                        bgcolor: '#f1f5f9',
+                                        color: '#334155',
                                         textTransform: 'none',
                                         fontWeight: 700,
                                         fontSize: { xs: '14px', sm: '16px' },
-                                        '&:hover': {
-                                            borderColor: '#6b7f8a',
-                                            bgcolor: 'transparent'
-                                        }
+                                        '&:hover': { bgcolor: '#e2e8f0' }
                                     }}
                                 >
                                     {t('common.cancel')}
@@ -2096,15 +1814,16 @@ const ActivitiesPage: React.FC = () => {
                                     fullWidth
                                     disabled={loading}
                                     sx={{
-                                        borderRadius: '12px',
-                                        height: { xs: 44, sm: 48 },
-                                        bgcolor: '#13a4ec',
+                                        borderRadius: '14px',
+                                        height: 52,
+                                        bgcolor: formAccent,
                                         boxShadow: 'none',
                                         textTransform: 'none',
                                         fontWeight: 700,
                                         fontSize: { xs: '14px', sm: '16px' },
                                         '&:hover': {
-                                            bgcolor: '#0e8fd4',
+                                            bgcolor: formAccent,
+                                            filter: 'brightness(0.95)',
                                             boxShadow: 'none'
                                         },
                                         '&:disabled': {
@@ -2135,6 +1854,7 @@ const ActivitiesPage: React.FC = () => {
                 autoHideDuration={4000}
                 onClose={() => setSnackbar({ ...snackbar, open: false })}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                sx={{ bottom: { xs: 'calc(96px + env(safe-area-inset-bottom))' } }}
             >
                 <Alert
                     onClose={() => setSnackbar({ ...snackbar, open: false })}

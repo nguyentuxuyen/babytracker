@@ -36,7 +36,8 @@
     "daysAgo_other": "{{count}} days ago",
     "hoursAgo": "{{hours}} h ago",
     "minutesAgo": "{{count}} min ago",
-    "justNow": "Just now"
+    "justNow": "Just now",
+    "hoursMinutesAgo": "{{hours}} h {{minutes}} min ago"
   },
   "nav": {
     "home": "Home",
@@ -76,7 +77,8 @@
     "disabled": "Off",
     "sendTestPush": "Send test notification",
     "logout": "Log out",
-    "editTranslations": "Edit translations"
+    "editTranslations": "Edit translations",
+    "account": "Account"
   },
   "changelog": {
     "title": "What's new",
@@ -179,7 +181,10 @@
       "loose": "Loose",
       "normal": "Normal",
       "hard": "Hard"
-    }
+    },
+    "kind": "Type",
+    "both": "Both",
+    "colorLabel": "Colour"
   },
   "feeding": {
     "milk": "Milk",
@@ -218,7 +223,9 @@
     "confirmDelete": "Delete this record?",
     "deleteFailed": "Could not delete the record.",
     "updateFailed": "Offline records cannot be edited, or the update failed.",
-    "loadFailed": "Could not load activities."
+    "loadFailed": "Could not load activities.",
+    "deleted": "Record deleted",
+    "undo": "Undo"
   },
   "foodHistory": {
     "title": "Solid food log",
@@ -364,7 +371,14 @@
       "unsupportedTool": "Unsupported command: {{tool}}",
       "invalidResponse": "The server returned an invalid response (HTTP {{status}})",
       "serverError": "Server error"
-    }
+    },
+    "examples": {
+      "milk": "milk 120ml",
+      "sleep": "slept 1 hour",
+      "diaper": "diaper, wet",
+      "bath": "bath at 19:00"
+    },
+    "hint": "Type or speak as if texting, and AI will log it."
   },
   "translations": {
     "title": "Edit translations",
@@ -532,5 +546,12 @@
   "errorBoundary": {
     "title": "Something went wrong",
     "reload": "Reload"
+  },
+  "home": {
+    "summaryTitle": "Day summary",
+    "recent": "Recent",
+    "seeAll": "See all",
+    "previousDay": "Day before: {{value}}",
+    "diaperValue": "Wet {{urine}} · Dirty {{stool}}"
   }
 }
