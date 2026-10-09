@@ -8,6 +8,8 @@ import { BabyProvider, useBaby } from './contexts/BabyContext';
 import { DateProvider } from './contexts/DateContext';
 import AppRouter from './routes/AppRouter';
 import BabyInfoPage from './pages/BabyInfoPageNew';
+import TranslationsPage from './pages/TranslationsPage';
+import { loadTranslationOverrides } from './i18n/overrides';
 import { firestore } from './firebase/firestore';
 import { loadReminderSettings, saveReminderSettings } from './utils/reminderSettings';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
@@ -21,7 +23,8 @@ import {
     LogoutIcon,
     NotificationsIcon,
     NotificationsOffIcon,
-    SendIcon
+    SendIcon,
+    TranslateIcon
 } from './components/common/icons';
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
 import packageJson from '../package.json';
@@ -32,6 +35,7 @@ const HeaderComponent: React.FC<{
     currentUser: any;
     logout: () => Promise<void>;
     onShowBabyInfo: () => void;
+    onShowTranslations: () => void;
     isOnline: boolean;
     pendingSyncCount: number;
     isSyncing: boolean;
@@ -52,6 +56,7 @@ const HeaderComponent: React.FC<{
     currentUser,
     logout,
     onShowBabyInfo,
+    onShowTranslations,
     isOnline,
     pendingSyncCount,
     isSyncing,
@@ -437,6 +442,28 @@ const HeaderComponent: React.FC<{
                                     }}>
                                         <div style={{ marginBottom: '6px' }}>{t('settings.language')}</div>
                                         <LanguageSwitcher onChange={onLanguageChange} />
+                                        <button
+                                            onClick={() => {
+                                                onShowTranslations();
+                                                setShowMenu(false);
+                                            }}
+                                            style={{
+                                                marginTop: '8px',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                padding: '6px 10px',
+                                                fontSize: '12px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                color: '#0f766e',
+                                                backgroundColor: '#e0f2fe'
+                                            }}
+                                        >
+                                            <TranslateIcon sx={{ fontSize: '16px' }} />
+                                            {t('menu.editTranslations')}
+                                        </button>
                                     </div>
                                     <button
                                         onClick={async () => {
@@ -523,6 +550,7 @@ const MainApp: React.FC = () => {
     const { currentUser, logout, loading } = useAuth();
     const { baby } = useBaby();
     const [showBabyInfo, setShowBabyInfo] = useState(false);
+    const [showTranslations, setShowTranslations] = useState(false);
     const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
     const [pendingSyncCount, setPendingSyncCount] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -594,6 +622,14 @@ const MainApp: React.FC = () => {
             window.removeEventListener('offline-queue-updated', handleQueueUpdated as EventListener);
         };
     }, [currentUser?.uid, refreshPendingSyncCount, syncPendingActivities]);
+
+    // The account copy of translation edits wins over the cached one applied at startup.
+    useEffect(() => {
+        if (!currentUser?.uid) return;
+        loadTranslationOverrides(currentUser.uid).catch((error) => {
+            console.error('Failed to load translation overrides:', error);
+        });
+    }, [currentUser?.uid]);
 
     useEffect(() => {
         const settings = loadReminderSettings();
@@ -816,6 +852,10 @@ const MainApp: React.FC = () => {
         return <BabyInfoPage onBack={() => setShowBabyInfo(false)} />;
     }
 
+    if (showTranslations) {
+        return <TranslationsPage onBack={() => setShowTranslations(false)} />;
+    }
+
     return (
         <Box sx={{
             display: 'flex',
@@ -828,6 +868,7 @@ const MainApp: React.FC = () => {
                 currentUser={currentUser}
                 logout={logout}
                 onShowBabyInfo={() => setShowBabyInfo(true)}
+                onShowTranslations={() => setShowTranslations(true)}
                 isOnline={isOnline}
                 pendingSyncCount={pendingSyncCount}
                 isSyncing={isSyncing}

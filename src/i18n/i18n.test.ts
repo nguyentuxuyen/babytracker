@@ -19,8 +19,11 @@ describe('i18n resources', () => {
         expect(baseKeys(vi)).toEqual(baseKeys(ja));
     });
 
-    it('defaults to Japanese and switches language', async () => {
-        expect(i18n.language).toBe('ja');
+    it('defaults to Vietnamese and switches language', async () => {
+        expect(i18n.language).toBe('vi');
+        expect(i18n.t('nav.home')).toBe('Trang chủ');
+
+        await changeLanguage('ja');
         expect(i18n.t('nav.home')).toBe('ホーム');
 
         await changeLanguage('en');

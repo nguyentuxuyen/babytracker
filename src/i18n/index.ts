@@ -5,14 +5,14 @@ import en from './locales/en.json';
 import vi from './locales/vi.json';
 
 export const SUPPORTED_LANGUAGES = [
+    { code: 'vi', label: 'Tiếng Việt' },
     { code: 'ja', label: '日本語' },
-    { code: 'en', label: 'English' },
-    { code: 'vi', label: 'Tiếng Việt' }
+    { code: 'en', label: 'English' }
 ] as const;
 
 export type AppLanguage = typeof SUPPORTED_LANGUAGES[number]['code'];
 
-export const DEFAULT_LANGUAGE: AppLanguage = 'ja';
+export const DEFAULT_LANGUAGE: AppLanguage = 'vi';
 export const LANGUAGE_STORAGE_KEY = 'babytracker.language';
 
 const LOCALE_TAGS: Record<AppLanguage, string> = {
@@ -54,15 +54,18 @@ i18n.on('languageChanged', (language) => {
 });
 
 i18n.use(initReactI18next).init({
+    // Copies, so runtime translation overrides never mutate the bundled JSON they reset from.
     resources: {
-        ja: { translation: ja },
-        en: { translation: en },
-        vi: { translation: vi }
+        ja: { translation: JSON.parse(JSON.stringify(ja)) },
+        en: { translation: JSON.parse(JSON.stringify(en)) },
+        vi: { translation: JSON.parse(JSON.stringify(vi)) }
     },
     lng: readStoredLanguage(),
     fallbackLng: DEFAULT_LANGUAGE,
     interpolation: { escapeValue: false },
     returnNull: false,
+    // Re-render when translation overrides are added at runtime.
+    react: { bindI18nStore: 'added' },
     // Resources are bundled, so initialise synchronously and render translated text on first paint.
     initImmediate: false
 });

@@ -17,6 +17,7 @@
     "errorOccurred": "Đã xảy ra lỗi",
     "errorDetail": "Chi tiết: {{message}}",
     "retry": "Thử lại",
+    "back": "Quay lại",
     "unknownError": "Lỗi không xác định"
   },
   "settings": {
@@ -68,7 +69,8 @@
     "enabled": "Bật",
     "disabled": "Tắt",
     "sendTestPush": "Gửi thông báo thử",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "editTranslations": "Sửa bản dịch"
   },
   "changelog": {
     "title": "Nội dung cập nhật",
@@ -347,6 +349,20 @@
       "invalidResponse": "Máy chủ trả về phản hồi không hợp lệ (HTTP {{status}})",
       "serverError": "Lỗi máy chủ"
     }
+  },
+  "translations": {
+    "title": "Sửa bản dịch",
+    "subtitle": "Thay đổi lưu vào tài khoản này và áp dụng trên mọi thiết bị",
+    "search": "Tìm theo khoá hoặc nội dung...",
+    "editedOnly": "Chỉ hiện chữ đã sửa ({{count}})",
+    "edited": "Đã sửa",
+    "reset": "Khôi phục mặc định",
+    "original": "Bản gốc: {{text}}",
+    "placeholderError": "Cần giữ {{placeholders}} trong câu",
+    "noMatch": "Không tìm thấy chữ nào khớp.",
+    "saving": "Đang lưu...",
+    "saved": "Đã lưu bản dịch.",
+    "saveFailed": "Không lưu được lên tài khoản. Thay đổi vẫn áp dụng trên máy này."
   },
   "milestones": {
     "title": "Mốc phát triển",

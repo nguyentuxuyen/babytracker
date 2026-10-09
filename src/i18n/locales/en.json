@@ -17,6 +17,7 @@
     "errorOccurred": "Something went wrong",
     "errorDetail": "Details: {{message}}",
     "retry": "Try again",
+    "back": "Back",
     "unknownError": "Unknown error"
   },
   "settings": {
@@ -74,7 +75,8 @@
     "enabled": "On",
     "disabled": "Off",
     "sendTestPush": "Send test notification",
-    "logout": "Log out"
+    "logout": "Log out",
+    "editTranslations": "Edit translations"
   },
   "changelog": {
     "title": "What's new",
@@ -363,6 +365,20 @@
       "invalidResponse": "The server returned an invalid response (HTTP {{status}})",
       "serverError": "Server error"
     }
+  },
+  "translations": {
+    "title": "Edit translations",
+    "subtitle": "Changes are saved to this account and apply on every device",
+    "search": "Search by key or text...",
+    "editedOnly": "Edited only ({{count}})",
+    "edited": "Edited",
+    "reset": "Reset to default",
+    "original": "Original: {{text}}",
+    "placeholderError": "Keep {{placeholders}} in the text",
+    "noMatch": "No matching text.",
+    "saving": "Saving...",
+    "saved": "Translations saved.",
+    "saveFailed": "Could not save to your account. The changes still apply on this device."
   },
   "milestones": {
     "title": "Milestones",

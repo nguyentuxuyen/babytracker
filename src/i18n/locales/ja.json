@@ -17,6 +17,7 @@
     "errorOccurred": "エラーが発生しました",
     "errorDetail": "詳細: {{message}}",
     "retry": "再試行",
+    "back": "戻る",
     "unknownError": "不明なエラー"
   },
   "settings": {
@@ -68,7 +69,8 @@
     "enabled": "有効",
     "disabled": "無効",
     "sendTestPush": "テスト通知を送信",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "editTranslations": "翻訳を編集"
   },
   "changelog": {
     "title": "更新内容",
@@ -347,6 +349,20 @@
       "invalidResponse": "サーバーから無効なレスポンスが返されました (HTTP {{status}})",
       "serverError": "サーバーエラー"
     }
+  },
+  "translations": {
+    "title": "翻訳を編集",
+    "subtitle": "変更はこのアカウントに保存され、すべての端末に反映されます",
+    "search": "キーまたは文言で検索...",
+    "editedOnly": "編集済みのみ表示 ({{count}})",
+    "edited": "編集済み",
+    "reset": "元に戻す",
+    "original": "元の文言: {{text}}",
+    "placeholderError": "{{placeholders}} を残してください",
+    "noMatch": "一致する文言がありません。",
+    "saving": "保存中...",
+    "saved": "翻訳を保存しました。",
+    "saveFailed": "翻訳を保存できませんでした。この端末では適用済みです。"
   },
   "milestones": {
     "title": "発達の目安",

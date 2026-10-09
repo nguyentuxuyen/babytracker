@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { localeTag } from '../i18n';
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { BabyIcon, BathIcon, DeleteIcon, EditIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon } from '../components/common/icons';
 import { useAuth } from '../hooks/useAuth';
 import { useBaby } from '../contexts/BabyContext';
@@ -82,6 +82,8 @@ const TimelinePage: React.FC = () => {
     const [editSleepStartTime, setEditSleepStartTime] = useState('');
     const [editSleepEndTime, setEditSleepEndTime] = useState('');
     const [editNotes, setEditNotes] = useState('');
+    const [editIsUrine, setEditIsUrine] = useState(false);
+    const [editIsStool, setEditIsStool] = useState(false);
     const [savingEdit, setSavingEdit] = useState(false);
     const selectedDateTime = selectedDate.getTime();
     const selectedActivities = useMemo(() => activities.filter((activity) => {
@@ -121,6 +123,8 @@ const TimelinePage: React.FC = () => {
         setEditAmount(details.amount ? String(details.amount) : '');
         const notes = details.notes ? String(details.notes) : '';
         setEditNotes(notes);
+        setEditIsUrine(Boolean(details.isUrine));
+        setEditIsStool(Boolean(details.isStool));
         setEditTime(new Date(activity.timestamp).toTimeString().slice(0, 5));
 
         if (activity.type === 'sleep') {
@@ -141,6 +145,10 @@ const TimelinePage: React.FC = () => {
         setSavingEdit(true);
         const details = { ...(editingActivity.details as Record<string, unknown>) };
         if ('amount' in details) details.amount = Number(editAmount) || 0;
+        if (editingActivity.type === 'diaper') {
+            details.isUrine = editIsUrine;
+            details.isStool = editIsStool;
+        }
         let timestamp = editingActivity.timestamp;
         if (editingActivity.type === 'sleep' && editSleepStartTime && editSleepEndTime) {
             const [startHours, startMinutes] = editSleepStartTime.split(':').map(Number);
@@ -319,6 +327,12 @@ const TimelinePage: React.FC = () => {
                     {editingActivity && editingActivity.type !== 'sleep' && (
                         <TextField label={t('activities.form.time')} type="time" value={editTime} onChange={(event) => setEditTime(event.target.value)} fullWidth size="small" InputLabelProps={{ shrink: true }} sx={{ mt: 1 }} />
                     )}
+                    {editingActivity?.type === 'diaper' && (
+                        <FormGroup row sx={{ mt: 1 }}>
+                            <FormControlLabel control={<Checkbox checked={editIsUrine} onChange={(event) => setEditIsUrine(event.target.checked)} />} label={t('diaper.urine')} />
+                            <FormControlLabel control={<Checkbox checked={editIsStool} onChange={(event) => setEditIsStool(event.target.checked)} />} label={t('diaper.stool')} />
+                        </FormGroup>
+                    )}
                     {editingActivity?.type === 'feeding' && (
                         <TextField label={t('feeding.amountMl')} type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
                     )}
@@ -332,7 +346,7 @@ const TimelinePage: React.FC = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setEditingActivity(null)}>{t('common.cancel')}</Button>
-                    <Button variant="contained" onClick={() => void saveEdit()} disabled={savingEdit}>
+                    <Button variant="contained" onClick={() => void saveEdit()} disabled={savingEdit || (editingActivity?.type === 'diaper' && !editIsUrine && !editIsStool)}>
                         {savingEdit ? <CircularProgress size={16} color="inherit" /> : t('common.save')}
                     </Button>
                 </DialogActions>

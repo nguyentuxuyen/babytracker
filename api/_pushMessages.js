@@ -20,7 +20,7 @@ const MESSAGES = {
   }
 };
 
-const DEFAULT_LANGUAGE = 'ja';
+const DEFAULT_LANGUAGE = 'vi';
 
 const normalizeLanguage = (value) => (Object.prototype.hasOwnProperty.call(MESSAGES, value) ? value : DEFAULT_LANGUAGE);
 
