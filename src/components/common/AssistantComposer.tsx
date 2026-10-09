@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, TextField, Tooltip } from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, IconButton, TextField, Tooltip } from '@mui/material';
 import { SparklesIcon as AutoAwesomeIcon, MicIcon, StopIcon } from './icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { parseAssistantCommand } from '../../services/assistantCore';
@@ -90,52 +90,77 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
         }
     };
 
-    return (
-        <Card sx={{ mb: 2, borderRadius: 2, boxShadow: '0 6px 18px rgba(37, 99, 235, 0.1)' }}>
-            <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'stretch', gap: 1, width: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-                        <TextField
-                            value={text}
-                            onChange={(event) => setText(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter' && !event.shiftKey) {
-                                    event.preventDefault();
-                                    void handleSubmit();
-                                }
-                            }}
-                            placeholder={t('assistant.placeholder')}
-                            size="small"
-                            InputProps={{
-                                startAdornment: <AutoAwesomeIcon color="primary" sx={{ mr: 1, fontSize: 20 }} />
-                            }}
-                            sx={{ flex: 1, minWidth: 0 }}
-                        />
-                        <Tooltip title={listening ? t('assistant.stopVoice') : t('assistant.voice')}>
-                            <IconButton onClick={toggleVoiceInput} color={listening ? 'error' : 'primary'} aria-label={t('assistant.voice')}>
-                                {listening ? <StopIcon /> : <MicIcon />}
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        size="small"
-                        sx={{ minWidth: { sm: 92 }, minHeight: 40, whiteSpace: 'nowrap', flexShrink: 0 }}
-                    >
-                        {loading ? <CircularProgress size={16} color="inherit" /> : t('assistant.recordWithAi')}
-                    </Button>
-                </Box>
+    const examples = [t('assistant.examples.milk'), t('assistant.examples.sleep'), t('assistant.examples.diaper'), t('assistant.examples.bath')];
 
-                {message && (
-                    <Box sx={{ mt: 1 }}>
-                        <Alert severity={severity} sx={{ py: 0 }}>
-                            {message}
-                        </Alert>
-                    </Box>
-                )}
-            </CardContent>
-        </Card>
+    return (
+        <Box>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <TextField
+                    value={text}
+                    onChange={(event) => setText(event.target.value)}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                            event.preventDefault();
+                            void handleSubmit();
+                        }
+                    }}
+                    placeholder={t('assistant.placeholder')}
+                    multiline
+                    minRows={2}
+                    maxRows={4}
+                    autoFocus
+                    InputProps={{
+                        startAdornment: <AutoAwesomeIcon color="primary" sx={{ mr: 1, fontSize: 20, alignSelf: 'flex-start', mt: '2px' }} />
+                    }}
+                    sx={{ flex: 1, minWidth: 0, '& .MuiOutlinedInput-root': { borderRadius: '16px', bgcolor: '#f8fafc' } }}
+                />
+                <Tooltip title={listening ? t('assistant.stopVoice') : t('assistant.voice')}>
+                    <IconButton
+                        onClick={toggleVoiceInput}
+                        aria-label={t('assistant.voice')}
+                        sx={{
+                            width: 48,
+                            height: 48,
+                            color: listening ? '#ffffff' : '#13a4ec',
+                            bgcolor: listening ? '#ef4444' : '#e0f2fe',
+                            '&:hover': { bgcolor: listening ? '#dc2626' : '#bae6fd' }
+                        }}
+                    >
+                        {listening ? <StopIcon /> : <MicIcon />}
+                    </IconButton>
+                </Tooltip>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+                {examples.map((example) => (
+                    <Chip
+                        key={example}
+                        label={example}
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setText(example)}
+                        sx={{ borderRadius: '999px', borderColor: '#e5e7eb', color: '#475569', bgcolor: '#ffffff' }}
+                    />
+                ))}
+            </Box>
+
+            <Button
+                variant="contained"
+                onClick={handleSubmit}
+                disabled={loading}
+                fullWidth
+                disableElevation
+                startIcon={loading ? undefined : <AutoAwesomeIcon />}
+                sx={{ mt: 2, borderRadius: '14px' }}
+            >
+                {loading ? <CircularProgress size={18} color="inherit" /> : t('assistant.recordWithAi')}
+            </Button>
+
+            {message && (
+                <Alert severity={severity} sx={{ mt: 1.5, py: 0, borderRadius: '12px' }}>
+                    {message}
+                </Alert>
+            )}
+        </Box>
     );
 };

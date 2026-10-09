@@ -15,19 +15,18 @@ import { useSleepTimer } from '../hooks/useSleepTimer';
 import { filterFoodItems } from '../utils/foodSearch';
 import i18n from '../i18n';
 import { formatHoursMinutes } from '../i18n/format';
+import DayStatsCard from '../components/common/DayStatsCard';
+import RecentActivityList from '../components/common/RecentActivityList';
+import { ACTIVITY_COLORS } from '../components/common/activityDisplay';
+import { calculateStatsForDate } from '../utils/dailyStats';
+
+const isSameLocalDay = (left: Date, right: Date) => (
+    left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate()
+);
 
 const RECENT_FOOD_CHIP_COUNT = 8;
-
-// 1. ĐỊNH NGHĨA STYLE LIQUID GLASS (Dùng chung)
-const liquidGlassStyle = {
-    background: 'rgba(255, 255, 255, 0.94)',
-    backdropFilter: 'none',
-    WebkitBackdropFilter: 'none',
-    border: '1px solid rgba(255, 255, 255, 0.5)', // Viền trắng phát sáng nhẹ
-    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.1)', // Bóng đổ màu xanh tím nhẹ tạo chiều sâu
-    borderRadius: '24px', // Bo góc lớn mềm mại
-    transition: 'all 0.3s ease', // Hiệu ứng chuyển động mượt như nước
-};
 
 const normalizeFoodName = (value: string) => value.trim();
 
@@ -777,54 +776,17 @@ const ActivitiesPage: React.FC = () => {
 
     return (
         <ErrorBoundary>
-        <Box sx={{
-            minHeight: 'auto',
-            p: 0,
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            // 2. TẠO NỀN FLUID (QUAN TRỌNG ĐỂ THẤY HIỆU ỨNG KÍNH)
-            background: '#f0f4f8',
-            position: 'relative',
-            overflow: 'hidden',
-            // Blob 1: Màu xanh
-            '&::before': {
-                content: '""',
-                position: 'fixed',
-                top: '-10%',
-                left: '-10%',
-                width: '60%',
-                height: '60%',
-                borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%', // Hình dáng méo mó tự nhiên
-                background: 'linear-gradient(135deg, #a5f3fc 0%, #3b82f6 100%)',
-                filter: 'blur(60px)',
-                opacity: 0.6,
-                zIndex: 0,
-                animation: 'float 10s infinite ease-in-out'
-            },
-            // Blob 2: Màu cam/hồng
-            '&::after': {
-                content: '""',
-                position: 'fixed',
-                bottom: '-10%',
-                right: '-10%',
-                width: '60%',
-                height: '60%',
-                borderRadius: '60% 40% 30% 70% / 60% 50% 40% 50%',
-                background: 'linear-gradient(135deg, #fde68a 0%, #f472b6 100%)',
-                filter: 'blur(60px)',
-                opacity: 0.5,
-                zIndex: 0,
-                animation: 'float 12s infinite ease-in-out reverse'
-            },
-            '@keyframes float': {
-                '0%': { transform: 'translate(0, 0) rotate(0deg)' },
-                '50%': { transform: 'translate(20px, 20px) rotate(5deg)' },
-                '100%': { transform: 'translate(0, 0) rotate(0deg)' }
-            }
-        }}
-        >
-            <Dialog open={showAiComposer} onClose={() => setShowAiComposer(false)} fullWidth maxWidth="sm">
-                <DialogTitle>{t('assistant.recordWithAi')}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
+        <Box sx={{ minHeight: 'auto', p: 0, bgcolor: '#f6f7f8', position: 'relative' }}>
+            <Dialog
+                open={showAiComposer}
+                onClose={() => setShowAiComposer(false)}
+                fullWidth
+                maxWidth="sm"
+                PaperProps={{ sx: { borderRadius: '24px', m: 2, width: 'calc(100% - 32px)' } }}
+            >
+                <DialogTitle sx={{ fontWeight: 700, fontSize: 20, pb: 0.5 }}>{t('assistant.recordWithAi')}</DialogTitle>
+                <DialogContent sx={{ pt: '12px !important' }}>
+                    <Typography sx={{ fontSize: 13, color: '#6b7f8a', mb: 1.5 }}>{t('assistant.hint')}</Typography>
                     <AssistantComposer
                         babyId={baby?.id}
                         selectedDate={selectedDate}
@@ -839,7 +801,7 @@ const ActivitiesPage: React.FC = () => {
                 <Box>
                 {/* WAKE WINDOWS WARNING BANNER */}
                 {wakeWindowWarning && (
-                    <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.25, ...liquidGlassStyle, borderRadius: '12px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
+                    <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.5, bgcolor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '16px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             {t('activities.wakeWindow.label')} <Box component="span" sx={{ fontWeight: 400 }}>{wakeWindowWarning}</Box>
                         </Typography>
@@ -871,27 +833,27 @@ const ActivitiesPage: React.FC = () => {
                     <Typography variant="h2" sx={{ mb: 2, fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
                         {t('activities.heading')}
                     </Typography>
-                    <Grid container spacing={2}>
+                    <Grid container spacing={1.5}>
                         {[
                             { 
                                 label: t('activities.quick.milk'),
                                 type: 'feeding', 
                                 icon: (
-                                    <MilkIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <MilkIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.diaper'),
                                 type: 'diaper', 
                                 icon: (
-                                    <BabyIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <BabyIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.sleep'),
                                 type: 'sleep', 
                                 icon: (
-                                    <SleepIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <SleepIcon sx={{ fontSize: 22 }} />
                                 ),
                                 isSleepTimer: true // Special flag for sleep timer
                             },
@@ -899,21 +861,21 @@ const ActivitiesPage: React.FC = () => {
                                 label: t('activities.quick.bath'),
                                 type: 'bath', 
                                 icon: (
-                                    <BathIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <BathIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.measurement'),
                                 type: 'measurement', 
                                 icon: (
-                                    <MeasurementIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <MeasurementIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                             { 
                                 label: t('activities.quick.memo'),
                                 type: 'memo', 
                                 icon: (
-                                    <MemoIcon sx={{ fontSize: 24, color: '#13a4ec', flexShrink: 0 }} />
+                                    <MemoIcon sx={{ fontSize: 22 }} />
                                 )
                             },
                         ].map(action => {
@@ -941,7 +903,13 @@ const ActivitiesPage: React.FC = () => {
                                 const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
                                 if (diffDays > 0) return t('relative.daysAgo', { count: diffDays });
-                                if (diffHours >= 1) return t('relative.hoursAgo', { hours: diffHours.toFixed(1) });
+                                if (diffHours >= 1) {
+                                    const wholeHours = Math.floor(diffHours);
+                                    const restMinutes = Math.floor(diffMinutes - wholeHours * 60);
+                                    return restMinutes > 0 && wholeHours < 10
+                                        ? t('relative.hoursMinutesAgo', { hours: wholeHours, minutes: restMinutes })
+                                        : t('relative.hoursAgo', { hours: wholeHours });
+                                }
                                 if (diffMinutes >= 1) return t('relative.minutesAgo', { count: Math.floor(diffMinutes) });
                                 return t('relative.justNow');
                             };
@@ -992,67 +960,64 @@ const ActivitiesPage: React.FC = () => {
                                     }}
                                     sx={{
                                         display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: 1,
-                                        p: 2,
-                                        // Style kính trong cho nút bấm
-                                        bgcolor: (action as any).isSleepTimer && ongoingSleep 
-                                            ? 'rgba(254, 243, 199, 0.7)' 
-                                            : 'rgba(255, 255, 255, 0.5)',
-                                        backdropFilter: 'none',
+                                        alignItems: 'center',
+                                        gap: 1.5,
+                                        p: 1.5,
+                                        minHeight: 72,
+                                        bgcolor: (action as any).isSleepTimer && ongoingSleep ? '#fffbeb' : '#ffffff',
                                         borderRadius: '20px',
-                                        border: (action as any).isSleepTimer && ongoingSleep 
-                                            ? '2px solid #f59e0b' 
-                                            : '1px solid rgba(255, 255, 255, 0.6)',
-                                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
+                                        border: (action as any).isSleepTimer && ongoingSleep
+                                            ? '2px solid #f59e0b'
+                                            : '1px solid #e5e7eb',
                                         cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            bgcolor: 'rgba(255, 255, 255, 0.7)',
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.06)'
-                                        }
+                                        transition: 'transform 0.15s, box-shadow 0.15s',
+                                        '&:hover': { boxShadow: '0 6px 16px rgba(15, 23, 42, 0.06)' },
+                                        '&:active': { transform: 'scale(0.98)' }
                                     }}
                                 >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <Box sx={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '50%',
+                                        flexShrink: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: ACTIVITY_COLORS[action.type],
+                                        bgcolor: `${ACTIVITY_COLORS[action.type]}18`
+                                    }}>
                                         {action.icon}
-                                        <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#101c22' }}>
+                                    </Box>
+                                    <Box sx={{ minWidth: 0 }}>
+                                        <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#101c22', lineHeight: 1.3 }} noWrap>
                                             {(action as any).isSleepTimer && ongoingSleep ? t('activities.quick.wakeUp') : action.label}
                                         </Typography>
+                                        {(action as any).isSleepTimer && ongoingSleep ? (
+                                            <Typography sx={{ fontSize: 13, color: '#d97706', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} noWrap>
+                                                <TimerIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }} />{Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
+                                            </Typography>
+                                        ) : (
+                                            <Typography sx={{ fontSize: 12, color: timeSince ? '#6b7f8a' : '#b0b8bf', fontWeight: 500 }} noWrap>
+                                                {timeSince || t('common.noData')}
+                                            </Typography>
+                                        )}
                                     </Box>
-                                    {(action as any).isSleepTimer && ongoingSleep ? (
-                                        <Typography sx={{ 
-                                            fontSize: '14px', 
-                                            color: '#f59e0b',
-                                            fontWeight: 600,
-                                            pl: 5
-                                        }}>
-                                            <TimerIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />{Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
-                                        </Typography>
-                                    ) : timeSince ? (
-                                        <Typography sx={{ 
-                                            fontSize: '12px', 
-                                            color: '#9ca3af',
-                                            fontWeight: 500,
-                                            pl: 5
-                                        }}>
-                                            {timeSince}
-                                        </Typography>
-                                    ) : (
-                                        <Typography sx={{ 
-                                            fontSize: '12px',
-                                            color: '#b0b8bf',
-                                            fontWeight: 500,
-                                            pl: 5
-                                        }}>
-                                            {t('common.noData')}
-                                        </Typography>
-                                    )}
                                 </Box>
                             </Grid>
                             );
                         })}
                     </Grid>
+                </Box>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+                    <DayStatsCard
+                        title={t('home.summaryTitle')}
+                        stats={calculateStatsForDate((activities || []) as any, selectedDate)}
+                    />
+                    <RecentActivityList
+                        activities={(activities || []).filter((activity) => isSameLocalDay(new Date(activity.timestamp), selectedDate))}
+                        onSeeAll={() => history.push('/timeline')}
+                    />
                 </Box>
 
                 </Box>

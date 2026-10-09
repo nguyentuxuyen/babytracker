@@ -44,7 +44,7 @@ const parseClockTime = (input: string): { hours: number; minutes: number } | nul
     }
 
     // Matches hour-only formats: 21h, 21 giờ, 21 gio, 21時
-    const hourOnlyMatch = text.match(/(?:^|\D)([01]?\d|2[0-3])\s*(?:giờ|gio|h|時)(?!\d)/i);
+    const hourOnlyMatch = text.match(/(?:^|\D)([01]?\d|2[0-3])\s*(?:giờ|gio|h|時(?!間))(?!\d)/i);
     if (hourOnlyMatch) {
         const hours = Number(hourOnlyMatch[1]);
         if (!Number.isNaN(hours)) {

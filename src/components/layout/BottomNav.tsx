@@ -4,6 +4,21 @@ import { useTranslation } from 'react-i18next';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import { HomeIcon, ChartIcon as ShowChartIcon, FoodIcon as RestaurantIcon, HistoryIcon, AddIcon } from '../common/icons';
 
+const ROUTES = ['/', '/timeline', '/?add=1', '/statistics', '/food-history'];
+
+const labelSx = {
+    '& .MuiBottomNavigationAction-label': {
+        fontSize: '11px',
+        fontWeight: 600,
+        marginTop: '2px',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        maxWidth: '100%',
+        '&.Mui-selected': { fontSize: '11px' }
+    }
+};
+
 const BottomNav: React.FC = () => {
     const history = useHistory();
     const location = useLocation();
@@ -19,130 +34,68 @@ const BottomNav: React.FC = () => {
     };
 
     return (
-        <Paper 
-            sx={{ 
-                position: 'fixed', 
-                bottom: 0, 
-                left: 0, 
+        <Paper
+            elevation={0}
+            sx={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
                 right: 0,
-                display: 'block',
-                width: '100%',
-                minHeight: { xs: 60, sm: 64 },
-                visibility: 'visible',
                 zIndex: 1000,
-                boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.08)',
-                borderTop: '1px solid #e5e7eb'
-            }} 
-            elevation={3}
+                bgcolor: 'rgba(255, 255, 255, 0.92)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                borderTop: '1px solid #e5e7eb',
+                // Keep the bar clear of the iPhone home indicator in the installed PWA
+                paddingBottom: 'env(safe-area-inset-bottom)'
+            }}
         >
             <BottomNavigation
                 value={getNavValue()}
-                onChange={(event, newValue) => {
-                    switch(newValue) {
-                        case 0:
-                            history.push('/');
-                            break;
-                        case 1:
-                            history.push('/timeline');
-                            break;
-                        case 2:
-                            history.push('/?add=1');
-                            break;
-                        case 3:
-                            history.push('/statistics');
-                            break;
-                        case 4:
-                            history.push('/food-history');
-                            break;
-                    }
+                onChange={(event, newValue: number) => {
+                    if (ROUTES[newValue]) history.push(ROUTES[newValue]);
                 }}
                 showLabels
                 sx={{
-                    height: { xs: 60, sm: 64 },
-                    width: '100%',
-                    display: 'flex',
-                    bgcolor: '#ffffff',
+                    height: 64,
+                    bgcolor: 'transparent',
+                    borderTop: 'none',
+                    maxWidth: 600,
+                    mx: 'auto',
                     '& .MuiBottomNavigationAction-root': {
-                        minWidth: 'auto',
-                        padding: '6px 12px',
+                        minWidth: 0,
+                        flex: 1,
+                        padding: '6px 4px',
                         color: '#6b7f8a',
-                        '&.Mui-selected': {
-                            color: '#13a4ec'
-                        }
+                        '&.Mui-selected': { color: '#13a4ec' }
                     }
                 }}
             >
-                <BottomNavigationAction 
-                    label={t('nav.home')} 
-                    icon={<HomeIcon />}
-                    sx={{
-                        '& .MuiBottomNavigationAction-label': {
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginTop: '4px',
-                            '&.Mui-selected': {
-                                fontSize: '12px'
-                            }
-                        }
-                    }}
-                />
-                <BottomNavigationAction
-                    label={t('nav.records')}
-                    icon={<HistoryIcon />}
-                    sx={{
-                        '& .MuiBottomNavigationAction-label': {
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginTop: '4px',
-                            opacity: 1,
-                            '&.Mui-selected': {
-                                fontSize: '12px'
-                            }
-                        }
-                    }}
-                />
+                <BottomNavigationAction label={t('nav.home')} icon={<HomeIcon />} sx={labelSx} />
+                <BottomNavigationAction label={t('nav.records')} icon={<HistoryIcon />} sx={labelSx} />
                 <BottomNavigationAction
                     label=""
                     aria-label={t('nav.add')}
                     icon={<AddIcon />}
                     sx={{
-                        minWidth: 68,
                         position: 'relative',
-                        zIndex: 1,
                         '& .MuiSvgIcon-root': {
                             width: 52,
                             height: 52,
                             padding: 1,
+                            marginTop: '-18px',
                             borderRadius: '50%',
                             color: '#ffffff',
                             bgcolor: '#13a4ec',
-                            boxShadow: '0 4px 12px rgba(19, 164, 236, 0.35)'
+                            border: '4px solid #ffffff',
+                            boxSizing: 'content-box',
+                            boxShadow: '0 6px 16px rgba(19, 164, 236, 0.35)'
                         },
                         '& .MuiBottomNavigationAction-label': { display: 'none' }
                     }}
                 />
-                <BottomNavigationAction
-                    label={t('nav.stats')}
-                    icon={<ShowChartIcon />}
-                    sx={{
-                        '& .MuiBottomNavigationAction-label': {
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginTop: '4px'
-                        }
-                    }}
-                />
-                <BottomNavigationAction
-                    label={t('nav.food')}
-                    icon={<RestaurantIcon />}
-                    sx={{
-                        '& .MuiBottomNavigationAction-label': {
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginTop: '4px'
-                        }
-                    }}
-                />
+                <BottomNavigationAction label={t('nav.stats')} icon={<ShowChartIcon />} sx={labelSx} />
+                <BottomNavigationAction label={t('nav.food')} icon={<RestaurantIcon />} sx={labelSx} />
             </BottomNavigation>
         </Paper>
     );

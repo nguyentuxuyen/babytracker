@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { localeTag } from '../i18n';
 import { Alert, Box, Button, Card, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
-import { BabyIcon, BathIcon, DeleteIcon, EditIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon } from '../components/common/icons';
+import { DeleteIcon, EditIcon } from '../components/common/icons';
+import DayStatsCard from '../components/common/DayStatsCard';
+import { formatGap, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel } from '../components/common/activityDisplay';
 import { useAuth } from '../hooks/useAuth';
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
@@ -12,58 +14,6 @@ import RecentDaysStrip from '../components/common/RecentDaysStrip';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { formatHoursMinutes } from '../i18n/format';
-
-const activityColors: Record<string, string> = {
-    feeding: '#13a4ec',
-    sleep: '#8b5cf6',
-    diaper: '#f59e0b',
-    measurement: '#10b981',
-    memo: '#6b7f8a',
-    bath: '#06b6d4',
-    dailyRating: '#ec4899'
-};
-
-const activityIcons: Record<string, React.ReactNode> = {
-    feeding: <FoodIcon />,
-    sleep: <SleepIcon />,
-    diaper: <BabyIcon />,
-    measurement: <MeasurementIcon />,
-    memo: <MemoIcon />,
-    bath: <BathIcon />
-};
-
-const getActivityIcon = (activity: Activity) => {
-    const details = activity.details as Record<string, unknown> | undefined;
-    if (activity.type === 'feeding' && details?.foodType !== 'solid') {
-        return <MilkIcon />;
-    }
-    return activityIcons[activity.type] || <MemoIcon />;
-};
-
-const getActivityDetails = (activity: Activity) => {
-    const details = activity.details as Record<string, unknown> | undefined;
-    if (!details) return [];
-
-    if (activity.type === 'feeding') {
-        const amount = details.amount
-            ? `${details.amount}${details.foodType === 'solid' ? 'g' : 'ml'}`
-            : '';
-        const food = details.foodType === 'solid' ? String(details.foodItem || i18n.t('feeding.solid')) : '';
-        return [food ? `${food} (${amount})` : amount].filter(Boolean);
-    }
-    if (activity.type === 'sleep') return details.duration ? [i18n.t('units.minutes', { count: Number(details.duration) })] : [];
-    if (activity.type === 'measurement') {
-        return [
-            details.weight ? `${details.weight}g` : '',
-            details.height ? `${details.height}cm` : '',
-            details.temperature ? `${details.temperature}°C` : ''
-        ].filter(Boolean);
-    }
-    if (activity.type === 'diaper') {
-        return [details.isUrine ? i18n.t('diaper.urine') : '', details.isStool ? i18n.t('diaper.stool') : ''].filter(Boolean);
-    }
-    return details.notes ? [String(details.notes)] : [];
-};
 
 const TimelinePage: React.FC = () => {
     const { user } = useAuth();
@@ -216,8 +166,8 @@ const TimelinePage: React.FC = () => {
     }, [user?.uid, selectedDate, selectedDateTime]);
 
     return (
-        <Box sx={{ p: { xs: 1, sm: 2 }, width: '100%', maxWidth: 'none', mx: 'auto' }}>
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
+        <Box sx={{ px: 2, pt: 2, pb: 3, width: '100%', maxWidth: 720, mx: 'auto' }}>
+            <Typography sx={{ mb: 1.5, fontSize: 20, fontWeight: 700, color: '#101c22' }}>
                 {t('timeline.title')}
             </Typography>
             <RecentDaysStrip
@@ -247,25 +197,11 @@ const TimelinePage: React.FC = () => {
                 </Alert>
             )}
             <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>{t('timeline.summary')}</Typography>
-                <Stack spacing={1}>
-                    {[
-                        { label: selectedDate.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), stats: todayStats },
-                        { label: previousDate.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), stats: yesterdayStats }
-                    ].map(({ label, stats }) => (
-                        <Card key={label} variant="outlined" sx={{ borderRadius: 1.5 }}>
-                            <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
-                                <Typography variant="body2" sx={{ color: '#6b7f8a', fontWeight: 700, mb: 0.75 }}>{label}</Typography>
-                                <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 0.8fr) minmax(0, 0.8fr)', gap: 0.75, '& .MuiTypography-body1': { fontSize: 15, whiteSpace: 'nowrap' } }}>
-                                    <Box><Typography variant="caption" color="text.secondary">{t('feeding.milk')}</Typography><Typography fontWeight={700}>{t('units.times', { count: stats.feeding.count })} · {stats.feeding.totalAmount}ml</Typography></Box>
-                                    <Box><Typography variant="caption" color="text.secondary">{t('feeding.solid')}</Typography><Typography fontWeight={700}>{t('units.times', { count: stats.solid.count })} · {stats.solid.totalAmount}g</Typography></Box>
-                                    <Box><Typography variant="caption" color="text.secondary">{t('diaper.urine')}</Typography><Typography fontWeight={700}>{stats.urine.count}</Typography></Box>
-                                    <Box><Typography variant="caption" color="text.secondary">{t('diaper.stool')}</Typography><Typography fontWeight={700}>{stats.stool.count}</Typography></Box>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </Stack>
+                <DayStatsCard
+                    title={t('timeline.summary')}
+                    stats={todayStats}
+                    previous={yesterdayStats}
+                />
             </Box>
 
             {loading && <CircularProgress size={28} />}
@@ -284,8 +220,7 @@ const TimelinePage: React.FC = () => {
                                         {(() => {
                                             const current = new Date(activitiesInGroup[0].timestamp).getTime();
                                             const next = new Date(timeGroups[groupIndex + 1][1][0].timestamp).getTime();
-                                            const minutes = Math.max(1, Math.round((current - next) / 60000));
-                                            return minutes >= 60 ? `${(minutes / 60).toFixed(1)}h` : `${minutes}m`;
+                                            return formatGap((current - next) / 60000);
                                         })()}
                                     </Typography>
                                 </Box>
@@ -293,9 +228,9 @@ const TimelinePage: React.FC = () => {
                         </Box>
                         <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
                             {activitiesInGroup.map((activity) => {
-                                const color = activityColors[activity.type] || '#13a4ec';
+                                const color = getActivityColor(activity);
                                 return (
-                                    <Card key={activity.id} sx={{ background: 'rgba(255, 255, 255, 0.85)', borderRadius: 1.5, border: '1px solid rgba(255, 255, 255, 0.6)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                    <Card key={activity.id} sx={{ bgcolor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
                                         <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                                             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                                                 <Box sx={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color, bgcolor: `${color}18` }}>
@@ -303,7 +238,7 @@ const TimelinePage: React.FC = () => {
                                                 </Box>
                                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
-                                                        <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{t(`activityTypes.${activity.type}`, { defaultValue: activity.type })}</Typography>
+                                                        <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{getActivityLabel(activity)}</Typography>
                                                         <Box sx={{ display: 'flex' }}>
                                                             <Tooltip title={t('timeline.edit')}><IconButton aria-label={t('timeline.edit')} size="small" onClick={() => openEdit(activity)}><EditIcon fontSize="small" /></IconButton></Tooltip>
                                                             <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} size="small" onClick={() => void handleDelete(activity.id)}><DeleteIcon fontSize="small" /></IconButton></Tooltip>

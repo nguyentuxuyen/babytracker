@@ -130,26 +130,46 @@ const HeaderComponent: React.FC<{
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            backgroundColor: '#f6f7f8',
-            backdropFilter: 'none',
-            WebkitBackdropFilter: 'none',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+            backgroundColor: 'rgba(246, 247, 248, 0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: '1px solid #e5e7eb',
+            paddingTop: 'env(safe-area-inset-top)'
         }}>
             <div style={{
-                padding: '16px',
+                padding: '12px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                gap: '12px',
                 maxWidth: '1200px',
                 margin: '0 auto'
             }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div style={{
+                    width: '44px',
+                    height: '44px',
+                    flexShrink: 0,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #e0f2fe 0%, #fce7f3 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px'
+                }} aria-hidden="true">
+                    {baby?.gender === 'female' ? '👧' : '👶'}
+                </div>
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '2px'
+                    gap: '2px',
+                    minWidth: 0
                 }}>
                     <div style={{
-                        fontSize: '20px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        fontSize: '18px',
                         fontWeight: '700',
                         color: '#101c22',
                         fontFamily: 'Manrope, sans-serif'
@@ -260,55 +280,30 @@ const HeaderComponent: React.FC<{
                         )}
                     </div>
                 </div>
+                </div>
 
                 {currentUser && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                            <Chip
-                                label={`v${versionLabel}`}
-                                size="small"
-                                sx={{
-                                    bgcolor: '#e0f2fe',
-                                    color: '#0f766e',
-                                    fontWeight: 700,
-                                    borderRadius: '999px'
-                                }}
-                            />
-                            <MuiButton
-                                variant="text"
-                                size="small"
-                                onClick={() => setShowChangelog(true)}
-                                sx={{
-                                    minWidth: 'auto',
-                                    color: '#13a4ec',
-                                    textTransform: 'none',
-                                    fontSize: '12px',
-                                    p: 0,
-                                    fontWeight: 600
-                                }}
-                            >
-                                {t('header.changelog')}
-                            </MuiButton>
-                        </div>
                         <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
+                                aria-label={t('menu.account')}
+                                aria-expanded={showMenu}
                                 style={{
-                                    width: '48px',
-                                    height: '48px',
-                                    borderRadius: '24px',
-                                    background: '#13a4ec',
-                                    border: 'none',
-                                    color: '#fff',
+                                    width: '44px',
+                                    height: '44px',
+                                    borderRadius: '50%',
+                                    background: '#ffffff',
+                                    border: '1px solid #e5e7eb',
+                                    color: '#13a4ec',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    transition: 'all 0.2s ease',
-                                    boxShadow: '0 2px 8px rgba(19, 164, 236, 0.3)'
+                                    transition: 'all 0.2s ease'
                                 }}
                             >
-                                <AccountCircleIcon sx={{ fontSize: '28px' }} />
+                                <AccountCircleIcon sx={{ fontSize: '26px' }} />
                             </button>
 
                             {showMenu && (
@@ -465,6 +460,33 @@ const HeaderComponent: React.FC<{
                                             {t('menu.editTranslations')}
                                         </button>
                                     </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowChangelog(true);
+                                            setShowMenu(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            borderTop: '1px solid #e5e7eb',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: '#101c22',
+                                            fontWeight: '500',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        {t('header.changelog')}
+                                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', background: '#e0f2fe', borderRadius: '999px', padding: '2px 8px' }}>
+                                            v{versionLabel}
+                                        </span>
+                                    </button>
                                     <button
                                         onClick={async () => {
                                             try {

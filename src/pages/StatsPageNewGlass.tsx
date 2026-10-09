@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localeTag } from '../i18n';
-import { Card, Typography, Box, Checkbox, FormControlLabel, Grid, Slider } from '@mui/material';
+import { Card, Typography, Box, Grid, Slider } from '@mui/material';
+import { ACTIVITY_COLORS } from '../components/common/activityDisplay';
 import { ChartIcon as ShowChartIcon, InfoIcon } from '../components/common/icons';
 import { Activity } from '../types';
 import { firestore } from '../firebase/firestore';
@@ -628,13 +629,13 @@ const StatsPage: React.FC = () => {
             {/* Main Content */}
             <Box sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
                 {/* Period Selector Tabs */}
-                    <Box sx={{ mb: 3 }}>
+                    <Box sx={{ mb: 1.5 }}>
                         <Box sx={{
                             display: 'flex',
                             gap: 0.5,
                             p: 0.5,
                             bgcolor: '#ffffff',
-                            borderRadius: '12px',
+                            borderRadius: '999px',
                             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
                             border: '1px solid #e5e7eb'
                         }}>
@@ -654,7 +655,7 @@ const StatsPage: React.FC = () => {
                                     textAlign: 'center',
                                     fontSize: '14px',
                                     fontWeight: 600,
-                                    borderRadius: '8px',
+                                    borderRadius: '999px',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s',
                                     bgcolor: filter.period === period.key ? '#13a4ec' : 'transparent',
@@ -772,66 +773,41 @@ const StatsPage: React.FC = () => {
                 )}
 
                 {/* Charts Grid */}
-                {/* Slider Card for custom range */}
+                {/* How many days / weeks / months the charts cover */}
                 {filter.period !== 'range' && (
-                    <Box sx={{ mb: 3 }}>
-                        <Card sx={{ p: 2, borderRadius: '12px', bgcolor: '#ffffff', border: '1px solid #e5e7eb' }}>
-                            {/* Title + optional subtitle */}
-                            <Box>
-                                <Typography
-                                    noWrap
-                                    sx={{
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis'
-                                    }}
-                                >
-                                    {t('stats.displayRange')}
-                                </Typography>
-                                {/* optional helper text (kept small) */}
-                                <Typography sx={{ fontSize: 12, color: '#6b7f8a', mt: 0.5 }}>
-                                    {t(`stats.sliderHint.${filter.period === 'day' ? 'day' : filter.period === 'week' ? 'week' : 'month'}`)}
-                                </Typography>
-                            </Box>
-
-                            {/* Slider placed below the title to avoid clipping on small screens */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Slider
-                                        sx={{ width: '100%' }}
-                                        value={filter.count || (filter.period === 'day' ? 7 : filter.period === 'week' ? 4 : 12)}
-                                        onChange={(_, value) => {
-                                            const v = Array.isArray(value) ? value[0] : (value as number);
-                                            setFilter(prev => ({ ...prev, count: v }));
-                                        }}
-                                        min={filter.period === 'day' ? Math.min(3, sliderLimits.dayMax) : filter.period === 'week' ? 1 : 1}
-                                        max={filter.period === 'day' ? sliderLimits.dayMax : filter.period === 'week' ? sliderLimits.weekMax : sliderLimits.monthMax}
-                                        step={1}
-                                        valueLabelDisplay="auto"
-                                    />
-                                </Box>
-
-                                <Box sx={{ ml: 1, flex: '0 0 auto' }}>
-                                    <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-                                        {filter.count || (filter.period === 'day' ? 7 : filter.period === 'week' ? 4 : 12)}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        </Card>
+                    <Box sx={{ mb: 2, px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 2, bgcolor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>
+                            {t('stats.displayRange')}
+                        </Typography>
+                        <Slider
+                            size="small"
+                            sx={{ flex: 1, minWidth: 0 }}
+                            aria-label={t('stats.displayRange')}
+                            value={filter.count || (filter.period === 'day' ? 7 : filter.period === 'week' ? 4 : 12)}
+                            onChange={(_, value) => {
+                                const v = Array.isArray(value) ? value[0] : (value as number);
+                                setFilter(prev => ({ ...prev, count: v }));
+                            }}
+                            min={filter.period === 'day' ? Math.min(3, sliderLimits.dayMax) : 1}
+                            max={filter.period === 'day' ? sliderLimits.dayMax : filter.period === 'week' ? sliderLimits.weekMax : sliderLimits.monthMax}
+                            step={1}
+                            valueLabelDisplay="auto"
+                        />
+                        <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#101c22', minWidth: 20, textAlign: 'right' }}>
+                            {filter.count || (filter.period === 'day' ? 7 : filter.period === 'week' ? 4 : 12)}
+                        </Typography>
                     </Box>
                 )}
 
-                <Grid container spacing={3}>
+                <Grid container spacing={2}>
                     {/* Daily Activities Multi-line Chart - Spans 2 columns on sm and up */}
                     <Grid item xs={12} sm={12} lg={8}>
                         <Card sx={{
                             bgcolor: '#ffffff',
-                            borderRadius: '16px',
+                            borderRadius: '20px',
                             border: '1px solid #e5e7eb',
                             boxShadow: 'none',
-                            p: 3
+                            p: 2
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
                                 {t('activities.heading')}
@@ -841,7 +817,7 @@ const StatsPage: React.FC = () => {
                             </Typography>
 
                             {/* Chart Area */}
-                            <Box sx={{ minHeight: '250px', position: 'relative', mb: 3 }}>
+                            <Box sx={{ minHeight: '250px', position: 'relative', mb: 2 }}>
                                 <ResponsiveContainer width="100%" height={250}>
                                     <LineChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -881,7 +857,7 @@ const StatsPage: React.FC = () => {
                                                 type="monotone" 
                                                 dataKey="solid" 
                                                 name={t('feeding.solid')}
-                                                stroke="#9c27b0" 
+                                                stroke={ACTIVITY_COLORS.solid} 
                                                 strokeWidth={3}
                                                 dot={false}
                                                 strokeLinecap="round"
@@ -924,38 +900,45 @@ const StatsPage: React.FC = () => {
                                 </ResponsiveContainer>
                             </Box>
 
-                            {/* Checkboxes for toggling lines */}
-                            <Grid container spacing={2}>
+                            {/* Legend chips toggle each line */}
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                 {[
                                     { key: 'milk', label: t('feeding.milk'), color: '#13a4ec' },
-                                    { key: 'solid', label: t('feeding.solid'), color: '#9c27b0' },
+                                    { key: 'solid', label: t('feeding.solid'), color: ACTIVITY_COLORS.solid },
                                     { key: 'diaper', label: t('activityTypes.diaper'), color: '#f59e0b' },
                                     { key: 'urine', label: t('diaper.urine'), color: '#10b981' },
                                     { key: 'stool', label: t('diaper.stool'), color: '#ef4444' }
-                                ].map(line => (
-                                    <Grid item xs={6} sm={3} key={line.key}>
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    checked={(chartVisibility as any)[line.key]}
-                                                    onChange={() => toggleChartLine(line.key)}
-                                                    sx={{
-                                                        color: line.color,
-                                                        '&.Mui-checked': {
-                                                            color: line.color
-                                                        }
-                                                    }}
-                                                />
-                                            }
-                                            label={
-                                                <Typography sx={{ fontSize: '14px', color: '#101c22' }}>
-                                                    {line.label}
-                                                </Typography>
-                                            }
-                                        />
-                                    </Grid>
-                                ))}
-                            </Grid>
+                                ].map(line => {
+                                    const active = Boolean((chartVisibility as any)[line.key]);
+                                    return (
+                                        <Box
+                                            component="button"
+                                            type="button"
+                                            key={line.key}
+                                            aria-pressed={active}
+                                            onClick={() => toggleChartLine(line.key)}
+                                            sx={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 0.75,
+                                                px: 1.5,
+                                                py: 0.75,
+                                                borderRadius: '999px',
+                                                border: `1px solid ${active ? line.color : '#e5e7eb'}`,
+                                                bgcolor: active ? `${line.color}14` : '#ffffff',
+                                                color: active ? '#101c22' : '#94a3b8',
+                                                fontSize: 13,
+                                                fontWeight: 600,
+                                                fontFamily: 'inherit',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <Box component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: active ? line.color : '#cbd5e1' }} />
+                                            {line.label}
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
                         </Card>
                     </Grid>
 
@@ -963,10 +946,10 @@ const StatsPage: React.FC = () => {
                     <Grid item xs={12} sm={6} lg={4}>
                         <Card sx={{
                             bgcolor: '#ffffff',
-                            borderRadius: '16px',
+                            borderRadius: '20px',
                             border: '1px solid #e5e7eb',
                             boxShadow: 'none',
-                            p: 3
+                            p: 2
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
                                 {t('stats.nutrition')}
@@ -979,7 +962,7 @@ const StatsPage: React.FC = () => {
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>{t('feeding.milk')}</Typography>
                                 </Box>
                                 <Box>
-                                    <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#9c27b0' }}>
+                                    <Typography sx={{ fontSize: '24px', fontWeight: 700, color: ACTIVITY_COLORS.solid }}>
                                         {totalSolid} g
                                     </Typography>
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>{t('feeding.solid')}</Typography>
@@ -999,8 +982,8 @@ const StatsPage: React.FC = () => {
                                                 <stop offset="100%" stopColor="#13a4ec" stopOpacity={0} />
                                             </linearGradient>
                                             <linearGradient id="colorSolid" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#9c27b0" stopOpacity={0.2} />
-                                                <stop offset="100%" stopColor="#9c27b0" stopOpacity={0} />
+                                                <stop offset="0%" stopColor={ACTIVITY_COLORS.solid} stopOpacity={0.2} />
+                                                <stop offset="100%" stopColor={ACTIVITY_COLORS.solid} stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
                                         <XAxis 
@@ -1035,7 +1018,7 @@ const StatsPage: React.FC = () => {
                                         <Area 
                                             type="monotone" 
                                             dataKey="solidAmount" 
-                                            stroke="#9c27b0" 
+                                            stroke={ACTIVITY_COLORS.solid} 
                                             strokeWidth={3}
                                             fill="url(#colorSolid)"
                                             strokeLinecap="round"
@@ -1051,10 +1034,10 @@ const StatsPage: React.FC = () => {
                     <Grid item xs={12} sm={6} lg={4}>
                         <Card sx={{
                             bgcolor: '#ffffff',
-                            borderRadius: '16px',
+                            borderRadius: '20px',
                             border: '1px solid #e5e7eb',
                             boxShadow: 'none',
-                            p: 3
+                            p: 2
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
                                 {t('stats.sleepAnalysis')}
@@ -1095,8 +1078,8 @@ const StatsPage: React.FC = () => {
                                     <AreaChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
                                         <defs>
                                             <linearGradient id="colorSleep" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#13a4ec" stopOpacity={0.2} />
-                                                <stop offset="100%" stopColor="#13a4ec" stopOpacity={0} />
+                                                <stop offset="0%" stopColor={ACTIVITY_COLORS.sleep} stopOpacity={0.25} />
+                                                <stop offset="100%" stopColor={ACTIVITY_COLORS.sleep} stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
                                         <XAxis 
@@ -1117,7 +1100,7 @@ const StatsPage: React.FC = () => {
                                             type="monotone" 
                                             dataKey="sleep" 
                                             name={t('stats.sleepMinutes')}
-                                            stroke="#13a4ec" 
+                                            stroke={ACTIVITY_COLORS.sleep} 
                                             strokeWidth={3}
                                             fill="url(#colorSleep)"
                                             strokeLinecap="round"
@@ -1133,10 +1116,10 @@ const StatsPage: React.FC = () => {
                         <Grid item xs={12} lg={8}>
                             <Card sx={{
                                 bgcolor: '#ffffff',
-                                borderRadius: '16px',
+                                borderRadius: '20px',
                                 border: '1px solid #e5e7eb',
                                 boxShadow: 'none',
-                                p: 3
+                                p: 2
                             }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 2 }}>
                                     {t('stats.growthChart')}
