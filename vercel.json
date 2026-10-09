@@ -1,5 +1,5 @@
 {
-  "devCommand": "npm run dev:web",
+  "devCommand": "npm run dev",
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "rewrites": [
@@ -47,5 +47,6 @@
         }
       ]
     }
-  ]
+  ],
+  "framework": "vite"
 }

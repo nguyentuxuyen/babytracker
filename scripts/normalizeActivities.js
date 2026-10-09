@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Rewrite activity documents into the canonical shape defined in
- * src/domain/activitySchema.js (the same code the app and the API use).
+ * src/domain/activitySchema.mjs (the same code the app and the API use).
  *
  * Dry run by default: prints what would change and writes nothing.
  *
@@ -19,12 +19,11 @@
 
 const fs = require('fs');
 const admin = require('firebase-admin');
-const {
-  SCHEMA_VERSION,
-  ACTIVITY_TYPES,
-  normalizeActivityRecord,
-  buildActivityDoc
-} = require('../src/domain/activitySchema');
+// Filled in run(): the schema is an ES module (src/domain/activitySchema.mjs).
+let SCHEMA_VERSION;
+let ACTIVITY_TYPES;
+let normalizeActivityRecord;
+let buildActivityDoc;
 
 const args = process.argv.slice(2);
 const argValue = (name) => {
@@ -67,6 +66,7 @@ const canonicalFields = (data, uid) => {
 };
 
 const run = async () => {
+  ({ SCHEMA_VERSION, ACTIVITY_TYPES, normalizeActivityRecord, buildActivityDoc } = await import('../src/domain/activitySchema.mjs'));
   const db = initAdmin();
   const userIds = ONLY_UID
     ? [ONLY_UID]

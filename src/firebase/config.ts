@@ -1,6 +1,11 @@
 import { initializeApp } from 'firebase/app';
-import { enableMultiTabIndexedDbPersistence, getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import {
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager,
+    connectFirestoreEmulator
+} from 'firebase/firestore';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBtrEK-H3WIeq4xsasZGEoNmTfNvNu0-gk",
@@ -14,17 +19,20 @@ const firebaseConfig = {
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
 
-// Initialize Firestore
-export const db = getFirestore(firebaseApp);
-
-enableMultiTabIndexedDbPersistence(db).catch((error) => {
-    // Persistence is an enhancement; network reads remain available when unsupported.
-    if (error?.code !== 'failed-precondition' && error?.code !== 'unimplemented') {
-        console.warn('Firestore offline persistence unavailable:', error);
-    }
+// Firestore with an IndexedDB cache shared by all open tabs: reads work offline and
+// writes made offline are kept and sent when the network returns. Browsers without
+// IndexedDB fall back to the memory cache automatically.
+export const db = initializeFirestore(firebaseApp, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 // Initialize Authentication
 export const auth = getAuth(firebaseApp);
+
+// Local end-to-end testing against the Firebase emulators (never set on Vercel).
+if (import.meta.env.VITE_FIREBASE_EMULATORS === 'true') {
+    connectFirestoreEmulator(db, '127.0.0.1', 8085);
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+}
 
 export { firebaseApp };

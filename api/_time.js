@@ -1,4 +1,9 @@
-const { toDate } = require('../src/domain/activitySchema');
+// Date from Date, ISO string or epoch ms; null when invalid.
+const toDate = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 const HAS_OFFSET = /(Z|[+-]\d{2}:?\d{2})$/i;
 

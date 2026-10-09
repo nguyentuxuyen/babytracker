@@ -16,7 +16,7 @@ import type {
     MeasurementDetails,
     NotesDetails,
     DailyRatingDetails
-} from '../domain/activitySchema';
+} from '../domain/activitySchema.mjs';
 
 export type {
     ActivityType,
@@ -26,10 +26,10 @@ export type {
     MeasurementDetails,
     NotesDetails,
     DailyRatingDetails
-} from '../domain/activitySchema';
+} from '../domain/activitySchema.mjs';
 
 // Activity as the app uses it. Firestore documents are built and read through
-// src/domain/activitySchema.js, which is the source of truth for this shape.
+// src/domain/activitySchema.mjs, which is the source of truth for this shape.
 // Details are Partial so screens can build them field by field; the schema fills defaults.
 type ActivityBase = { id: string; babyId: string; timestamp: Date };
 

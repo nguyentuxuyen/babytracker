@@ -1,4 +1,4 @@
-import { buildActivityDoc, normalizeActivityRecord, ActivityValidationError } from './activitySchema';
+import { buildActivityDoc, normalizeActivityRecord, ActivityValidationError } from './activitySchema.mjs';
 
 const at = new Date(2026, 9, 9, 8, 30);
 

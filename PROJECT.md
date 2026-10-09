@@ -18,7 +18,7 @@ Dữ liệu cũ có thể chứa tiếng Việt (prefix `Bắt đầu:` trong no
 
 | Tầng | Công nghệ |
 |---|---|
-| Frontend | **React 17**, TypeScript 4, Create React App (`react-scripts` 4.0.3) |
+| Frontend | **React 17**, TypeScript 5, **Vite 6** (`vite-plugin-pwa` cho service worker), Vitest |
 | UI | MUI v5, icon `lucide-react` (bọc trong `components/common/icons.tsx`), `recharts` |
 | Routing | React Router v5 |
 | Đa ngôn ngữ | `i18next` 22 + `react-i18next` 12 (bản cuối còn hỗ trợ TypeScript 4) — ja / en / vi |
@@ -29,9 +29,9 @@ Dữ liệu cũ có thể chứa tiếng Việt (prefix `Bắt đầu:` trong no
 | PWA | Workbox service worker (`src/service-worker.ts`) + Web Push (`web-push`) |
 | Deploy | Vercel, alias `https://babytracker-lyart.vercel.app` |
 
-Lệnh: `npm run dev` (web), `npm run dev:vercel` (web + api), `npm run build`, `CI=true npx react-scripts test --watchAll=false`.
+Lệnh: `npm run dev` (web, cổng 3000), `npm run dev:vercel` (web + api), `npm run build` (typecheck + build vào `build/`), `npm test` (Vitest).
 Deploy: project Vercel đã nối với GitHub `nguyentuxuyen/babytracker` (từ 2026-10-09) — push/merge vào `main` tự deploy production, push nhánh khác tạo preview. Deploy tay vẫn dùng được: `npx vercel --prod --yes`.
-Build cần `NODE_OPTIONS=--openssl-legacy-provider` (đã nằm trong script).
+Dữ liệu activity: mọi nơi ghi/đọc đi qua `src/domain/activitySchema.mjs` (ES module; API nạp qua `api/_schema.js`). Chạy app với Firebase emulator: `VITE_FIREBASE_EMULATORS=true npm run dev`.
 
 ---
 
@@ -172,7 +172,7 @@ Route khác: `/login`, `/activities` (= Home), `/baby-info`, `/milestones`, `/wo
 | `LOG_SECRET`, `SERVICE_ACCOUNT_USER_UID`, `DEFAULT_BABY_ID` | `logMilk.js` |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `_push.js` |
 | `REMINDER_CRON_SECRET` | `pushDispatchReminders.js` |
-| `REACT_APP_VAPID_PUBLIC_KEY`, `REACT_APP_VERSION` | client |
+| `REACT_APP_VAPID_PUBLIC_KEY` (hoặc `VITE_VAPID_PUBLIC_KEY`), `REACT_APP_VERSION` | client (Vite nhận cả tiền tố `REACT_APP_`) |
 
 Firebase web config hard-code trong `src/firebase/config.ts` (project `baby-tracker-app-e7e1d`). **Firestore security rules không nằm trong repo.**
 

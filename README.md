@@ -24,7 +24,7 @@ The Baby Tracker App is a web application designed to help parents manage and tr
 
 4. **Run the application**:
    ```bash
-   npm start
+   npm run dev
    ```
 
 5. **Access the application**:

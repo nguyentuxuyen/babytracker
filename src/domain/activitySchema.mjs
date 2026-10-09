@@ -8,9 +8,9 @@
  * activity with normalizeActivityRecord, which also repairs the older shapes
  * that are still in the database.
  *
- * Plain CommonJS on purpose: the React app (webpack/jest) and the Vercel
- * functions in api/ (Node) both load this same file. Types live in
- * activitySchema.d.ts.
+ * Plain JavaScript ES module so the React app (Vite) and the Vercel functions
+ * in api/ (Node, via api/_schema.js) load this same file. Types live in
+ * activitySchema.d.mts.
  */
 
 const SCHEMA_VERSION = 1;
@@ -261,7 +261,7 @@ const normalizeActivityRecord = (id, data, fallbackBabyId) => {
     };
 };
 
-module.exports = {
+export {
     SCHEMA_VERSION,
     ACTIVITY_TYPES,
     LIMITS,

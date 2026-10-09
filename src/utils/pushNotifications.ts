@@ -32,7 +32,7 @@ export const subscribeUserToPush = async (user: User, intervalMinutes: number) =
         throw new Error('Push is not supported on this browser');
     }
 
-    const publicKey = process.env.REACT_APP_VAPID_PUBLIC_KEY;
+    const publicKey = (import.meta.env.VITE_VAPID_PUBLIC_KEY || import.meta.env.REACT_APP_VAPID_PUBLIC_KEY);
     if (!publicKey) {
         throw new Error('Missing REACT_APP_VAPID_PUBLIC_KEY');
     }
