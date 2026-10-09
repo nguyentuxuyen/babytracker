@@ -5,7 +5,7 @@
 
 **Cách kiểm chứng**: đọc toàn bộ `api/`, `src/firebase`, `contexts`, `services`, `hooks`, `utils`, `App.tsx`, `TimelinePage`, `FoodHistoryPage`, phần logic của `ActivitiesPageNew` / `StatsPageNewGlass` / `BabyInfoPageNew`; phần JSX dài và `MilestonesPage`/`WonderWeeksPage`/`LoginPage` chỉ grep. Đã chạy: `tsc --noEmit` (0 lỗi ngoài file test), test 3/3 pass. **Chưa chạy app thật** — các mục ghi "(suy từ SDK)" là suy luận từ hành vi thư viện, chưa tái hiện.
 
-> **Cập nhật 2026-10-09** (nhánh `claude/project-thread-7fth2h`): đã sửa 1.1–1.6, 1.8, 2.1, 2.2, 2.3 (ghi mới dựa vào cache offline của Firestore, queue cũ chỉ còn được xả), 3.1, 3.3, 4.1, 4.5 (`createdAt`), 5.1 (thêm `firestore.rules`), 5.3, 5.4, 5.5. Dữ liệu activity giờ có một định nghĩa chung ở `src/domain/activitySchema.js`; dữ liệu cũ chuẩn hoá bằng `scripts/normalizeActivities.js`. Báo cáo kiến trúc/bảo mật đầy đủ nằm ngoài repo (project files `review/babytracker-review-2026-10-09.md`).
+> **Cập nhật 2026-10-09** (nhánh `claude/project-thread-7fth2h`): đã sửa 1.1–1.6, 1.8, 2.1, 2.2, 2.3 (ghi mới dựa vào cache offline của Firestore, queue cũ chỉ còn được xả), 3.1, 3.3, 4.1, 4.5 (`createdAt`), 5.1 (thêm `firestore.rules`), 5.3, 5.4, 5.5, 5.7. Dữ liệu activity giờ có một định nghĩa chung ở `src/domain/activitySchema.js`; dữ liệu cũ chuẩn hoá bằng `scripts/normalizeActivities.js`. Báo cáo kiến trúc/bảo mật đầy đủ nằm ngoài repo (project files `review/babytracker-review-2026-10-09.md`).
 
 Mức độ: 🔴 sai dữ liệu / tính năng không chạy · 🟠 rủi ro hoặc sai trong tình huống cụ thể · 🟡 chất lượng code.
 

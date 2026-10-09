@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npx tsc --noEmit -p .
+      - name: Unit tests
+        run: npx react-scripts test --watchAll=false
+        env:
+          CI: true
+      - name: API modules load
+        run: for f in api/*.js; do node -e "require('./$f')"; done
+      - name: Build
+        run: npm run build
+        env:
+          CI: true

@@ -122,6 +122,14 @@ const pendingWriteIds = new Set<string>();
 
 let syncInFlight: Promise<{ synced: number; failed: number }> | null = null;
 
+// Full-history reads (Stats, Food history) are cached briefly so switching
+// between pages does not download every activity again. Any write clears it.
+const HISTORY_CACHE_TTL_MS = 2 * 60 * 1000;
+let historyCache: { key: string; at: number; result: Promise<Activity[]> } | null = null;
+const invalidateHistoryCache = () => {
+    historyCache = null;
+};
+
 export const firestore = {
     // Get baby data by user email (compatible with existing Firebase data structure)
     getBabyByEmail: async (email: string): Promise<Baby | null> => {
@@ -324,6 +332,17 @@ export const firestore = {
     
     // Activities from the last `daysToLoad` days, newest first (users/{userId}/activities).
     getActivities: async (userId: string, daysToLoad: number = 3650): Promise<Activity[]> => {
+        const key = `${userId}:${daysToLoad}`;
+        if (historyCache && historyCache.key === key && Date.now() - historyCache.at < HISTORY_CACHE_TTL_MS) {
+            return historyCache.result;
+        }
+        const result = firestore.loadActivities(userId, daysToLoad);
+        historyCache = { key, at: Date.now(), result };
+        result.catch(invalidateHistoryCache);
+        return result;
+    },
+
+    loadActivities: async (userId: string, daysToLoad: number): Promise<Activity[]> => {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - daysToLoad);
         try {
@@ -382,6 +401,7 @@ export const firestore = {
      */
     saveActivity: async (userId: string, activity: Omit<Activity, 'id'>): Promise<Activity> => {
         const built = buildActivityDoc(activity as any);
+        invalidateHistoryCache();
         const activityRef = doc(collection(db, 'users', userId, 'activities'));
         const write = setDoc(activityRef, { ...built, createdAt: serverTimestamp() });
         const saved = normalizeActivityRecord(activityRef.id, built, userId) as Activity;
@@ -415,6 +435,7 @@ export const firestore = {
     ): Promise<boolean> => {
         try {
             if (activityId.startsWith('offline-')) return false;
+            invalidateHistoryCache();
             const built = buildActivityDoc({
                 babyId: userId,
                 type: activity.type,
@@ -472,6 +493,7 @@ export const firestore = {
             }
 
             removeQueuedActivities(userId, [...syncedIds, ...dropIds]);
+            if (syncedIds.length > 0) invalidateHistoryCache();
             const failed = getQueuedActivities(userId).length;
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('offline-sync-complete', {
@@ -489,6 +511,7 @@ export const firestore = {
 
     // Delete an activity (users/{userId}/activities/{activityId}), including one still in the legacy queue.
     deleteActivity: async (userId: string, activityId: string): Promise<boolean> => {
+        invalidateHistoryCache();
         try {
             if (activityId.startsWith('offline-')) {
                 removeQueuedActivities(userId, [activityId]);

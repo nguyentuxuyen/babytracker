@@ -736,26 +736,6 @@ const ActivitiesPage: React.FC = () => {
     };
 
 
-    // Error boundary effect
-    useEffect(() => {
-        const handleError = (error: ErrorEvent) => {
-            // Don't let the error crash the app
-            return true;
-        };
-
-        const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-            event.preventDefault();
-        };
-
-        window.addEventListener('error', handleError);
-        window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-        return () => {
-            window.removeEventListener('error', handleError);
-            window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-        };
-    }, []);
-
     // WAKE WINDOW warning
     const wakeWindowWarning = useMemo(() => {
         if (!activities || activities.length === 0 || ongoingSleep) return null;

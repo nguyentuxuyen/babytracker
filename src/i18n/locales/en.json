@@ -528,5 +528,9 @@
         ]
       }
     }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "reload": "Reload"
   }
 }

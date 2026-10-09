@@ -510,5 +510,9 @@
         ]
       }
     }
+  },
+  "errorBoundary": {
+    "title": "Đã có lỗi xảy ra",
+    "reload": "Tải lại"
   }
 }
