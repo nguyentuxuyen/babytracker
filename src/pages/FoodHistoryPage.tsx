@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n, { localeTag } from '../i18n';
 import { Box, Card, CardContent, Typography, Chip, Stack, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { SearchIcon } from '../components/common/icons';
 import { firestore } from '../firebase/firestore';
@@ -22,20 +24,18 @@ const isSolidFeeding = (a: Activity): a is SolidFeedingActivity => {
 const preferenceLabel = (value?: string) => {
     switch (value) {
         case 'enthusiastic':
-            return 'よく食べる';
-        case 'normal':
-            return '普通';
         case 'dislike':
-            return '嫌がる';
         case 'allergic':
-            return 'アレルギー';
+            return i18n.t(`feeding.reaction.${value}`);
         default:
-            return '普通';
+            return i18n.t('feeding.reaction.normal');
     }
 };
 
 const FoodHistoryPage: React.FC = () => {
     const { user: currentUser } = useAuth();
+    const { t } = useTranslation();
+    const locale = localeTag();
     const [foods, setFoods] = useState<SolidFeedingActivity[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPreference, setFilterPreference] = useState<string>('all');
@@ -71,13 +71,13 @@ const FoodHistoryPage: React.FC = () => {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f6f7f8', p: 2, pb: 10 }}>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-                離乳食の記録
+                {t('foodHistory.title')}
             </Typography>
 
             <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <TextField
                     fullWidth
-                    placeholder="料理を検索..."
+                    placeholder={t('foodHistory.searchPlaceholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
@@ -93,18 +93,18 @@ const FoodHistoryPage: React.FC = () => {
                 />
                 
                 <FormControl fullWidth size="small">
-                    <InputLabel>反応で絞り込む</InputLabel>
+                    <InputLabel>{t('foodHistory.filterByReaction')}</InputLabel>
                     <Select
                         value={filterPreference}
-                        label="反応で絞り込む"
+                        label={t('foodHistory.filterByReaction')}
                         onChange={(e) => setFilterPreference(e.target.value)}
                         sx={{ borderRadius: '12px', bgcolor: 'white' }}
                     >
-                        <MenuItem value="all">すべて</MenuItem>
-                        <MenuItem value="enthusiastic">よく食べる</MenuItem>
-                        <MenuItem value="normal">普通</MenuItem>
-                        <MenuItem value="dislike">嫌がる</MenuItem>
-                        <MenuItem value="allergic">アレルギー</MenuItem>
+                        <MenuItem value="all">{t('common.all')}</MenuItem>
+                        <MenuItem value="enthusiastic">{t('feeding.reaction.enthusiastic')}</MenuItem>
+                        <MenuItem value="normal">{t('feeding.reaction.normal')}</MenuItem>
+                        <MenuItem value="dislike">{t('feeding.reaction.dislike')}</MenuItem>
+                        <MenuItem value="allergic">{t('feeding.reaction.allergic')}</MenuItem>
                     </Select>
                 </FormControl>
             </Box>
@@ -118,16 +118,16 @@ const FoodHistoryPage: React.FC = () => {
                         <Card key={item.id} sx={{ borderRadius: '16px', border: '1px solid #e5e7eb' }}>
                             <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 700 }}>
-                                    {details.foodItem || '料理'}
+                                    {details.foodItem || t('foodHistory.dish')}
                                 </Typography>
                                 <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
-                                    {ts.toLocaleDateString('vi-VN')} • {ts.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                    {ts.toLocaleDateString(locale)} • {ts.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                                 </Typography>
                                 <Stack direction="row" spacing={1} flexWrap="wrap">
-                                    <Chip label={`量: ${amount}`} size="small" />
+                                    <Chip label={t('foodHistory.amount', { amount })} size="small" />
                                     <Chip label={preferenceLabel(details.foodPreference)} size="small" color={details.foodPreference === 'allergic' ? 'error' : 'default'} />
                                     {details.isAllergic && (
-                                        <Chip label="アレルギー" size="small" color="error" />
+                                        <Chip label={t('feeding.reaction.allergic')} size="small" color="error" />
                                     )}
                                 </Stack>
                                 {details.notes && (
@@ -141,7 +141,7 @@ const FoodHistoryPage: React.FC = () => {
                 })}
                 {filteredFoods.length === 0 && (
                     <Typography sx={{ color: '#6b7f8a', fontSize: '14px', textAlign: 'center', mt: 4 }}>
-                        {foods.length === 0 ? '記録された料理はありません。' : '一致する記録が見つかりません。'}
+                        {foods.length === 0 ? t('foodHistory.empty') : t('foodHistory.noMatch')}
                     </Typography>
                 )}
             </Stack>

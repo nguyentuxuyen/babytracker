@@ -1,6 +1,7 @@
 const { db } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
 const { webpush, configureWebPush } = require('./_push');
+const { pushMessages } = require('./_pushMessages');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -22,15 +23,15 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const payload = JSON.stringify({
-      title: 'Baby Tracker',
-      body: 'Đây là thông báo thử nghiệm từ Baby Tracker 👶',
-      url: '/activities'
-    });
-
     let sent = 0;
     for (const doc of snapshot.docs) {
       const data = doc.data();
+      const messages = pushMessages(data.language);
+      const payload = JSON.stringify({
+        title: messages.testTitle,
+        body: messages.testBody,
+        url: '/activities'
+      });
       try {
         await webpush.sendNotification(
           { endpoint: data.endpoint, keys: data.keys },

@@ -1,5 +1,6 @@
 const { admin, db } = require('./_admin');
 const { webpush, configureWebPush } = require('./_push');
+const { pushMessages } = require('./_pushMessages');
 
 module.exports = async function handler(req, res) {
   const secret = req.headers['x-reminder-secret'] || req.query.secret;
@@ -42,12 +43,13 @@ module.exports = async function handler(req, res) {
           continue;
         }
 
+        const messages = pushMessages(data.language);
         try {
           await webpush.sendNotification(
             { endpoint: data.endpoint, keys: data.keys },
             JSON.stringify({
-              title: 'Baby Tracker Reminder',
-              body: 'Đến giờ cập nhật hoạt động cho bé 👶',
+              title: messages.reminderTitle,
+              body: messages.reminderBody,
               url: '/activities'
             })
           );

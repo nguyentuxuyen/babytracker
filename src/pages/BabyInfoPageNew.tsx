@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localeTag } from '../i18n';
 import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, List, ListItem, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import { BackIcon as ArrowBackIosNewIcon, EditIcon, DeleteIcon, AddIcon, CheckIcon, CloseIcon, FoodIcon as RestaurantIcon } from '../components/common/icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +10,11 @@ import { firestore } from '../firebase/firestore';
 const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const { currentUser } = useAuth();
     const { baby } = useBaby();
+    const { t } = useTranslation();
+    const locale = localeTag();
+    const babyName = baby?.name || t('common.baby');
+    const genderLabel = (fallbackKey: string) =>
+        baby?.gender === 'male' ? t('babyInfo.male') : baby?.gender === 'female' ? t('babyInfo.female') : t(fallbackKey);
     
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState({
@@ -157,13 +164,13 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fontWeight: 700,
                             color: '#101c22'
                         }}>
-                            ようこそ、{currentUser?.email?.split('@')[0] || 'ユーザー'}さん
+                            {t('babyInfo.welcome', { name: currentUser?.email?.split('@')[0] || t('babyInfo.user') })}
                         </Typography>
                         <Typography sx={{
                             fontSize: '12px',
                             color: '#6b7f8a'
                         }}>
-                            {baby?.name || '赤ちゃん'}は生後{ageInDays}日
+                            {t('babyInfo.ageInDays', { name: babyName, count: ageInDays })}
                         </Typography>
                     </Box>
 
@@ -257,25 +264,25 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             color: '#101c22',
                             mb: 0.5
                         }}>
-                            {baby?.name || '赤ちゃん'}
+                            {babyName}
                         </Typography>
                         <Typography sx={{
                             fontSize: '14px',
                             color: '#6b7f8a'
                         }}>
-                            誕生日: {baby?.birthDate
-                                ? new Date(baby.birthDate).toLocaleDateString('ja-JP', {
+                            {t('babyInfo.birthday')}: {baby?.birthDate
+                                ? new Date(baby.birthDate).toLocaleDateString(locale, {
                                     month: 'long', 
                                     day: 'numeric', 
                                     year: 'numeric' 
                                 }) 
-                                : '未設定'}
+                                : t('babyInfo.notSet')}
                         </Typography>
                         <Typography sx={{
                             fontSize: '14px',
                             color: '#6b7f8a'
                         }}>
-                            {baby?.gender === 'male' ? '男の子' : baby?.gender === 'female' ? '女の子' : '性別未設定'}
+                            {genderLabel('babyInfo.genderNotSet')}
                         </Typography>
                     </Box>
                 </Box>
@@ -289,7 +296,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         mb: 1,
                         px: 0.5
                     }}>
-                        基本情報
+                        {t('babyInfo.basicInfo')}
                     </Typography>
                     <Card sx={{
                         bgcolor: '#ffffff',
@@ -299,26 +306,26 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     }}>
                         <Box sx={{ py: 0.5 }}>
                             {[
-                                { label: '名前', value: baby?.name || '未設定' },
-                                { label: '生年月日', value: baby?.birthDate 
-                                    ? new Date(baby.birthDate).toLocaleDateString('ja-JP', {
+                                { label: t('babyInfo.name'), value: baby?.name || t('babyInfo.notSet') },
+                                { label: t('babyInfo.birthDate'), value: baby?.birthDate 
+                                    ? new Date(baby.birthDate).toLocaleDateString(locale, {
                                         month: 'long', 
                                         day: 'numeric', 
                                         year: 'numeric' 
                                     }) 
-                                    : '未設定' 
+                                    : t('babyInfo.notSet') 
                                 },
-                                { label: '出産予定日', value: baby?.dueDate 
-                                    ? new Date(baby.dueDate).toLocaleDateString('ja-JP', {
+                                { label: t('babyInfo.dueDate'), value: baby?.dueDate 
+                                    ? new Date(baby.dueDate).toLocaleDateString(locale, {
                                         month: 'long', 
                                         day: 'numeric', 
                                         year: 'numeric' 
                                     }) 
-                                    : '未設定' 
+                                    : t('babyInfo.notSet') 
                                 },
-                                { label: '性別', value: baby?.gender === 'male' ? '男の子' : baby?.gender === 'female' ? '女の子' : '未設定' },
-                                { label: '出生体重', value: baby?.birthWeight ? `${baby.birthWeight} g` : '未設定' },
-                                { label: '出生身長', value: baby?.birthHeight ? `${baby.birthHeight} cm` : '未設定' }
+                                { label: t('babyInfo.gender'), value: genderLabel('babyInfo.notSet') },
+                                { label: t('babyInfo.birthWeight'), value: baby?.birthWeight ? `${baby.birthWeight} g` : t('babyInfo.notSet') },
+                                { label: t('babyInfo.birthHeight'), value: baby?.birthHeight ? `${baby.birthHeight} cm` : t('babyInfo.notSet') }
                             ].map((item, index, arr) => (
                                 <Box key={item.label}>
                                     <Box sx={{
@@ -364,7 +371,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         mb: 1,
                         px: 0.5
                     }}>
-                        健康情報
+                        {t('babyInfo.healthInfo')}
                     </Typography>
                     <Card sx={{
                         bgcolor: '#ffffff',
@@ -374,9 +381,9 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     }}>
                         <Box sx={{ py: 0.5 }}>
                             {[
-                                { label: '血液型', value: 'O+' },
-                                { label: 'アレルギー', value: 'なし' },
-                                { label: '服薬', value: 'なし' }
+                                { label: t('babyInfo.bloodType'), value: 'O+' },
+                                { label: t('babyInfo.allergies'), value: t('babyInfo.none') },
+                                { label: t('babyInfo.medication'), value: t('babyInfo.none') }
                             ].map((item, index, arr) => (
                                 <Box key={item.label}>
                                     <Box sx={{
@@ -427,7 +434,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fontWeight: 700,
                             color: '#101c22'
                         }}>
-                            離乳食メニュー
+                            {t('babyInfo.foodMenu')}
                         </Typography>
                         <Button 
                             startIcon={<RestaurantIcon />}
@@ -435,7 +442,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             size="small"
                             sx={{ textTransform: 'none' }}
                         >
-                            メニュー管理
+                            {t('babyInfo.manageMenu')}
                         </Button>
                     </Box>
                     <Card sx={{
@@ -466,7 +473,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </Box>
                         ) : (
                             <Typography sx={{ color: '#6b7f8a', fontSize: '14px', fontStyle: 'italic' }}>
-                                まだ料理が登録されていません。「メニュー管理」から追加してください。
+                                {t('babyInfo.foodMenuEmpty')}
                             </Typography>
                         )}
                     </Card>
@@ -500,24 +507,24 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         }
                     }}
                 >
-                    プロフィール編集
+                    {t('babyInfo.editProfile')}
                 </Button>
             </Box>
 
             {/* Edit Profile Dialog */}
             <Dialog open={isEditing} onClose={() => setIsEditing(false)}>
-                <DialogTitle>赤ちゃんのプロフィール編集</DialogTitle>
+                <DialogTitle>{t('babyInfo.editProfileTitle')}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <TextField
-                            label="名前"
+                            label={t('babyInfo.name')}
                             variant="outlined"
                             value={editData.name}
                             onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                             fullWidth
                         />
                         <TextField
-                            label="生年月日"
+                            label={t('babyInfo.birthDate')}
                             variant="outlined"
                             type="date"
                             value={editData.birthDate}
@@ -526,7 +533,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fullWidth
                         />
                         <TextField
-                            label="出産予定日"
+                            label={t('babyInfo.dueDate')}
                             variant="outlined"
                             type="date"
                             value={editData.dueDate}
@@ -535,18 +542,18 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fullWidth
                         />
                         <FormControl fullWidth>
-                                <InputLabel>性別</InputLabel>
+                                <InputLabel>{t('babyInfo.gender')}</InputLabel>
                             <Select
                                 value={editData.gender}
                                 onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
-                                label="性別"
+                                label={t('babyInfo.gender')}
                             >
-                                <MenuItem value="male">男の子</MenuItem>
-                                <MenuItem value="female">女の子</MenuItem>
+                                <MenuItem value="male">{t('babyInfo.male')}</MenuItem>
+                                <MenuItem value="female">{t('babyInfo.female')}</MenuItem>
                             </Select>
                         </FormControl>
                         <TextField
-                            label="出生体重 (g)"
+                            label={`${t('babyInfo.birthWeight')} (g)`}
                             variant="outlined"
                             type="number"
                             value={editData.birthWeight}
@@ -554,7 +561,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             fullWidth
                         />
                         <TextField
-                            label="出生身長 (cm)"
+                            label={`${t('babyInfo.birthHeight')} (cm)`}
                             variant="outlined"
                             type="number"
                             value={editData.birthHeight}
@@ -565,21 +572,21 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setIsEditing(false)} color="primary">
-                        キャンセル
+                        {t('common.cancel')}
                     </Button>
                     <Button onClick={handleSave} color="primary">
-                        保存
+                        {t('common.save')}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             {/* Manage Food Menu Dialog */}
             <Dialog open={isManagingFood} onClose={() => setIsManagingFood(false)} fullWidth maxWidth="xs">
-                <DialogTitle>離乳食メニュー管理</DialogTitle>
+                <DialogTitle>{t('babyInfo.manageMenuTitle')}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: 'flex', gap: 1, mb: 2, mt: 1 }}>
                         <TextField
-                            label="新しい料理を追加"
+                            label={t('babyInfo.addDish')}
                             variant="outlined"
                             size="small"
                             fullWidth
@@ -657,7 +664,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </List>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setIsManagingFood(false)}>閉じる</Button>
+                    <Button onClick={() => setIsManagingFood(false)}>{t('common.close')}</Button>
                 </DialogActions>
             </Dialog>
         </Box>

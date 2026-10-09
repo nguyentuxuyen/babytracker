@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, TextField, CircularProgress, InputAdornment, IconButton, Container } from '@mui/material';
 import { VisibilityIcon as Visibility, VisibilityOffIcon as VisibilityOff } from '../components/common/icons';
 import { useHistory } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +17,7 @@ const LoginPage: React.FC = () => {
     const [loginMode, setLoginMode] = useState<'email' | 'google'>('email');
     const history = useHistory();
     const { currentUser, login } = useAuth();
+    const { t } = useTranslation();
 
     console.log('[LoginPage] Rendering login page, currentUser:', currentUser?.email);
 
@@ -38,7 +41,7 @@ const LoginPage: React.FC = () => {
             // Don't need history.push - auth state change will trigger redirect
         } catch (err: any) {
             console.error('[LoginPage] Email login error:', err);
-            setError(err.message || 'Failed to login with email');
+            setError(err.message || t('login.emailFailed'));
             setLoading(false);
         }
     };
@@ -55,7 +58,7 @@ const LoginPage: React.FC = () => {
             // Don't need history.push - auth state change will trigger redirect
         } catch (err: any) {
             console.error('[LoginPage] Google login error:', err);
-            setError(err.message || 'Failed to login with Google');
+            setError(err.message || t('login.googleFailed'));
             setLoading(false);
         }
     };
@@ -125,9 +128,13 @@ const LoginPage: React.FC = () => {
                             textAlign: 'center'
                         }}
                     >
-                        赤ちゃんの記録、成長、発達を<br />
-                        ひとつのアプリで管理しましょう
+                        {t('login.subtitleLine1')}<br />
+                        {t('login.subtitleLine2')}
                     </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                        <LanguageSwitcher />
+                    </Box>
 
                     {/* Mode Selector */}
                     <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
@@ -150,7 +157,7 @@ const LoginPage: React.FC = () => {
                                 })
                             }}
                         >
-                            Email
+                            {t('login.modeEmail')}
                         </Button>
                         <Button
                             fullWidth
@@ -180,7 +187,7 @@ const LoginPage: React.FC = () => {
                         <Box component="form" onSubmit={handleEmailLogin} sx={{ mb: 2 }}>
                             <TextField
                                 fullWidth
-                                label="メールアドレス"
+                                label={t('login.email')}
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -194,7 +201,7 @@ const LoginPage: React.FC = () => {
                             />
                             <TextField
                                 fullWidth
-                                label="パスワード"
+                                label={t('login.password')}
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -242,7 +249,7 @@ const LoginPage: React.FC = () => {
                                     }
                                 }}
                             >
-                                {loading ? <CircularProgress size={24} sx={{ color: '#ffffff' }} /> : 'メールでログイン'}
+                                {loading ? <CircularProgress size={24} sx={{ color: '#ffffff' }} /> : t('login.loginWithEmail')}
                             </Button>
                         </Box>
                     )}
@@ -288,7 +295,7 @@ const LoginPage: React.FC = () => {
                                         <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
                                         <path fill="none" d="M0 0h48v48H0z"/>
                                     </svg>
-                                    <span>Continue with Google</span>
+                                    <span>{t('login.continueWithGoogle')}</span>
                                 </Box>
                             )}
                         </Button>
@@ -323,14 +330,15 @@ const LoginPage: React.FC = () => {
                         opacity: 0.9
                     }}
                 >
-                    By continuing, you agree to our{' '}
+                    {t('login.agreePrefix')}
                     <Box component="span" sx={{ textDecoration: 'underline', cursor: 'pointer' }}>
-                        Terms of Service
+                        {t('login.terms')}
                     </Box>
-                    {' '}and{' '}
+                    {t('login.agreeAnd')}
                     <Box component="span" sx={{ textDecoration: 'underline', cursor: 'pointer' }}>
-                        Privacy Policy
+                        {t('login.privacy')}
                     </Box>
+                    {t('login.agreeSuffix')}
                 </Typography>
             </Container>
         </Box>

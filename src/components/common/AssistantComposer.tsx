@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Box, Button, Card, CardContent, CircularProgress, IconButton, TextField, Tooltip } from '@mui/material';
 import { SparklesIcon as AutoAwesomeIcon, MicIcon, StopIcon } from './icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { parseAssistantCommand } from '../../services/assistantCore';
 import { executeAssistantCommand } from '../../services/assistantApi';
+import { localeTag } from '../../i18n';
 
 type AssistantComposerProps = {
     babyId?: string;
@@ -13,6 +15,7 @@ type AssistantComposerProps = {
 
 export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, selectedDate, onCommitted }) => {
     const { currentUser } = useAuth();
+    const { t } = useTranslation();
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string>('');
@@ -24,7 +27,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) {
             setSeverity('warning');
-            setMessage('このブラウザでは音声入力を利用できません。');
+            setMessage(t('assistant.voiceUnsupported'));
             return;
         }
         if (listening) {
@@ -33,7 +36,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
         }
 
         const recognition = new SpeechRecognition();
-        recognition.lang = 'ja-JP';
+        recognition.lang = localeTag();
         recognition.interimResults = false;
         recognition.continuous = false;
         recognition.onresult = (event: any) => {
@@ -42,7 +45,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
         };
         recognition.onerror = () => {
             setListening(false);
-            setMessage('音声を認識できませんでした。もう一度お試しください。');
+            setMessage(t('assistant.voiceFailed'));
         };
         recognition.onend = () => setListening(false);
         recognitionRef.current = recognition;
@@ -54,13 +57,13 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
         const input = text.trim();
         if (!input) {
             setSeverity('warning');
-            setMessage('短いコマンドを入力してください。例: "ミルク120ml 9:15"');
+            setMessage(t('assistant.enterCommand'));
             return;
         }
 
         if (!currentUser) {
             setSeverity('warning');
-            setMessage('アシスタントを使うにはログインが必要です。');
+            setMessage(t('assistant.loginRequired'));
             return;
         }
 
@@ -73,7 +76,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             setLoading(true);
             const result = await executeAssistantCommand(command, { selectedDate, babyId });
             setSeverity(result.source === 'local' ? 'success' : 'info');
-            setMessage(`${result.message || '記録を追加しました。'} (${result.source === 'local' ? 'ローカル解析' : 'AI解析'})`);
+            setMessage(`${result.message || t('assistant.added')} (${result.source === 'local' ? t('assistant.sourceLocal') : t('assistant.sourceAi')})`);
             setText('');
 
             if (onCommitted) {
@@ -81,7 +84,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
             }
         } catch (error: any) {
             setSeverity('error');
-            setMessage(error?.message || 'AIコマンドを処理できませんでした。');
+            setMessage(error?.message || t('assistant.failed'));
         } finally {
             setLoading(false);
         }
@@ -101,15 +104,15 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
                                     void handleSubmit();
                                 }
                             }}
-                            placeholder='例: ミルク120ml 9:15'
+                            placeholder={t('assistant.placeholder')}
                             size="small"
                             InputProps={{
                                 startAdornment: <AutoAwesomeIcon color="primary" sx={{ mr: 1, fontSize: 20 }} />
                             }}
                             sx={{ flex: 1, minWidth: 0 }}
                         />
-                        <Tooltip title={listening ? '音声入力を停止' : '音声入力'}>
-                            <IconButton onClick={toggleVoiceInput} color={listening ? 'error' : 'primary'} aria-label="音声入力">
+                        <Tooltip title={listening ? t('assistant.stopVoice') : t('assistant.voice')}>
+                            <IconButton onClick={toggleVoiceInput} color={listening ? 'error' : 'primary'} aria-label={t('assistant.voice')}>
                                 {listening ? <StopIcon /> : <MicIcon />}
                             </IconButton>
                         </Tooltip>
@@ -121,7 +124,7 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({ babyId, se
                         size="small"
                         sx={{ minWidth: { sm: 92 }, minHeight: 40, whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
-                        {loading ? <CircularProgress size={16} color="inherit" /> : 'AIで記録'}
+                        {loading ? <CircularProgress size={16} color="inherit" /> : t('assistant.recordWithAi')}
                     </Button>
                 </Box>
 

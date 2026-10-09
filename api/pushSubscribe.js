@@ -1,5 +1,6 @@
 const { admin, db } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
+const { normalizeLanguage } = require('./_pushMessages');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -10,7 +11,7 @@ module.exports = async function handler(req, res) {
   try {
     const decoded = await verifyUserFromRequest(req);
     const uid = decoded.uid;
-    const { subscription, intervalMinutes = 180, enabled = true } = req.body || {};
+    const { subscription, intervalMinutes = 180, enabled = true, language } = req.body || {};
 
     if (!subscription || !subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
       res.status(400).json({ error: 'Invalid push subscription payload' });
@@ -26,6 +27,7 @@ module.exports = async function handler(req, res) {
       keys: subscription.keys,
       enabled: Boolean(enabled),
       intervalMinutes: Number(intervalMinutes) > 0 ? Number(intervalMinutes) : 180,
+      language: normalizeLanguage(language),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       lastSentAt: null

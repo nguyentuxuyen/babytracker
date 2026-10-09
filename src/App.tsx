@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme/theme';
@@ -7,10 +8,14 @@ import { BabyProvider, useBaby } from './contexts/BabyContext';
 import { DateProvider } from './contexts/DateContext';
 import AppRouter from './routes/AppRouter';
 import BabyInfoPage from './pages/BabyInfoPageNew';
+import TranslationsPage from './pages/TranslationsPage';
+import { loadTranslationOverrides } from './i18n/overrides';
 import { firestore } from './firebase/firestore';
 import { loadReminderSettings, saveReminderSettings } from './utils/reminderSettings';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 import { ChangelogRelease } from './types';
+import LanguageSwitcher from './components/common/LanguageSwitcher';
+import i18n from './i18n';
 
 import {
     AccountIcon as AccountCircleIcon,
@@ -18,7 +23,8 @@ import {
     LogoutIcon,
     NotificationsIcon,
     NotificationsOffIcon,
-    SendIcon
+    SendIcon,
+    TranslateIcon
 } from './components/common/icons';
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
 import packageJson from '../package.json';
@@ -29,6 +35,7 @@ const HeaderComponent: React.FC<{
     currentUser: any;
     logout: () => Promise<void>;
     onShowBabyInfo: () => void;
+    onShowTranslations: () => void;
     isOnline: boolean;
     pendingSyncCount: number;
     isSyncing: boolean;
@@ -44,10 +51,12 @@ const HeaderComponent: React.FC<{
     onToggleReminder: () => void;
     onChangeReminderInterval: (minutes: number) => void;
     onSendTestPush: () => void;
+    onLanguageChange: () => void;
 }> = ({
     currentUser,
     logout,
     onShowBabyInfo,
+    onShowTranslations,
     isOnline,
     pendingSyncCount,
     isSyncing,
@@ -62,9 +71,11 @@ const HeaderComponent: React.FC<{
     changelogUsesFirebase,
     onToggleReminder,
     onChangeReminderInterval,
-    onSendTestPush
+    onSendTestPush,
+    onLanguageChange
 }) => {
     const { baby } = useBaby();
+    const { t } = useTranslation();
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -144,8 +155,7 @@ const HeaderComponent: React.FC<{
                         fontFamily: 'Manrope, sans-serif'
                     }}>
                         {(() => {
-                            const namePart = baby?.name ? `${baby.name}くん` : '赤ちゃん';
-                            return namePart;
+                            return baby?.name ? t('header.babyName', { name: baby.name }) : t('common.baby');
                         })()}
                     </div>
                     <div style={{
@@ -174,11 +184,11 @@ const HeaderComponent: React.FC<{
 
                                         if (months > 0) {
                                             if (days === 0) {
-                                                return `${months}か月`; 
+                                                return t('header.ageMonths', { count: months });
                                             }
-                                            return `${months}か月${days}日`; 
+                                            return t('header.ageMonthsDays', { months, days });
                                         }
-                                        return `${days}日`; 
+                                        return t('header.ageDays', { count: days });
                                     }
                                 }
                             } catch (err) {
@@ -197,7 +207,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                オフライン
+                                {t('header.offline')}
                             </div>
                         )}
                         {isOnline && pendingSyncCount > 0 && (
@@ -209,7 +219,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                {pendingSyncCount}件 同期待ち
+                                {t('header.pendingSync', { count: pendingSyncCount })}
                             </div>
                         )}
                         {isSyncing && (
@@ -221,7 +231,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                同期中...
+                                {t('header.syncing')}
                             </div>
                         )}
                         {reminderEnabled && (
@@ -233,7 +243,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                リマインダー {Math.round(reminderIntervalMinutes / 60)}時間ごと
+                                {t('header.reminderEvery', { count: Math.round(reminderIntervalMinutes / 60) })}
                             </div>
                         )}
                         {pushEnabled && (
@@ -245,7 +255,7 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                プッシュ通知: オン
+                                {t('header.pushOn')}
                             </div>
                         )}
                     </div>
@@ -277,7 +287,7 @@ const HeaderComponent: React.FC<{
                                     fontWeight: 600
                                 }}
                             >
-                                変更履歴
+                                {t('header.changelog')}
                             </MuiButton>
                         </div>
                         <div ref={menuRef} style={{ position: 'relative' }}>
@@ -343,7 +353,7 @@ const HeaderComponent: React.FC<{
                                         onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                     >
                                         <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
-                                        赤ちゃん情報
+                                        {t('menu.babyInfo')}
                                     </button>
                                     <button
                                         onClick={onToggleReminder}
@@ -371,7 +381,7 @@ const HeaderComponent: React.FC<{
                                         ) : (
                                             <NotificationsOffIcon sx={{ fontSize: '20px', color: '#6b7f8a' }} />
                                         )}
-                                        {reminderEnabled ? 'リマインダーをオフ' : 'リマインダーをオン'}
+                                        {reminderEnabled ? t('menu.reminderOff') : t('menu.reminderOn')}
                                     </button>
                                     <div style={{
                                         borderTop: '1px solid #e5e7eb',
@@ -379,9 +389,9 @@ const HeaderComponent: React.FC<{
                                         fontSize: '12px',
                                         color: '#6b7f8a'
                                     }}>
-                                        通知の許可: {({ granted: '許可', denied: '拒否', default: '未設定', unsupported: '非対応' } as Record<string, string>)[notificationPermission]}
+                                        {t('menu.notificationPermission')}: {t(`menu.permission.${notificationPermission}`)}
                                         <div style={{ marginTop: '6px' }}>
-                                            プッシュ通知: {pushSupported ? (pushEnabled ? '有効' : '無効') : '非対応'}
+                                            {t('menu.push')}: {pushSupported ? (pushEnabled ? t('menu.enabled') : t('menu.disabled')) : t('menu.permission.unsupported')}
                                         </div>
                                         <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                             {[60, 120, 180, 240].map((minutes) => (
@@ -420,9 +430,40 @@ const HeaderComponent: React.FC<{
                                                 }}
                                             >
                                                 <SendIcon sx={{ fontSize: '16px' }} />
-                                                テスト通知を送信
+                                                {t('menu.sendTestPush')}
                                             </button>
                                         )}
+                                    </div>
+                                    <div style={{
+                                        borderTop: '1px solid #e5e7eb',
+                                        padding: '10px 16px',
+                                        fontSize: '12px',
+                                        color: '#6b7f8a'
+                                    }}>
+                                        <div style={{ marginBottom: '6px' }}>{t('settings.language')}</div>
+                                        <LanguageSwitcher onChange={onLanguageChange} />
+                                        <button
+                                            onClick={() => {
+                                                onShowTranslations();
+                                                setShowMenu(false);
+                                            }}
+                                            style={{
+                                                marginTop: '8px',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                padding: '6px 10px',
+                                                fontSize: '12px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                color: '#0f766e',
+                                                backgroundColor: '#e0f2fe'
+                                            }}
+                                        >
+                                            <TranslateIcon sx={{ fontSize: '16px' }} />
+                                            {t('menu.editTranslations')}
+                                        </button>
                                     </div>
                                     <button
                                         onClick={async () => {
@@ -453,7 +494,7 @@ const HeaderComponent: React.FC<{
                                         onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                     >
                                         <LogoutIcon sx={{ fontSize: '20px' }} />
-                                        ログアウト
+                                        {t('menu.logout')}
                                     </button>
                                 </div>
                             )}
@@ -463,10 +504,10 @@ const HeaderComponent: React.FC<{
             </div>
 
             <Dialog open={showChangelog} onClose={handleCloseChangelog} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ pb: 1 }}>更新内容</DialogTitle>
+                <DialogTitle sx={{ pb: 1 }}>{t('changelog.title')}</DialogTitle>
                 <DialogContent dividers>
                     <Typography variant="caption" sx={{ display: 'block', color: '#6b7f8a', mb: 2 }}>
-                        {changelogUsesFirebase ? 'データソース: Firebase' : 'データソース: ローカル'}
+                        {t('changelog.source', { source: changelogUsesFirebase ? 'Firebase' : t('changelog.local') })}
                     </Typography>
                     {changelogReleases.map((entry) => (
                         <Box key={entry.version} sx={{ mb: 2.5 }}>
@@ -496,7 +537,7 @@ const HeaderComponent: React.FC<{
                 </DialogContent>
                 <DialogActions>
                     <MuiButton onClick={handleCloseChangelog} variant="contained" sx={{ bgcolor: '#13a4ec' }}>
-                        閉じる
+                        {t('common.close')}
                     </MuiButton>
                 </DialogActions>
             </Dialog>
@@ -509,6 +550,7 @@ const MainApp: React.FC = () => {
     const { currentUser, logout, loading } = useAuth();
     const { baby } = useBaby();
     const [showBabyInfo, setShowBabyInfo] = useState(false);
+    const [showTranslations, setShowTranslations] = useState(false);
     const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
     const [pendingSyncCount, setPendingSyncCount] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -580,6 +622,14 @@ const MainApp: React.FC = () => {
             window.removeEventListener('offline-queue-updated', handleQueueUpdated as EventListener);
         };
     }, [currentUser?.uid, refreshPendingSyncCount, syncPendingActivities]);
+
+    // The account copy of translation edits wins over the cached one applied at startup.
+    useEffect(() => {
+        if (!currentUser?.uid) return;
+        loadTranslationOverrides(currentUser.uid).catch((error) => {
+            console.error('Failed to load translation overrides:', error);
+        });
+    }, [currentUser?.uid]);
 
     useEffect(() => {
         const settings = loadReminderSettings();
@@ -654,6 +704,16 @@ const MainApp: React.FC = () => {
         }
     }, [reminderEnabled, pushSupported, currentUser]);
 
+    // Push reminders are written server-side, so re-register to send the new language along.
+    const onLanguageChange = useCallback(async () => {
+        if (!reminderEnabled || !pushEnabled || !currentUser) return;
+        try {
+            await subscribeUserToPush(currentUser, reminderIntervalMinutes);
+        } catch (error) {
+            console.error('Failed to update push language:', error);
+        }
+    }, [reminderEnabled, pushEnabled, currentUser, reminderIntervalMinutes]);
+
     const onSendTestPush = useCallback(async () => {
         if (!currentUser || !pushSupported) return;
         try {
@@ -676,9 +736,10 @@ const MainApp: React.FC = () => {
                 return;
             }
 
-            const babyName = baby?.name ? `${baby.name}の` : '';
-            new Notification('Baby Tracker Reminder', {
-                body: `${babyName}記録を更新する時間です 👶`,
+            new Notification(i18n.t('reminder.title'), {
+                body: baby?.name
+                    ? i18n.t('reminder.bodyWithName', { name: baby.name })
+                    : i18n.t('reminder.body'),
                 icon: `${process.env.PUBLIC_URL}/icon-192.svg`,
                 badge: `${process.env.PUBLIC_URL}/icon-192.svg`
             });
@@ -775,7 +836,7 @@ const MainApp: React.FC = () => {
                 height: '100vh',
                 bgcolor: '#f6f7f8'
             }}>
-                <Box sx={{ color: '#101c22', fontSize: '18px' }}>読み込み中...</Box>
+                <Box sx={{ color: '#101c22', fontSize: '18px' }}>{i18n.t('common.loading')}</Box>
             </Box>
         );
     }
@@ -791,6 +852,10 @@ const MainApp: React.FC = () => {
         return <BabyInfoPage onBack={() => setShowBabyInfo(false)} />;
     }
 
+    if (showTranslations) {
+        return <TranslationsPage onBack={() => setShowTranslations(false)} />;
+    }
+
     return (
         <Box sx={{
             display: 'flex',
@@ -803,6 +868,7 @@ const MainApp: React.FC = () => {
                 currentUser={currentUser}
                 logout={logout}
                 onShowBabyInfo={() => setShowBabyInfo(true)}
+                onShowTranslations={() => setShowTranslations(true)}
                 isOnline={isOnline}
                 pendingSyncCount={pendingSyncCount}
                 isSyncing={isSyncing}
@@ -818,6 +884,7 @@ const MainApp: React.FC = () => {
                 onToggleReminder={onToggleReminder}
                 onChangeReminderInterval={onChangeReminderInterval}
                 onSendTestPush={onSendTestPush}
+                onLanguageChange={onLanguageChange}
             />
 
             {/* Main content with router and bottom nav */}

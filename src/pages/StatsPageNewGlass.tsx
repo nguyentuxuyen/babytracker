@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localeTag } from '../i18n';
 import { Card, Typography, Box, Checkbox, FormControlLabel, Grid, Slider } from '@mui/material';
 import { ChartIcon as ShowChartIcon, InfoIcon } from '../components/common/icons';
 import { Activity } from '../types';
@@ -37,6 +39,8 @@ const StatsPage: React.FC = () => {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
     const { baby } = useBaby();
+    const { t } = useTranslation();
+    const locale = localeTag();
     
     // Filter states
     const [filter, setFilter] = useState<FilterType>({
@@ -98,9 +102,9 @@ const StatsPage: React.FC = () => {
                     if (birthDate) {
                         const daysSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                         const daysToShow = Math.min(desired, daysSinceBirth);
-                        return `${daysToShow}日間`;
+                        return t('stats.period.days', { count: daysToShow });
                     }
-                    return `${desired}日間`;
+                    return t('stats.period.days', { count: desired });
                 }
             case 'week':
                 {
@@ -108,9 +112,9 @@ const StatsPage: React.FC = () => {
                     if (birthDate) {
                         const weeksSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
                         const weeksToShow = Math.min(desired, weeksSinceBirth);
-                        return `${weeksToShow}週間`;
+                        return t('stats.period.weeks', { count: weeksToShow });
                     }
-                    return `${desired}週間`;
+                    return t('stats.period.weeks', { count: desired });
                 }
             case 'month':
                 {
@@ -118,12 +122,12 @@ const StatsPage: React.FC = () => {
                     if (birthDate) {
                         const monthsSinceBirth = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1;
                         const monthsToShow = Math.min(desired, monthsSinceBirth);
-                        return `${monthsToShow}か月間`;
+                        return t('stats.period.months', { count: monthsToShow });
                     }
-                    return `${desired}か月間`;
+                    return t('stats.period.months', { count: desired });
                 }
             case 'range':
-                return '期間指定';
+                return t('stats.period.custom');
             default:
                 return '';
         }
@@ -240,7 +244,7 @@ const StatsPage: React.FC = () => {
                 dateEnd.setDate(dateEnd.getDate() + 6);
                 dateEnd.setHours(23, 59, 59, 999);
                 
-                const label = `Week ${weeksToShow - i}`;
+                const label = t('stats.weekLabel', { n: weeksToShow - i });
                 
                 // Filter and process activities
                 const periodActivities = activities.filter(activity => {
@@ -337,7 +341,7 @@ const StatsPage: React.FC = () => {
                 dateEnd.setDate(0);
                 dateEnd.setHours(23, 59, 59, 999);
                 
-                const label = dateStart.toLocaleDateString('ja-JP', { month: 'short' });
+                const label = dateStart.toLocaleDateString(locale, { month: 'short' });
                 
                 // Filter and process activities
                 const periodActivities = activities.filter(activity => {
@@ -480,7 +484,7 @@ const StatsPage: React.FC = () => {
         }
         
         return data;
-    }, [activities, filter, baby?.birthDate]);
+    }, [activities, filter, baby?.birthDate, t, locale]);
 
     // Calculate aggregates for summary cards
     const totalMilk = useMemo(() => {
@@ -613,7 +617,7 @@ const StatsPage: React.FC = () => {
             <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
                 <Box sx={{ textAlign: 'center' }}>
                     <ShowChartIcon sx={{ fontSize: 48, mb: 2, color: '#13a4ec' }} />
-                    <Typography color="text.primary" fontSize={16}>統計を読み込んでいます...</Typography>
+                    <Typography color="text.primary" fontSize={16}>{t('stats.loading')}</Typography>
                 </Box>
             </Box>
         );
@@ -640,10 +644,10 @@ const StatsPage: React.FC = () => {
                             border: '1px solid #e5e7eb'
                         }}>
                         {[
-                            { key: 'day', label: '日' },
-                            { key: 'week', label: '週' },
-                            { key: 'month', label: '月' },
-                            { key: 'range', label: '期間' }
+                            { key: 'day', label: t('stats.tabs.day') },
+                            { key: 'week', label: t('stats.tabs.week') },
+                            { key: 'month', label: t('stats.tabs.month') },
+                            { key: 'range', label: t('stats.tabs.range') }
                         ].map(period => (
                             <Box
                                 key={period.key}
@@ -683,7 +687,7 @@ const StatsPage: React.FC = () => {
                         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
                     }}>
                         <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 2 }}>
-                            期間を選択
+                            {t('stats.selectRange')}
                         </Typography>
                         
                         <Grid container spacing={3}>
@@ -691,7 +695,7 @@ const StatsPage: React.FC = () => {
                             <Grid item xs={12} sm={6}>
                                 <Box>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
-                                        開始日
+                                        {t('stats.startDate')}
                                     </Typography>
                                     <input
                                         type="date"
@@ -730,7 +734,7 @@ const StatsPage: React.FC = () => {
                             <Grid item xs={12} sm={6}>
                                 <Box>
                                     <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
-                                        終了日
+                                        {t('stats.endDate')}
                                     </Typography>
                                     <input
                                         type="date"
@@ -764,8 +768,8 @@ const StatsPage: React.FC = () => {
                             <InfoIcon sx={{ fontSize: 16, color: '#6b7f8a', flexShrink: 0 }} />
                             <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
                                 {baby?.birthDate 
-                                    ? `${new Date(baby.birthDate).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', year: 'numeric' })}（誕生日）から今日までの範囲で選択できます`
-                                    : '期間を選択して統計を表示します'
+                                    ? t('stats.rangeHintFromBirth', { date: new Date(baby.birthDate).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }) })
+                                    : t('stats.rangeHint')
                                 }
                             </Typography>
                         </Box>
@@ -789,11 +793,11 @@ const StatsPage: React.FC = () => {
                                         textOverflow: 'ellipsis'
                                     }}
                                 >
-                                    表示範囲
+                                    {t('stats.displayRange')}
                                 </Typography>
                                 {/* optional helper text (kept small) */}
                                 <Typography sx={{ fontSize: 12, color: '#6b7f8a', mt: 0.5 }}>
-                                    表示する{filter.period === 'day' ? '日数' : filter.period === 'week' ? '週数' : '月数'}をスライダーで調整します
+                                    {t(`stats.sliderHint.${filter.period === 'day' ? 'day' : filter.period === 'week' ? 'week' : 'month'}`)}
                                 </Typography>
                             </Box>
 
@@ -835,7 +839,7 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                アクティビティ
+                                {t('activities.heading')}
                             </Typography>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
                                 {getPeriodLabel()}
@@ -870,6 +874,7 @@ const StatsPage: React.FC = () => {
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="milk" 
+                                                name={t('feeding.milk')}
                                                 stroke="#13a4ec" 
                                                 strokeWidth={3}
                                                 dot={false}
@@ -880,6 +885,7 @@ const StatsPage: React.FC = () => {
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="solid" 
+                                                name={t('feeding.solid')}
                                                 stroke="#9c27b0" 
                                                 strokeWidth={3}
                                                 dot={false}
@@ -890,6 +896,7 @@ const StatsPage: React.FC = () => {
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="diaper" 
+                                                name={t('activityTypes.diaper')}
                                                 stroke="#f59e0b" 
                                                 strokeWidth={3}
                                                 dot={false}
@@ -900,6 +907,7 @@ const StatsPage: React.FC = () => {
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="urine" 
+                                                name={t('diaper.urine')}
                                                 stroke="#10b981" 
                                                 strokeWidth={3}
                                                 dot={false}
@@ -910,6 +918,7 @@ const StatsPage: React.FC = () => {
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="stool" 
+                                                name={t('diaper.stool')}
                                                 stroke="#ef4444" 
                                                 strokeWidth={3}
                                                 dot={false}
@@ -923,11 +932,11 @@ const StatsPage: React.FC = () => {
                             {/* Checkboxes for toggling lines */}
                             <Grid container spacing={2}>
                                 {[
-                                    { key: 'milk', label: 'ミルク', color: '#13a4ec' },
-                                    { key: 'solid', label: '離乳食', color: '#9c27b0' },
-                                    { key: 'diaper', label: 'おむつ', color: '#f59e0b' },
-                                    { key: 'urine', label: 'おしっこ', color: '#10b981' },
-                                    { key: 'stool', label: 'うんち', color: '#ef4444' }
+                                    { key: 'milk', label: t('feeding.milk'), color: '#13a4ec' },
+                                    { key: 'solid', label: t('feeding.solid'), color: '#9c27b0' },
+                                    { key: 'diaper', label: t('activityTypes.diaper'), color: '#f59e0b' },
+                                    { key: 'urine', label: t('diaper.urine'), color: '#10b981' },
+                                    { key: 'stool', label: t('diaper.stool'), color: '#ef4444' }
                                 ].map(line => (
                                     <Grid item xs={6} sm={3} key={line.key}>
                                         <FormControlLabel
@@ -965,20 +974,20 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                栄養摂取
+                                {t('stats.nutrition')}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 3, mb: 0.5 }}>
                                 <Box>
                                     <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#13a4ec' }}>
                                         {totalMilk} ml
                                     </Typography>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>ミルク</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>{t('feeding.milk')}</Typography>
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#9c27b0' }}>
                                         {totalSolid} g
                                     </Typography>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>離乳食</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>{t('feeding.solid')}</Typography>
                                 </Box>
                             </Box>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
@@ -1026,7 +1035,7 @@ const StatsPage: React.FC = () => {
                                             strokeWidth={3}
                                             fill="url(#colorMilk)"
                                             strokeLinecap="round"
-                                            name="ミルク (ml)"
+                                            name={`${t('feeding.milk')} (ml)`}
                                         />
                                         <Area 
                                             type="monotone" 
@@ -1035,7 +1044,7 @@ const StatsPage: React.FC = () => {
                                             strokeWidth={3}
                                             fill="url(#colorSolid)"
                                             strokeLinecap="round"
-                                            name="離乳食 (g)"
+                                            name={`${t('feeding.solid')} (g)`}
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -1053,12 +1062,12 @@ const StatsPage: React.FC = () => {
                             p: 3
                         }}>
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
-                                睡眠分析
+                                {t('stats.sleepAnalysis')}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 3, mb: 1, mt: 2 }}>
                                 <Box>
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
-                                        平均睡眠時間
+                                        {t('stats.avgSleep')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
                                         {sleepAnalytics.avgTotalSleep}
@@ -1066,7 +1075,7 @@ const StatsPage: React.FC = () => {
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
-                                        最長連続睡眠
+                                        {t('stats.longestStretch')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
                                         {sleepAnalytics.longestStretch}
@@ -1074,15 +1083,15 @@ const StatsPage: React.FC = () => {
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
-                                        夜間覚醒
+                                        {t('stats.nightWakings')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
-                                        {sleepAnalytics.avgNightWakings} 回 / 夜
+                                        {t('stats.perNight', { count: sleepAnalytics.avgNightWakings })}
                                     </Typography>
                                 </Box>
                             </Box>
                             <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
-                                {getPeriodLabel()} - 合計 {Math.floor(totalSleep / 60)}時間
+                                {getPeriodLabel()} - {t('stats.totalHours', { count: Math.floor(totalSleep / 60) })}
                             </Typography>
 
                             {/* Chart Area */}
@@ -1112,6 +1121,7 @@ const StatsPage: React.FC = () => {
                                         <Area 
                                             type="monotone" 
                                             dataKey="sleep" 
+                                            name={t('stats.sleepMinutes')}
                                             stroke="#13a4ec" 
                                             strokeWidth={3}
                                             fill="url(#colorSleep)"
@@ -1134,7 +1144,7 @@ const StatsPage: React.FC = () => {
                                 p: 3
                             }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 2 }}>
-                                    成長曲線 (WHO)
+                                    {t('stats.growthChart')}
                                 </Typography>
                                 <GrowthChart baby={baby} activities={activities} />
                             </Card>

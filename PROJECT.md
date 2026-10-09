@@ -21,6 +21,7 @@ Dữ liệu cũ có thể chứa tiếng Việt (prefix `Bắt đầu:` trong no
 | Frontend | **React 17**, TypeScript 4, Create React App (`react-scripts` 4.0.3) |
 | UI | MUI v5, icon `lucide-react` (bọc trong `components/common/icons.tsx`), `recharts` |
 | Routing | React Router v5 |
+| Đa ngôn ngữ | `i18next` 22 + `react-i18next` 12 (bản cuối còn hỗ trợ TypeScript 4) — ja / en / vi |
 | Database | Firestore client SDK v9, bật `enableMultiTabIndexedDbPersistence` |
 | Auth | Firebase Auth: email/password **và Google popup** (không có UI đăng ký email) |
 | Backend | Vercel Serverless Functions (`api/*.js`, CommonJS) + Firebase Admin |
@@ -94,7 +95,8 @@ scripts/      # syncChangelogToFirebase.js, parse_milk_shortcut.js, tài liệu 
 | `babies/{uid}` | `name, birthDate, dueDate, gender('male'\|'female'), birthWeight(g), birthHeight(cm), avatarUrl, mail, foodMenu: string[], createdAt, updatedAt` |
 | `users/{uid}/activities/{id}` | `babyId, type, timestamp, details, createdAt` |
 | `users/{uid}/ongoingSleep/{babyId}` | `startTime, createdAt` — giấc ngủ đang chạy |
-| `users/{uid}/pushSubscriptions/{subId}` | `uid, endpoint, keys, enabled, intervalMinutes, lastSentAt, createdAt, updatedAt` |
+| `users/{uid}/pushSubscriptions/{subId}` | `uid, endpoint, keys, enabled, intervalMinutes, language('ja'\|'en'\|'vi'), lastSentAt, createdAt, updatedAt` |
+| `users/{uid}/settings/translations` | `overrides: { vi\|ja\|en: { 'nav.home': 'text', … } }, updatedAt` — chữ người dùng tự sửa ở trang "Sửa bản dịch" |
 | `users/{uid}/milestones/data` **và** `users/{uid}/babies/{babyId}/milestones/data` | trạng thái cột mốc (ghi cả 2 nơi, đọc 3 nơi) |
 | `app_meta/changelog/meta/current`, `app_meta/changelog/releases/*` | version + changelog (sync bằng `npm run changelog:sync`) |
 
@@ -140,7 +142,7 @@ Từ giấc ngủ gần nhất trong ngày: ≥2h "sắp đến giờ ngủ", �
 - Thêm một hàng đợi riêng ở `localStorage` key `offline-activity-queue:{uid}`: `saveActivity` lỗi mạng → enqueue (id `offline-…`); `App.tsx` gọi `syncPendingActivities` khi mount / `online`; phát event `offline-queue-updated`, `offline-sync-complete`.
 
 ### 5.7 Nhắc nhở
-Cài đặt ở `localStorage` (`baby-tracker-reminder-settings`). Hai cơ chế song song: `setInterval` + `new Notification` khi app đang mở, và Web Push qua `pushDispatchReminders` (cần cron ngoài gọi — `vercel.json` **không** khai báo cron). Nhắc theo chu kỳ cố định 1/2/3/4h, không dựa vào hoạt động cuối.
+Cài đặt ở `localStorage` (`baby-tracker-reminder-settings`). Hai cơ chế song song: `setInterval` + `new Notification` khi app đang mở, và Web Push qua `pushDispatchReminders` (cần cron ngoài gọi — `vercel.json` **không** khai báo cron). Nhắc theo chu kỳ cố định 1/2/3/4h, không dựa vào hoạt động cuối. Nội dung push lấy theo `language` lưu trên subscription (`api/_pushMessages.js`, thiếu thì dùng tiếng Việt); đổi ngôn ngữ khi đang bật push sẽ đăng ký lại để cập nhật.
 
 ### 5.8 Thống kê
 `StatsPageNewGlass` và `FoodHistoryPage` gọi `getActivities` (toàn bộ lịch sử, `limit(3000)`) rồi tổng hợp phía client theo ngày/tuần/tháng/khoảng. `TimelinePage` gọi `getActivitiesByDateRange(…, 2)` và `calculateStatsForDate`.
@@ -179,7 +181,7 @@ Firebase web config hard-code trong `src/firebase/config.ts` (project `baby-trac
 ## 8. Quy ước
 
 1. **Múi giờ**: tạo timestamp bằng `new Date(selectedDate)` + `setHours(h, m, 0, 0)`. Không dùng `new Date('YYYY-MM-DD')` hay `toISOString().slice(0, 10)` để lấy ngày (lệch theo UTC).
-2. Text hiển thị: tiếng Nhật. Code/comment/log: tiếng Anh.
+2. Text hiển thị: luôn qua `t('…')` (`react-i18next`), không viết cứng. Bản dịch ở `src/i18n/locales/{ja,en,vi}.json` — thêm khoá thì thêm đủ 3 file (test `src/i18n/i18n.test.ts` kiểm tra). Mặc định tiếng Việt; người dùng đổi trong menu tài khoản hoặc màn đăng nhập, lưu ở `localStorage` (`babytracker.language`). Người dùng sửa chữ hiển thị ở menu tài khoản → "Sửa bản dịch" (`TranslationsPage`): lưu ở `users/{uid}/settings/translations`, cache `localStorage` (`babytracker.translationOverrides`), áp lên bản gốc bằng `src/i18n/overrides.ts`. Ngày giờ format bằng `localeTag()`. Code/comment/log: tiếng Anh.
 3. Regex giờ bắt đầu ngủ phải bắt cả `Bắt đầu:` và `開始:`.
 4. API: kiểm tra `if (!db)` trước khi dùng Admin.
 5. Sau deploy, PWA cần đóng/mở lại để nhận bundle mới (SW dùng `skipWaiting` + `clientsClaim`).
