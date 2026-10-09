@@ -1,7 +1,7 @@
 const { db, admin } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
 const { parseWithGemini } = require('./gemini');
-const { buildActivityDoc, ActivityValidationError } = require('../src/domain/activitySchema');
+const { loadSchema, isActivityValidationError } = require('./_schema');
 const { parseUserTimestamp, formatLocalIso, normalizeOffset } = require('./_time');
 
 const MAX_TEXT_LENGTH = 300;
@@ -33,6 +33,7 @@ async function consumeAiQuota(uid) {
  */
 async function executeTool(tool, params, uid, utcOffsetMinutes, res) {
   if (tool === 'create_activity') {
+    const { buildActivityDoc } = await loadSchema();
     const timestamp = params.timestamp ? parseUserTimestamp(params.timestamp, utcOffsetMinutes) : new Date();
     const activity = buildActivityDoc({
       // One baby per account: the baby document id is the user's uid.
@@ -153,7 +154,7 @@ module.exports = async function handler(req, res) {
     const code = error && error.code ? error.code : '';
     console.error('[mcp] error', { code, message: error?.message });
 
-    if (error instanceof ActivityValidationError) {
+    if (isActivityValidationError(error)) {
       sendError(res, 422, 'AIの解析結果が記録の形式に合いませんでした。別の言い方で試してください。', {
         code,
         issues: error.issues

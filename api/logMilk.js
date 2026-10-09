@@ -1,6 +1,6 @@
 const { db, admin } = require('./_admin');
 const { hasValidSecret } = require('./_secrets');
-const { buildActivityDoc, ActivityValidationError } = require('../src/domain/activitySchema');
+const { loadSchema, isActivityValidationError } = require('./_schema');
 const { parseUserTimestamp, normalizeOffset } = require('./_time');
 
 /**
@@ -34,6 +34,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const { buildActivityDoc } = await loadSchema();
     const activity = buildActivityDoc({
       // One baby per account: the baby document id is the user's uid.
       babyId: userUid,
@@ -47,7 +48,7 @@ module.exports = async function handler(req, res) {
 
     res.status(200).json({ success: true, id: docRef.id, amountMl: activity.details.amount, timestamp: activity.timestamp });
   } catch (err) {
-    if (err instanceof ActivityValidationError) {
+    if (isActivityValidationError(err)) {
       res.status(400).json({ error: 'Invalid activity', issues: err.issues });
       return;
     }

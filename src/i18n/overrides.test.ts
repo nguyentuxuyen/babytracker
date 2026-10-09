@@ -1,7 +1,7 @@
 import i18n, { changeLanguage } from './index';
 import { applyTranslationOverrides, cleanOverrides } from './overrides';
 
-jest.mock('../firebase/config', () => ({ db: {} }));
+vi.mock('../firebase/config', () => ({ db: {} }));
 
 describe('translation overrides', () => {
     it('replaces bundled text and restores it when removed', async () => {

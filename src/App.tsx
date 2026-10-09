@@ -563,7 +563,7 @@ const MainApp: React.FC = () => {
     const [pushEnabled, setPushEnabled] = useState(false);
     const [pushSupported, setPushSupported] = useState(false);
     const [changelogReleases, setChangelogReleases] = useState<ChangelogRelease[]>(fallbackChangelogReleases);
-    const [versionLabel, setVersionLabel] = useState(process.env.REACT_APP_VERSION || packageJson.version);
+    const [versionLabel, setVersionLabel] = useState(import.meta.env.REACT_APP_VERSION || packageJson.version);
     const [changelogReady, setChangelogReady] = useState(false);
     const [changelogUsesFirebase, setChangelogUsesFirebase] = useState(false);
 
@@ -740,8 +740,8 @@ const MainApp: React.FC = () => {
                 body: baby?.name
                     ? i18n.t('reminder.bodyWithName', { name: baby.name })
                     : i18n.t('reminder.body'),
-                icon: `${process.env.PUBLIC_URL}/icon-192.svg`,
-                badge: `${process.env.PUBLIC_URL}/icon-192.svg`
+                icon: `${import.meta.env.BASE_URL}icon-192.svg`,
+                badge: `${import.meta.env.BASE_URL}icon-192.svg`
             });
             setLastReminderAt(now.toISOString());
         }, 60 * 1000);
@@ -780,7 +780,7 @@ const MainApp: React.FC = () => {
         let cancelled = false;
 
         const loadChangelog = async () => {
-            const localVersion = process.env.REACT_APP_VERSION || packageJson.version;
+            const localVersion = import.meta.env.REACT_APP_VERSION || packageJson.version;
 
             try {
                 const [config, releases] = await Promise.all([

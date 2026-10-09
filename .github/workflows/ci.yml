@@ -16,14 +16,12 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Typecheck
-        run: npx tsc --noEmit -p .
+        run: npm run typecheck
       - name: Unit tests
-        run: npx react-scripts test --watchAll=false
-        env:
-          CI: true
+        run: npm test
       - name: API modules load
-        run: for f in api/*.js; do node -e "require('./$f')"; done
+        run: |
+          for f in api/*.js; do node -e "require('./$f')"; done
+          node -e "require('./api/_schema').loadSchema().then((s) => { if (!s.buildActivityDoc) process.exit(1); })"
       - name: Build
         run: npm run build
-        env:
-          CI: true

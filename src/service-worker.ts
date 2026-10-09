@@ -14,7 +14,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 const fileExtensionRegexp = new RegExp('/[^/?]+\\.[^/]+$');
 registerRoute(
-    new NavigationRoute(createHandlerBoundToURL(`${process.env.PUBLIC_URL}/index.html`), {
+    new NavigationRoute(createHandlerBoundToURL(`${import.meta.env.BASE_URL}index.html`), {
         denylist: [/^\/_/, /\/[^/?]+\.[^/]+$/]
     })
 );
@@ -89,8 +89,8 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(payload.title, {
             body: payload.body,
-            icon: `${process.env.PUBLIC_URL}/icon-192.svg`,
-            badge: `${process.env.PUBLIC_URL}/icon-192.svg`,
+            icon: `${import.meta.env.BASE_URL}icon-192.svg`,
+            badge: `${import.meta.env.BASE_URL}icon-192.svg`,
             data: { url: payload.url || '/activities' }
         })
     );

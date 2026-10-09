@@ -18,7 +18,7 @@ import { db } from './config';
 import { Baby, Activity, ChangelogConfig, ChangelogRelease } from '../types';
 import { getCurrentUser } from './auth';
 import { moveFoodItemToEnd } from '../utils/foodSearch';
-import { buildActivityDoc, normalizeActivityRecord } from '../domain/activitySchema';
+import { buildActivityDoc, normalizeActivityRecord } from '../domain/activitySchema.mjs';
 
 const changelogRootPath = ['app_meta', 'changelog'] as const;
 
@@ -394,7 +394,7 @@ export const firestore = {
         pendingWriteIds.has(activityId) || activityId.startsWith('offline-'),
 
     /**
-     * Save an activity in the canonical shape (src/domain/activitySchema.js).
+     * Save an activity in the canonical shape (src/domain/activitySchema.mjs).
      * Throws ActivityValidationError for invalid input. When the server does not
      * answer quickly (offline), the activity stays in Firestore's local cache, is
      * synced automatically later, and isPendingWrite(id) is true until then.

@@ -1,5 +1,5 @@
 import { parseAssistantCommand } from './assistantCore';
-import { buildActivityDoc } from '../domain/activitySchema';
+import { buildActivityDoc } from '../domain/activitySchema.mjs';
 
 // 2026-10-09 14:20 local time
 const now = new Date(2026, 9, 9, 14, 20);
