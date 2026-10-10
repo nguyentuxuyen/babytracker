@@ -223,7 +223,14 @@
     "dish": "料理",
     "amount": "量: {{amount}}",
     "empty": "記録された料理はありません。",
-    "noMatch": "一致する記録が見つかりません。"
+    "noMatch": "一致する記録が見つかりません。",
+    "subtitle": "{{foods}}品目 · {{meals}}回",
+    "byFood": "食材別",
+    "byDate": "日付別",
+    "triedCount": "試した食材",
+    "lovedCount": "好き",
+    "averageAmount": "平均{{amount}}g",
+    "yesterday": "昨日"
   },
   "stats": {
     "loading": "統計を読み込んでいます...",

@@ -223,7 +223,14 @@
     "dish": "Món ăn",
     "amount": "Lượng: {{amount}}",
     "empty": "Chưa có món nào được ghi.",
-    "noMatch": "Không tìm thấy bản ghi phù hợp."
+    "noMatch": "Không tìm thấy bản ghi phù hợp.",
+    "subtitle": "{{foods}} món · {{meals}} lần ăn",
+    "byFood": "Theo món",
+    "byDate": "Theo ngày",
+    "triedCount": "Món đã thử",
+    "lovedCount": "Bé thích",
+    "averageAmount": "TB {{amount}}g",
+    "yesterday": "Hôm qua"
   },
   "stats": {
     "loading": "Đang tải thống kê...",
