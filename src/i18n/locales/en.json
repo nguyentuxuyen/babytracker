@@ -234,7 +234,14 @@
     "dish": "Dish",
     "amount": "Amount: {{amount}}",
     "empty": "No dishes logged yet.",
-    "noMatch": "No matching records."
+    "noMatch": "No matching records.",
+    "subtitle": "{{foods}} foods · {{meals}} meals",
+    "byFood": "By food",
+    "byDate": "By date",
+    "triedCount": "Foods tried",
+    "lovedCount": "Loved",
+    "averageAmount": "avg {{amount}}g",
+    "yesterday": "Yesterday"
   },
   "stats": {
     "loading": "Loading stats...",
