@@ -16,6 +16,7 @@ import { filterFoodItems } from '../utils/foodSearch';
 import i18n from '../i18n';
 import { formatHoursMinutes } from '../i18n/format';
 import DayStatsCard from '../components/common/DayStatsCard';
+import { suggestMilkAmounts } from '../utils/milkPresets';
 import RecentActivityList from '../components/common/RecentActivityList';
 import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityDisplay';
 import { ChoiceChips, SectionLabel, SegmentedControl, fieldSx, nativeTimeInputStyle } from '../components/common/FormControls';
@@ -28,7 +29,6 @@ const isSameLocalDay = (left: Date, right: Date) => (
 );
 
 const RECENT_FOOD_CHIP_COUNT = 8;
-const MILK_AMOUNT_PRESETS = [60, 90, 120, 150, 180];
 
 const normalizeFoodName = (value: string) => value.trim();
 
@@ -163,6 +163,8 @@ const ActivitiesPage: React.FC = () => {
     useEffect(() => {
         setActivities(normalizedActivities);
     }, [normalizedActivities]);
+
+    const milkAmountSuggestions = useMemo(() => suggestMilkAmounts(activities || []), [activities]);
 
     useEffect(() => {
         if (!hasLoadedInitialDate.current) {
@@ -1396,7 +1398,7 @@ const ActivitiesPage: React.FC = () => {
                                                 color={ACTIVITY_COLORS.feeding}
                                                 selected={[Number(formData.amount)]}
                                                 onToggle={(amount) => setFormData({ ...formData, amount: String(amount) })}
-                                                options={MILK_AMOUNT_PRESETS.map((amount) => ({ value: amount, label: `${amount}ml` }))}
+                                                options={milkAmountSuggestions.map((amount) => ({ value: amount, label: `${amount}ml` }))}
                                             />
                                             <TextField
                                                 InputProps={{ endAdornment: <InputAdornment position="end">ml</InputAdornment> }}
