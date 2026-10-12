@@ -1,6 +1,6 @@
 const { db, admin } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
-const { parseWithGemini } = require('./gemini');
+const { parseWithGemini, analyzeDailyTrends, sanitizeInsightSummary } = require('./gemini');
 const { loadSchema, isActivityValidationError } = require('./_schema');
 const { parseUserTimestamp, formatLocalIso, normalizeOffset } = require('./_time');
 
@@ -112,6 +112,23 @@ module.exports = async function handler(req, res) {
     const uid = decoded.uid;
     const body = req.body || {};
     const utcOffsetMinutes = normalizeOffset(body.utcOffsetMinutes);
+
+    // ── Insight path: client sends { action: 'daily_insight', summary, language } ──
+    if (body.action === 'daily_insight') {
+      const summary = sanitizeInsightSummary(body.summary);
+      if (!summary) {
+        sendError(res, 400, 'summary.days is required', { code: 'SUMMARY_INVALID' });
+        return;
+      }
+      if (!(await consumeAiQuota(uid))) {
+        sendError(res, 429, '本日のAI入力の上限に達しました', { code: 'AI_QUOTA_EXCEEDED' });
+        return;
+      }
+      const language = ['vi', 'en', 'ja'].includes(body.language) ? body.language : 'vi';
+      const message = await analyzeDailyTrends(summary, language);
+      res.status(200).json({ success: true, tool: 'daily_insight', message });
+      return;
+    }
 
     // ── Gemini path: client sends { text, selectedDate, utcOffsetMinutes } ────
     if (typeof body.text === 'string') {

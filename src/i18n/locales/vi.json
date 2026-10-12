@@ -542,5 +542,29 @@
     "seeAll": "Xem tất cả",
     "previousDay": "Hôm trước",
     "diaperValue": "Tè {{urine}} · Phân {{stool}}"
+  },
+  "yesterdayCheck": {
+    "title": "Lưu ý về hôm qua",
+    "milkLow": "Sữa: bé uống {{total}}, dưới mức tối thiểu {{min}}",
+    "sleepLow": "Ngủ: bé ngủ {{total}}, dưới mức tối thiểu {{min}}",
+    "milkBasisWeight": "Theo cân nặng {{weight}}kg (khoảng 150ml/kg/ngày)",
+    "milkBasisAge": "Mức tham khảo theo tuổi của bé",
+    "sleepBasisAge": "Khuyến nghị cho tuổi của bé: {{min}}–{{max}} giờ/ngày, gồm cả ngủ ngày",
+    "basisCustom": "Theo mức tối thiểu bạn đã đặt",
+    "disclaimer": "Chỉ là mức tham khảo. Nếu bé mệt hay bỏ bú, hãy hỏi bác sĩ.",
+    "adjust": "Chỉnh mức",
+    "dismiss": "Ẩn hôm nay",
+    "settingsTitle": "Mức tối thiểu mỗi ngày",
+    "settingsHint": "Để trống để dùng mức tham khảo theo tuổi và cân nặng của bé.",
+    "milkMinLabel": "Sữa tối thiểu (ml/ngày)",
+    "sleepMinLabel": "Ngủ tối thiểu (giờ/ngày)",
+    "referenceMilk": "Mức tham khảo: {{min}}ml",
+    "referenceMilkNone": "Chưa kiểm tra sữa trong 2 tuần đầu",
+    "referenceSleep": "Mức tham khảo: {{min}}–{{max}} giờ",
+    "aiAnalyze": "Phân tích bằng AI",
+    "aiLoading": "AI đang phân tích...",
+    "aiTitle": "AI nhận xét 7 ngày gần nhất",
+    "aiFailed": "Chưa phân tích được, bạn thử lại sau nhé.",
+    "aiQuota": "Hôm nay đã dùng hết lượt AI."
   }
 }

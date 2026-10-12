@@ -49,6 +49,10 @@ export function createFakeDb() {
     return {
         docs,
         collection: (name: string) => collectionRef(name),
+        runTransaction: async (fn: (transaction: any) => Promise<unknown>) => fn({
+            get: (ref: any) => ref.get(),
+            set: (ref: any, data: Doc, options?: { merge?: boolean }) => ref.set(data, options)
+        }),
         collectionGroup: (name: string) => ({
             get: async () => snapshotOf([...docs.keys()].filter((p) => p.split('/').slice(-2, -1)[0] === name))
         })

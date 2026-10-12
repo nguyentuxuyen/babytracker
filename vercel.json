@@ -48,5 +48,10 @@
       ]
     }
   ],
-  "framework": "vite"
+  "framework": "vite",
+  "git": {
+    "deploymentEnabled": {
+      "claude/**": false
+    }
+  }
 }
