@@ -1,5 +1,6 @@
 import { auth } from '../firebase/config';
 import { AssistantCommand } from './assistantCore';
+import type { InsightSummary } from '../utils/dailyTargets';
 import { firestore } from '../firebase/firestore';
 import i18n from '../i18n';
 
@@ -135,4 +136,30 @@ export const executeAssistantCommand = async (
         source: 'ai',
         reason: 'input was too complex for local parsing; sent to AI fallback'
     } as AssistantApiResponse;
+};
+
+/** Ask the AI for a short reading of the last days' milk and sleep numbers. */
+export const requestDailyInsight = async (summary: InsightSummary, language: string): Promise<string> => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        throw new Error(i18n.t('assistant.loginRequired'));
+    }
+    const token = await currentUser.getIdToken();
+    const response = await fetch(ASSISTANT_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'daily_insight', summary, language })
+    });
+
+    let payload: any = {};
+    try {
+        payload = await response.json();
+    } catch {
+        throw new Error(i18n.t('assistant.api.invalidResponse', { status: response.status }));
+    }
+    if (!response.ok || !payload?.message) {
+        if (payload?.code === 'AI_QUOTA_EXCEEDED') throw new Error(i18n.t('yesterdayCheck.aiQuota'));
+        throw new Error(i18n.t('yesterdayCheck.aiFailed'));
+    }
+    return String(payload.message);
 };

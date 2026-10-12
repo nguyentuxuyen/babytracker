@@ -1,4 +1,4 @@
-import { findShortfalls, getDailyTargets, latestWeightKg, loadTargetSettings, saveTargetSettings } from './dailyTargets';
+import { buildInsightSummary, findShortfalls, getDailyTargets, latestWeightKg, loadTargetSettings, saveTargetSettings } from './dailyTargets';
 
 const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 0);
 const milk = (day: number, hour: number, amount: number) => ({ type: 'feeding', timestamp: at(day, hour), details: { foodType: 'milk', amount } });
@@ -96,5 +96,28 @@ describe('target settings', () => {
 
         localStorage.setItem('babytracker.dailyTargets', '{oops');
         expect(loadTargetSettings()).toEqual({ milkMinMl: null, sleepMinHours: null });
+    });
+});
+
+describe('buildInsightSummary', () => {
+    it('totals each of the last days, oldest first, with the targets', () => {
+        const baby = { birthDate: new Date(2026, 6, 11), gender: 'male' as const };
+        const activities = [
+            weigh(1, 5500),
+            milk(10, 8, 120), milk(11, 8, 150), milk(11, 12, 150),
+            sleep(11, 6, 600),
+            { type: 'diaper', timestamp: at(11, 9), details: { isUrine: true, isStool: true, notes: 'private' } },
+            milk(12, 8, 999)
+        ];
+        const summary = buildInsightSummary(activities, baby, at(11, 0), undefined, 3);
+        expect(summary.weightKg).toBe(5.5);
+        expect(summary.targets).toEqual({ milkMinMl: 660, sleepMinHours: 14, sleepMaxHours: 17 });
+        expect(summary.days.map((day) => day.date)).toEqual(['2026-10-09', '2026-10-10', '2026-10-11']);
+        expect(summary.days[1]).toMatchObject({ milkMl: 120, milkFeeds: 1 });
+        expect(summary.days[2]).toEqual({
+            date: '2026-10-11', milkMl: 300, milkFeeds: 2, sleepMinutes: 600, sleeps: 1,
+            solidGrams: 0, solidMeals: 0, wetDiapers: 1, stools: 1
+        });
+        expect(JSON.stringify(summary)).not.toContain('private');
     });
 });

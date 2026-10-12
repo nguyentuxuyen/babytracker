@@ -560,6 +560,11 @@
     "sleepMinLabel": "睡眠最低時間（時間/日）",
     "referenceMilk": "目安：{{min}}ml",
     "referenceMilkNone": "生後2週間まではミルクを確認しません",
-    "referenceSleep": "目安：{{min}}〜{{max}} 時間"
+    "referenceSleep": "目安：{{min}}〜{{max}} 時間",
+    "aiAnalyze": "AIで分析",
+    "aiLoading": "AIが分析中...",
+    "aiTitle": "直近7日間のAIコメント",
+    "aiFailed": "分析できませんでした。後でもう一度お試しください。",
+    "aiQuota": "今日のAI利用上限に達しました。"
   }
 }

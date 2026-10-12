@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Typography } from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
+import { requestDailyInsight } from '../../services/assistantApi';
 import {
     DailyTargetSettings,
+    buildInsightSummary,
     ShortfallCheck,
     findShortfalls,
     getDailyTargets,
@@ -21,8 +24,19 @@ type YesterdayCheckCardProps = {
 };
 
 const DISMISSED_KEY = 'babytracker.yesterdayCheckDismissed';
+// Last AI reading, kept for the day so reopening Home does not call the AI again.
+const INSIGHT_KEY = 'babytracker.yesterdayInsight';
 
 const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+
+const readInsight = (day: string) => {
+    try {
+        const saved = JSON.parse(window.localStorage.getItem(INSIGHT_KEY) || 'null');
+        return saved && saved.day === day && typeof saved.text === 'string' ? saved.text as string : null;
+    } catch {
+        return null;
+    }
+};
 
 const readDismissed = () => {
     try {
@@ -34,13 +48,16 @@ const readDismissed = () => {
 
 // Gentle note on Home when yesterday's milk or sleep was below the baby's daily minimum.
 const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, baby, now }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [settings, setSettings] = useState<DailyTargetSettings>(loadTargetSettings);
     const [dismissedDay, setDismissedDay] = useState(readDismissed);
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState({ milk: '', sleep: '' });
 
     const today = dayKey(now);
+    const [insight, setInsight] = useState<string | null>(() => readInsight(today));
+    const [insightLoading, setInsightLoading] = useState(false);
+    const [insightError, setInsightError] = useState('');
     const yesterday = useMemo(() => {
         const date = new Date(now);
         date.setDate(date.getDate() - 1);
@@ -72,6 +89,24 @@ const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, bab
         saveTargetSettings(next);
         setSettings(next);
         setEditing(false);
+    };
+
+    const analyze = async () => {
+        setInsightLoading(true);
+        setInsightError('');
+        try {
+            const text = await requestDailyInsight(buildInsightSummary(activities, baby, yesterday, settings), i18n.language);
+            setInsight(text);
+            try {
+                window.localStorage.setItem(INSIGHT_KEY, JSON.stringify({ day: today, text }));
+            } catch {
+                // Not cached: the next visit asks again.
+            }
+        } catch (error) {
+            setInsightError(error instanceof Error ? error.message : t('yesterdayCheck.aiFailed'));
+        } finally {
+            setInsightLoading(false);
+        }
     };
 
     const dismiss = () => {
@@ -171,9 +206,21 @@ const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, bab
                         );
                     })}
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1 }}>
-                    <Typography sx={{ fontSize: 11, color: '#a16207' }}>{t('yesterdayCheck.disclaimer')}</Typography>
-                    <Button size="small" onClick={openSettings} sx={{ flexShrink: 0, color: '#92400e', fontWeight: 700, textTransform: 'none' }}>
+                {insight && (
+                    <Box sx={{ mt: 1.25, p: 1.25, borderRadius: '12px', bgcolor: '#ffffff', border: '1px solid #fde68a' }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#92400e', mb: 0.5 }}>{t('yesterdayCheck.aiTitle')}</Typography>
+                        <Typography sx={{ fontSize: 13, color: '#1e293b', whiteSpace: 'pre-line' }}>{insight}</Typography>
+                    </Box>
+                )}
+                {insightError && <Typography sx={{ fontSize: 12, color: '#b91c1c', mt: 1 }}>{insightError}</Typography>}
+                <Typography sx={{ fontSize: 11, color: '#a16207', mt: 1 }}>{t('yesterdayCheck.disclaimer')}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mt: 0.5, mb: -0.5 }}>
+                    {!insight && (
+                        <Button size="small" onClick={analyze} disabled={insightLoading} startIcon={insightLoading ? <CircularProgress size={14} color="inherit" /> : <AutoAwesomeIcon fontSize="small" />} sx={{ color: '#92400e', fontWeight: 700, textTransform: 'none' }}>
+                            {insightLoading ? t('yesterdayCheck.aiLoading') : t('yesterdayCheck.aiAnalyze')}
+                        </Button>
+                    )}
+                    <Button size="small" onClick={openSettings} sx={{ color: '#92400e', fontWeight: 700, textTransform: 'none' }}>
                         {t('yesterdayCheck.adjust')}
                     </Button>
                 </Box>

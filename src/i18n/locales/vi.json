@@ -560,6 +560,11 @@
     "sleepMinLabel": "Ngủ tối thiểu (giờ/ngày)",
     "referenceMilk": "Mức tham khảo: {{min}}ml",
     "referenceMilkNone": "Chưa kiểm tra sữa trong 2 tuần đầu",
-    "referenceSleep": "Mức tham khảo: {{min}}–{{max}} giờ"
+    "referenceSleep": "Mức tham khảo: {{min}}–{{max}} giờ",
+    "aiAnalyze": "Phân tích bằng AI",
+    "aiLoading": "AI đang phân tích...",
+    "aiTitle": "AI nhận xét 7 ngày gần nhất",
+    "aiFailed": "Chưa phân tích được, bạn thử lại sau nhé.",
+    "aiQuota": "Hôm nay đã dùng hết lượt AI."
   }
 }

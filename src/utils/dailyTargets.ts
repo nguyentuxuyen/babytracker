@@ -194,3 +194,72 @@ export const saveTargetSettings = (settings: DailyTargetSettings) => {
         // Private mode or storage full: the setting just lasts for this session.
     }
 };
+
+export interface InsightDay {
+    date: string;
+    milkMl: number;
+    milkFeeds: number;
+    sleepMinutes: number;
+    sleeps: number;
+    solidGrams: number;
+    solidMeals: number;
+    wetDiapers: number;
+    stools: number;
+}
+
+export interface InsightSummary {
+    ageMonths: number;
+    weightKg: number | null;
+    targets: { milkMinMl: number | null; sleepMinHours: number; sleepMaxHours: number | null };
+    days: InsightDay[];
+}
+
+const isoDay = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+/**
+ * Per-day totals for the `dayCount` days ending with `lastDay` (oldest first),
+ * plus the baby's targets: the numbers sent to the AI for a trend reading.
+ * Only counts go out, no notes or names.
+ */
+export function buildInsightSummary(
+    activities: TargetActivity[],
+    baby: TargetBaby,
+    lastDay: Date,
+    settings: DailyTargetSettings = DEFAULT_TARGET_SETTINGS,
+    dayCount = 7
+): InsightSummary {
+    const endOfDay = new Date(lastDay);
+    endOfDay.setHours(23, 59, 59, 999);
+    const weightKg = latestWeightKg(activities, endOfDay);
+    const targets = getDailyTargets(baby, lastDay, weightKg, settings);
+
+    const days: InsightDay[] = [];
+    for (let offset = dayCount - 1; offset >= 0; offset--) {
+        const day = new Date(lastDay);
+        day.setDate(day.getDate() - offset);
+        const stats = calculateStatsForDate(activities as any, day);
+        days.push({
+            date: isoDay(day),
+            milkMl: stats.feeding.totalAmount,
+            milkFeeds: stats.feeding.count,
+            sleepMinutes: Math.round(stats.sleep.totalDuration),
+            sleeps: stats.sleep.count,
+            solidGrams: stats.solid.totalAmount,
+            solidMeals: stats.solid.count,
+            wetDiapers: stats.urine.count,
+            stools: stats.stool.count
+        });
+    }
+
+    return {
+        ageMonths: Math.round(targets.ageMonths * 10) / 10,
+        weightKg: weightKg ? Math.round(weightKg * 10) / 10 : null,
+        targets: {
+            milkMinMl: targets.milk?.minMl ?? null,
+            sleepMinHours: targets.sleep.minHours,
+            sleepMaxHours: targets.sleep.maxHours ?? null
+        },
+        days
+    };
+}

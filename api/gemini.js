@@ -130,4 +130,102 @@ async function parseWithGemini(text, context) {
   };
 }
 
-module.exports = { parseWithGemini };
+const INSIGHT_LANGUAGES = { vi: 'Vietnamese', en: 'English', ja: 'Japanese' };
+const MAX_INSIGHT_DAYS = 14;
+
+const clampNumber = (value, max) => {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return 0;
+  return Math.min(Math.round(number * 10) / 10, max);
+};
+
+/**
+ * Keep only the numbers the insight prompt needs, so nothing else the client
+ * sends ends up in the prompt. Returns null when there is no day to analyse.
+ */
+function sanitizeInsightSummary(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.days)) return null;
+  const days = raw.days
+    .filter((day) => day && /^\d{4}-\d{2}-\d{2}$/.test(String(day.date)))
+    .slice(-MAX_INSIGHT_DAYS)
+    .map((day) => ({
+      date: String(day.date),
+      milkMl: clampNumber(day.milkMl, 5000),
+      milkFeeds: clampNumber(day.milkFeeds, 50),
+      sleepMinutes: clampNumber(day.sleepMinutes, 1440),
+      sleeps: clampNumber(day.sleeps, 50),
+      solidGrams: clampNumber(day.solidGrams, 5000),
+      solidMeals: clampNumber(day.solidMeals, 20),
+      wetDiapers: clampNumber(day.wetDiapers, 50),
+      stools: clampNumber(day.stools, 50)
+    }));
+  if (days.length === 0) return null;
+
+  const targets = raw.targets && typeof raw.targets === 'object' ? raw.targets : {};
+  return {
+    ageMonths: clampNumber(raw.ageMonths, 120),
+    weightKg: raw.weightKg ? clampNumber(raw.weightKg, 50) : null,
+    targets: {
+      milkMinMl: targets.milkMinMl ? clampNumber(targets.milkMinMl, 5000) : null,
+      sleepMinHours: clampNumber(targets.sleepMinHours, 24),
+      sleepMaxHours: targets.sleepMaxHours ? clampNumber(targets.sleepMaxHours, 24) : null
+    },
+    days
+  };
+}
+
+function buildInsightPrompt(summary, language) {
+  const languageName = INSIGHT_LANGUAGES[language] || INSIGHT_LANGUAGES.vi;
+  return `
+You help parents read their baby's daily log. Below is a JSON summary of the last days
+(milk in ml, sleep in minutes counted on the day the baby woke up, solid food in grams, diapers).
+"targets" are the app's reference minimums for this baby's age and weight.
+
+Write 3 to 5 short bullet points in ${languageName}, plain text, each starting with "• ":
+- what changed in milk and sleep compared with the previous days, with numbers;
+- whether yesterday (the last day) is an outlier or part of a trend;
+- one or two practical, gentle suggestions.
+Days with zero for a type may just be unlogged; say so instead of assuming the baby did not eat or sleep.
+Do not diagnose. If the numbers are clearly worrying for several days, suggest asking a doctor.
+
+Data:
+${JSON.stringify(summary)}
+`.trim();
+}
+
+/**
+ * Ask Gemini for a short, plain-text reading of the last days of the log.
+ * @param {ReturnType<typeof sanitizeInsightSummary>} summary
+ * @param {string} language - "vi" | "en" | "ja"
+ * @returns {Promise<string>}
+ */
+async function analyzeDailyTrends(summary, language) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw Object.assign(new Error('GEMINI_API_KEY is not configured'), { code: 'GEMINI_NOT_CONFIGURED' });
+  }
+
+  const res = await fetch(GEMINI_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: buildInsightPrompt(summary, language) }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 600 }
+    })
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    console.error('[gemini] insight API error', res.status, errBody.slice(0, 300));
+    throw Object.assign(new Error(`Gemini API error ${res.status}`), { code: 'GEMINI_API_ERROR' });
+  }
+
+  const data = await res.json();
+  const text = String(data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
+  if (!text) {
+    throw Object.assign(new Error('Gemini returned an empty response'), { code: 'GEMINI_EMPTY_RESPONSE' });
+  }
+  return text;
+}
+
+module.exports = { parseWithGemini, analyzeDailyTrends, sanitizeInsightSummary, buildInsightPrompt };
