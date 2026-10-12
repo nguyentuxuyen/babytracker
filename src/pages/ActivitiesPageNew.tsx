@@ -16,6 +16,7 @@ import { filterFoodItems } from '../utils/foodSearch';
 import i18n from '../i18n';
 import { formatHoursMinutes } from '../i18n/format';
 import DayStatsCard from '../components/common/DayStatsCard';
+import YesterdayCheckCard from '../components/common/YesterdayCheckCard';
 import { suggestMilkAmounts } from '../utils/milkPresets';
 import RecentActivityList from '../components/common/RecentActivityList';
 import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityDisplay';
@@ -798,6 +799,10 @@ const ActivitiesPage: React.FC = () => {
                             {t('activities.wakeWindow.label')} <Box component="span" sx={{ fontWeight: 400 }}>{wakeWindowWarning}</Box>
                         </Typography>
                     </Alert>
+                )}
+
+                {baby && isSameLocalDay(selectedDate, currentTime) && (
+                    <YesterdayCheckCard activities={activities || []} baby={baby} now={currentTime} />
                 )}
 
                 <RecentDaysStrip

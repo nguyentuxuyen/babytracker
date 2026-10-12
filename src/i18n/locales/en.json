@@ -560,5 +560,24 @@
     "seeAll": "See all",
     "previousDay": "Day before",
     "diaperValue": "Wet {{urine}} · Dirty {{stool}}"
+  },
+  "yesterdayCheck": {
+    "title": "About yesterday",
+    "milkLow": "Milk: {{total}}, below the minimum of {{min}}",
+    "sleepLow": "Sleep: {{total}}, below the minimum of {{min}}",
+    "milkBasisWeight": "Based on weight {{weight}}kg (about 150ml/kg/day)",
+    "milkBasisAge": "Reference for your baby's age",
+    "sleepBasisAge": "Recommended for your baby's age: {{min}}–{{max}} h/day, naps included",
+    "basisCustom": "Based on the minimum you set",
+    "disclaimer": "Reference only. If your baby seems unwell or refuses feeds, ask a doctor.",
+    "adjust": "Adjust",
+    "dismiss": "Hide for today",
+    "settingsTitle": "Daily minimums",
+    "settingsHint": "Leave empty to use the reference for your baby's age and weight.",
+    "milkMinLabel": "Minimum milk (ml/day)",
+    "sleepMinLabel": "Minimum sleep (hours/day)",
+    "referenceMilk": "Reference: {{min}}ml",
+    "referenceMilkNone": "No milk check in the first 2 weeks",
+    "referenceSleep": "Reference: {{min}}–{{max}} h"
   }
 }

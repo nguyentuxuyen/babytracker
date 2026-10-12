@@ -542,5 +542,24 @@
     "seeAll": "すべて見る",
     "previousDay": "前日",
     "diaperValue": "おしっこ {{urine}} · うんち {{stool}}"
+  },
+  "yesterdayCheck": {
+    "title": "昨日の振り返り",
+    "milkLow": "ミルク：{{total}}、目安の最低量 {{min}} を下回っています",
+    "sleepLow": "睡眠：{{total}}、目安の最低時間 {{min}} を下回っています",
+    "milkBasisWeight": "体重 {{weight}}kg から計算（1日 約150ml/kg）",
+    "milkBasisAge": "月齢に応じた目安",
+    "sleepBasisAge": "月齢の推奨：1日 {{min}}〜{{max}} 時間（昼寝を含む）",
+    "basisCustom": "設定した最低量に基づく",
+    "disclaimer": "あくまで目安です。元気がない・飲まない時は医師に相談してください。",
+    "adjust": "目安を調整",
+    "dismiss": "今日は非表示",
+    "settingsTitle": "1日の最低目安",
+    "settingsHint": "空欄にすると月齢と体重に応じた目安を使います。",
+    "milkMinLabel": "ミルク最低量（ml/日）",
+    "sleepMinLabel": "睡眠最低時間（時間/日）",
+    "referenceMilk": "目安：{{min}}ml",
+    "referenceMilkNone": "生後2週間まではミルクを確認しません",
+    "referenceSleep": "目安：{{min}}〜{{max}} 時間"
   }
 }
