@@ -179,7 +179,7 @@ Cài đặt ở `localStorage` (`baby-tracker-reminder-settings`, mặc định 
 `TimelinePage` (`/timeline`) dùng chung `selectedDate` với Home (`DateContext`), chọn ngày bằng `RecentDaysStrip` hoặc date picker.
 - Tải `getActivitiesByDateRange(uid, selectedDate, 2)` = ngày đang chọn + ngày trước đó.
 - `DayStatsCard`: tóm tắt ngày (sữa, ăn dặm, ngủ, tã…) bằng `calculateStatsForDate`, footer so sánh với hôm trước và badge thay đổi.
-- Danh sách hoạt động trong ngày; bấm để sửa (lượng, giờ, notes, tè/ị; giấc ngủ sửa được giờ bắt đầu + kết thúc và cập nhật `開始:` trong notes) → `updateActivity`; xoá có hộp xác nhận → `deleteActivity`.
+- Danh sách hoạt động trong ngày; bấm để sửa (lượng, giờ, notes, tè/ị; giấc ngủ sửa được giờ bắt đầu + kết thúc và cập nhật `開始:` trong notes) → `updateActivity`; xoá thì hiện snackbar "Hoàn tác" vài giây, hết giờ mới gọi `deleteActivity`.
 
 ---
 
