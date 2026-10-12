@@ -21,6 +21,7 @@ import RecentActivityList from '../components/common/RecentActivityList';
 import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityDisplay';
 import { ChoiceChips, SectionLabel, SegmentedControl, fieldSx, nativeTimeInputStyle } from '../components/common/FormControls';
 import { calculateStatsForDate } from '../utils/dailyStats';
+import { getWakeWindowStatus } from '../utils/sleepStats';
 
 const isSameLocalDay = (left: Date, right: Date) => (
     left.getFullYear() === right.getFullYear()
@@ -757,30 +758,10 @@ const ActivitiesPage: React.FC = () => {
                         selectedDate.getFullYear() === today.getFullYear();
         if (!isToday) return null;
 
-        // Ưu tiên: nếu bé chưa có hoạt động ngủ nào hôm nay nhưng có từ hôm qua, thì list activities lấy All từ DB vẫn có data
-        const sortedActivities = [...activities].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        const lastSleep = sortedActivities.find(a => a.type === 'sleep');
-        
-        if (lastSleep) {
-            const wakeTime = new Date(lastSleep.timestamp);
-            const now = currentTime || new Date();
-            const diffMs = now.getTime() - wakeTime.getTime();
-            
-            // Nếu tương lai thì bỏ qua
-            if (diffMs < 0) return null;
-
-            const diffHours = diffMs / (1000 * 60 * 60);
-
-            // Bé bù sữa/tã ở giữa thì vẫn thức, cứ tính Wake Window
-            if (diffHours >= 2.5) {
-                const hours = Math.floor(diffHours);
-                const mins = Math.floor((diffHours - hours) * 60);
-                return t('activities.wakeWindow.overtired', { duration: formatHoursMinutes(hours, mins) });
-            } else if (diffHours >= 2) {
-                const hours = Math.floor(diffHours);
-                const mins = Math.floor((diffHours - hours) * 60);
-                return t('activities.wakeWindow.sleepSoon', { duration: formatHoursMinutes(hours, mins) });
-            }
+        // Bé bù sữa/tã ở giữa thì vẫn thức, cứ tính Wake Window
+        const status = getWakeWindowStatus(activities, currentTime || new Date());
+        if (status) {
+            return t(`activities.wakeWindow.${status.level}`, { duration: formatHoursMinutes(status.hours, status.mins) });
         }
         return null;
     }, [activities, ongoingSleep, currentTime, selectedDate, t]);
