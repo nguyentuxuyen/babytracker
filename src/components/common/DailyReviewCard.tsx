@@ -55,10 +55,15 @@ const readCached = (day: string): DailyReview | null => {
     }
 };
 
-// "2026-10-20" → the device's short date, e.g. 20/10/2026.
-const formatDay = (day: string) => {
+// "2026-10-20" → weekday and date in the UI language, e.g. "Thứ Ba, 20/10/2026".
+export const formatReviewDay = (day: string, language: string) => {
     const [year, month, date] = day.split('-').map(Number);
-    return new Date(year, month - 1, date).toLocaleDateString();
+    return new Date(year, month - 1, date).toLocaleDateString(language, {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
 };
 
 const STATUS_STYLE: Record<DayStatus, { color: string; bg: string }> = {
@@ -227,7 +232,7 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#5b21b6', display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 <AutoAwesomeIcon sx={{ fontSize: 18 }} />
-                {t('dailyReview.title')}
+                {t('dailyReview.titleFor', { date: formatReviewDay(yesterday, i18n.language) })}
             </Typography>
             <IconButton size="small" onClick={dismiss} aria-label={t('dailyReview.dismiss')} sx={{ color: '#5b21b6', mr: -0.5 }}>
                 <CloseIcon fontSize="small" />
@@ -277,7 +282,7 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
                         <AutoAwesomeIcon sx={{ fontSize: 20 }} />
                         {t('dailyReview.title')}
                     </Typography>
-                    {current && <Typography component="span" sx={{ display: 'block', fontSize: 12, color: '#64748b' }}>{formatDay(current.day)}</Typography>}
+                    {current && <Typography component="span" sx={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569' }}>{formatReviewDay(current.day, i18n.language)}</Typography>}
                 </DialogTitle>
                 <DialogContent sx={{ pt: '8px !important' }}>
                     {details}

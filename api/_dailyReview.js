@@ -1,6 +1,6 @@
 const { admin, db } = require('./_admin');
 const { webpush, configureWebPush } = require('./_push');
-const { pushMessages, normalizeLanguage } = require('./_pushMessages');
+const { pushMessages, normalizeLanguage, reviewTitleFor } = require('./_pushMessages');
 const { loadSchema } = require('./_schema');
 const { consumeAiQuota } = require('./_quota');
 const { writeDailyReview } = require('./gemini');
@@ -155,7 +155,7 @@ async function sendReviewPush(uid, review) {
     try {
       await webpush.sendNotification(
         { endpoint: data.endpoint, keys: data.keys },
-        JSON.stringify({ title: pushMessages(data.language).reviewTitle, body: review.headline, url: '/activities?review=1' })
+        JSON.stringify({ title: reviewTitleFor(data.language, review.day), body: review.headline, url: '/activities?review=1' })
       );
       sent += 1;
     } catch (error) {

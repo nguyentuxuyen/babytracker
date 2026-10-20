@@ -592,6 +592,7 @@
       "notApplicable": "—"
     },
     "open": "Xem",
-    "gotIt": "Đã hiểu"
+    "gotIt": "Đã hiểu",
+    "titleFor": "Đánh giá {{date}}"
   }
 }

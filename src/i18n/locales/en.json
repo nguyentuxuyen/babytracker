@@ -610,6 +610,7 @@
       "notApplicable": "—"
     },
     "open": "Open",
-    "gotIt": "Got it"
+    "gotIt": "Got it",
+    "titleFor": "Review of {{date}}"
   }
 }

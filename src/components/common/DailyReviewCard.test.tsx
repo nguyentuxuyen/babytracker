@@ -57,6 +57,9 @@ describe('DailyReviewCard', () => {
         await renderCard();
         expect(dialogText()).toContain('Thêm một cữ sữa buổi chiều.');
         expect(dialogText()).toContain('Bé bú 400ml.');
+        // The reviewed day is spelled out, not just "yesterday".
+        expect(dialogText()).toContain('20/10/2026');
+        expect(container.textContent).toContain('20/10/2026');
 
         const gotIt = [...document.querySelectorAll('button')].find((button) => button.textContent === 'Đã hiểu')!;
         await act(async () => {

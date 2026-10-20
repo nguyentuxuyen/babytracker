@@ -592,6 +592,7 @@
       "notApplicable": "—"
     },
     "open": "見る",
-    "gotIt": "OK"
+    "gotIt": "OK",
+    "titleFor": "{{date}}のふりかえり"
   }
 }
