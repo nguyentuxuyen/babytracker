@@ -590,6 +590,9 @@
       "high": "多め",
       "notLogged": "記録なし",
       "notApplicable": "—"
-    }
+    },
+    "open": "見る",
+    "gotIt": "OK",
+    "titleFor": "{{date}}のふりかえり"
   }
 }

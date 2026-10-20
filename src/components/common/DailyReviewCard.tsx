@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, CircularProgress, IconButton, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
+import { useHistory, useLocation } from 'react-router-dom';
 import { DailyReview, fetchDailyReview } from '../../services/assistantApi';
 import { loadTargetSettings } from '../../utils/dailyTargets';
 import type { DayStatus } from '../../domain/dailyTargets.mjs';
@@ -21,6 +22,10 @@ const FALLBACK_HOUR = 9;
 
 const CACHE_KEY = 'babytracker.dailyReview';
 const DISMISSED_KEY = 'babytracker.dailyReviewDismissed';
+// Day of the last review shown as a popup on this device, so it pops up once.
+const SEEN_KEY = 'babytracker.dailyReviewSeen';
+// Tapping the morning push opens /activities?review=1 (api/_dailyReview.js).
+export const REVIEW_QUERY = 'review';
 
 const isoDay = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -50,6 +55,17 @@ const readCached = (day: string): DailyReview | null => {
     }
 };
 
+// "2026-10-20" → weekday and date in the UI language, e.g. "Thứ Ba, 20/10/2026".
+export const formatReviewDay = (day: string, language: string) => {
+    const [year, month, date] = day.split('-').map(Number);
+    return new Date(year, month - 1, date).toLocaleDateString(language, {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
+
 const STATUS_STYLE: Record<DayStatus, { color: string; bg: string }> = {
     ok: { color: '#047857', bg: '#d1fae5' },
     low: { color: '#b45309', bg: '#fef3c7' },
@@ -58,7 +74,8 @@ const STATUS_STYLE: Record<DayStatus, { color: string; bg: string }> = {
     notApplicable: { color: '#64748b', bg: '#f1f5f9' }
 };
 
-// Home card with the AI review of yesterday: milk, solid food, sleep and what to improve.
+// AI review of yesterday (milk, solid food, sleep, what to improve): pops up once when it
+// arrives, then stays on Home as a small notification that reopens it.
 const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) => {
     const { t, i18n } = useTranslation();
     const yesterday = useMemo(() => {
@@ -73,6 +90,10 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
     const [error, setError] = useState('');
     const [dismissedDay, setDismissedDay] = useState(() => readStorage(DISMISSED_KEY));
     const askedFor = useRef<string | null>(null);
+    const [open, setOpen] = useState(false);
+    const history = useHistory();
+    const location = useLocation();
+    const fromPush = new URLSearchParams(location.search).has(REVIEW_QUERY);
 
     // The baby's first wake-up of the morning has been logged.
     const wokeUp = useMemo(() => {
@@ -108,7 +129,18 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
         load({ generate: autoGenerate });
     }, [yesterday, autoGenerate, review?.day, load]);
 
-    if (dismissedDay === today) return null;
+    const ready = review?.day === yesterday && review.status === 'done';
+    useEffect(() => {
+        if (ready && (fromPush || readStorage(SEEN_KEY) !== yesterday)) setOpen(true);
+    }, [ready, fromPush, yesterday]);
+
+    const closePopup = () => {
+        setOpen(false);
+        writeStorage(SEEN_KEY, yesterday);
+        if (fromPush) history.replace(location.pathname);
+    };
+
+    if (dismissedDay === today && !open) return null;
     if (review?.day === yesterday && review.status === 'empty') return null;
 
     const dismiss = () => {
@@ -150,77 +182,119 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
         }
     ].filter((row) => facts.status[row.key] !== 'notApplicable') : [];
 
-    return (
-        <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '16px', bgcolor: '#f5f3ff', border: '1px solid #ddd6fe' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
-                <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#5b21b6', display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <AutoAwesomeIcon sx={{ fontSize: 18 }} />
-                    {t('dailyReview.title')}
-                </Typography>
-                <IconButton size="small" onClick={dismiss} aria-label={t('dailyReview.dismiss')} sx={{ color: '#5b21b6', mr: -0.5 }}>
-                    <CloseIcon fontSize="small" />
-                </IconButton>
-            </Box>
-
-            {current ? (
-                <>
-                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#1e293b', mb: 1 }}>{current.headline}</Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {rows.map((row) => {
-                            const status = facts!.status[row.key];
-                            const style = STATUS_STYLE[status];
-                            return (
-                                <Box key={row.key} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                                    <Box sx={{ width: 26, height: 26, borderRadius: '50%', bgcolor: row.color, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, '& svg': { fontSize: 15 } }}>
-                                        {row.icon}
+    const details = current && (
+        <>
+            <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#1e293b', mb: 1 }}>{current.headline}</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {rows.map((row) => {
+                    const status = facts!.status[row.key];
+                    const style = STATUS_STYLE[status];
+                    return (
+                        <Box key={row.key} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                            <Box sx={{ width: 26, height: 26, borderRadius: '50%', bgcolor: row.color, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, '& svg': { fontSize: 15 } }}>
+                                {row.icon}
+                            </Box>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{t(`dailyReview.labels.${row.key}`)}</Typography>
+                                    <Box component="span" sx={{ fontSize: 11, fontWeight: 700, px: 0.75, py: 0.1, borderRadius: '999px', color: style.color, bgcolor: style.bg }}>
+                                        {t(`dailyReview.status.${status}`)}
                                     </Box>
-                                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                                            <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{t(`dailyReview.labels.${row.key}`)}</Typography>
-                                            <Box component="span" sx={{ fontSize: 11, fontWeight: 700, px: 0.75, py: 0.1, borderRadius: '999px', color: style.color, bgcolor: style.bg }}>
-                                                {t(`dailyReview.status.${status}`)}
-                                            </Box>
-                                            {row.value && <Typography sx={{ fontSize: 12, color: '#64748b' }}>{row.value}</Typography>}
-                                        </Box>
-                                        {row.text && <Typography sx={{ fontSize: 13, color: '#334155' }}>{row.text}</Typography>}
-                                    </Box>
+                                    {row.value && <Typography sx={{ fontSize: 12, color: '#64748b' }}>{row.value}</Typography>}
                                 </Box>
-                            );
-                        })}
-                    </Box>
-                    {current.ai && current.ai.tips.length > 0 && (
-                        <Box sx={{ mt: 1.25, p: 1.25, borderRadius: '12px', bgcolor: '#ffffff', border: '1px solid #ddd6fe' }}>
-                            <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#5b21b6', mb: 0.5 }}>{t('dailyReview.tipsTitle')}</Typography>
-                            {current.ai.tips.map((tip) => (
-                                <Typography key={tip} sx={{ fontSize: 13, color: '#1e293b' }}>• {tip}</Typography>
-                            ))}
+                                {row.text && <Typography sx={{ fontSize: 13, color: '#334155' }}>{row.text}</Typography>}
+                            </Box>
                         </Box>
-                    )}
-                    {!current.ai && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1 }}>
-                            <Typography sx={{ fontSize: 12, color: '#64748b' }}>{t('dailyReview.aiUnavailable')}</Typography>
-                            <Button size="small" onClick={() => load({ generate: true, retryAi: true })} disabled={loading} sx={{ color: '#5b21b6', fontWeight: 700, textTransform: 'none', flexShrink: 0 }}>
-                                {loading ? <CircularProgress size={14} color="inherit" /> : t('dailyReview.retry')}
-                            </Button>
-                        </Box>
-                    )}
-                    <Typography sx={{ fontSize: 11, color: '#7c3aed', mt: 1 }}>{t('yesterdayCheck.disclaimer')}</Typography>
-                </>
-            ) : (
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                    <Typography sx={{ fontSize: 13, color: '#475569' }}>
-                        {loading ? t('dailyReview.loading') : t('dailyReview.waiting')}
-                    </Typography>
-                    {!loading && (
-                        <Button size="small" onClick={() => load({ generate: true })} sx={{ color: '#5b21b6', fontWeight: 700, textTransform: 'none', flexShrink: 0 }}>
-                            {t('dailyReview.generate')}
-                        </Button>
-                    )}
-                    {loading && <CircularProgress size={16} sx={{ color: '#5b21b6' }} />}
+                    );
+                })}
+            </Box>
+            {current.ai && current.ai.tips.length > 0 && (
+                <Box sx={{ mt: 1.25, p: 1.25, borderRadius: '12px', bgcolor: '#ffffff', border: '1px solid #ddd6fe' }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#5b21b6', mb: 0.5 }}>{t('dailyReview.tipsTitle')}</Typography>
+                    {current.ai.tips.map((tip) => (
+                        <Typography key={tip} sx={{ fontSize: 13, color: '#1e293b' }}>• {tip}</Typography>
+                    ))}
                 </Box>
             )}
-            {error && <Typography sx={{ fontSize: 12, color: '#b91c1c', mt: 1 }}>{error}</Typography>}
+            {!current.ai && (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1 }}>
+                    <Typography sx={{ fontSize: 12, color: '#64748b' }}>{t('dailyReview.aiUnavailable')}</Typography>
+                    <Button size="small" onClick={() => load({ generate: true, retryAi: true })} disabled={loading} sx={{ color: '#5b21b6', fontWeight: 700, textTransform: 'none', flexShrink: 0 }}>
+                        {loading ? <CircularProgress size={14} color="inherit" /> : t('dailyReview.retry')}
+                    </Button>
+                </Box>
+            )}
+            <Typography sx={{ fontSize: 11, color: '#7c3aed', mt: 1 }}>{t('yesterdayCheck.disclaimer')}</Typography>
+        </>
+    );
+
+    const header = (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#5b21b6', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <AutoAwesomeIcon sx={{ fontSize: 18 }} />
+                {t('dailyReview.titleFor', { date: formatReviewDay(yesterday, i18n.language) })}
+            </Typography>
+            <IconButton size="small" onClick={dismiss} aria-label={t('dailyReview.dismiss')} sx={{ color: '#5b21b6', mr: -0.5 }}>
+                <CloseIcon fontSize="small" />
+            </IconButton>
         </Box>
+    );
+
+    return (
+        <>
+            {dismissedDay !== today && (
+                <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '16px', bgcolor: '#f5f3ff', border: '1px solid #ddd6fe' }}>
+                    {header}
+                    {current ? (
+                        <Box
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setOpen(true)}
+                            onKeyDown={(event) => { if (event.key === 'Enter') setOpen(true); }}
+                            sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }}
+                        >
+                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: '#1e293b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {current.headline}
+                            </Typography>
+                            <Button size="small" sx={{ color: '#5b21b6', fontWeight: 700, textTransform: 'none', flexShrink: 0 }}>
+                                {t('dailyReview.open')}
+                            </Button>
+                        </Box>
+                    ) : (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                            <Typography sx={{ fontSize: 13, color: '#475569' }}>
+                                {loading ? t('dailyReview.loading') : t('dailyReview.waiting')}
+                            </Typography>
+                            {!loading && (
+                                <Button size="small" onClick={() => load({ generate: true })} sx={{ color: '#5b21b6', fontWeight: 700, textTransform: 'none', flexShrink: 0 }}>
+                                    {t('dailyReview.generate')}
+                                </Button>
+                            )}
+                            {loading && <CircularProgress size={16} sx={{ color: '#5b21b6' }} />}
+                        </Box>
+                    )}
+                    {error && <Typography sx={{ fontSize: 12, color: '#b91c1c', mt: 1 }}>{error}</Typography>}
+                </Box>
+            )}
+            <Dialog open={open && Boolean(current)} onClose={closePopup} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '24px', m: 2, width: 'calc(100% - 32px)', bgcolor: '#faf9ff' } }}>
+                <DialogTitle sx={{ pb: 0.5 }}>
+                    <Typography component="span" sx={{ fontSize: 18, fontWeight: 700, color: '#5b21b6', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <AutoAwesomeIcon sx={{ fontSize: 20 }} />
+                        {t('dailyReview.title')}
+                    </Typography>
+                    {current && <Typography component="span" sx={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569' }}>{formatReviewDay(current.day, i18n.language)}</Typography>}
+                </DialogTitle>
+                <DialogContent sx={{ pt: '8px !important' }}>
+                    {details}
+                    {error && <Typography sx={{ fontSize: 12, color: '#b91c1c', mt: 1 }}>{error}</Typography>}
+                </DialogContent>
+                <DialogActions>
+                    <Button variant="contained" onClick={closePopup} sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none', fontWeight: 700, borderRadius: '12px' }}>
+                        {t('dailyReview.gotIt')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 };
 

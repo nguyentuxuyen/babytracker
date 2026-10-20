@@ -590,6 +590,9 @@
       "high": "Nhiều hơn thường lệ",
       "notLogged": "Chưa ghi",
       "notApplicable": "—"
-    }
+    },
+    "open": "Xem",
+    "gotIt": "Đã hiểu",
+    "titleFor": "Đánh giá {{date}}"
   }
 }

@@ -608,6 +608,9 @@
       "high": "More than usual",
       "notLogged": "Not logged",
       "notApplicable": "—"
-    }
+    },
+    "open": "Open",
+    "gotIt": "Got it",
+    "titleFor": "Review of {{date}}"
   }
 }
