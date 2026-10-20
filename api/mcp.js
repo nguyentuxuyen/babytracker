@@ -3,29 +3,15 @@ const { verifyUserFromRequest } = require('./_auth');
 const { parseWithGemini, analyzeDailyTrends, sanitizeInsightSummary } = require('./gemini');
 const { loadSchema, isActivityValidationError } = require('./_schema');
 const { parseUserTimestamp, formatLocalIso, normalizeOffset } = require('./_time');
+const { consumeAiQuota } = require('./_quota');
+const { getDailyReview, generateDailyReview, saveTargetSettings, localDay, WAKE_FROM_HOUR, UNTIL_HOUR } = require('./_dailyReview');
 
 const MAX_TEXT_LENGTH = 300;
 const MAX_FOOD_NAME_LENGTH = 100;
-// Gemini calls per user per UTC day.
-const DAILY_AI_LIMIT = Number(process.env.ASSISTANT_DAILY_LIMIT) > 0 ? Number(process.env.ASSISTANT_DAILY_LIMIT) : 100;
 
 const sendError = (res, status, error, extra = {}) => {
   res.status(status).json({ success: false, error, ...extra });
 };
-
-// Count this call against the user's daily quota; false when the quota is used up.
-async function consumeAiQuota(uid) {
-  const day = new Date().toISOString().slice(0, 10);
-  const ref = db.collection('users').doc(uid).collection('usage').doc('assistant');
-  return db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(ref);
-    const data = snapshot.exists ? snapshot.data() : {};
-    const count = data.day === day ? Number(data.count) || 0 : 0;
-    if (count >= DAILY_AI_LIMIT) return false;
-    transaction.set(ref, { day, count: count + 1, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-    return true;
-  });
-}
 
 /**
  * Execute a resolved { tool, params } command against Firestore.
@@ -127,6 +113,29 @@ module.exports = async function handler(req, res) {
       const language = ['vi', 'en', 'ja'].includes(body.language) ? body.language : 'vi';
       const message = await analyzeDailyTrends(summary, language);
       res.status(200).json({ success: true, tool: 'daily_insight', message });
+      return;
+    }
+
+    // ── Morning review of yesterday: { action: 'daily_review', generate?, retryAi?, settings?, language } ──
+    if (body.action === 'daily_review') {
+      // The parents' own minimums live on the device; keep a copy for the morning cron.
+      if (body.settings) await saveTargetSettings(uid, body.settings);
+      const options = { utcOffsetMinutes, language: body.language };
+      const existing = await getDailyReview(uid, options);
+      const retryAi = body.retryAi === true && existing && existing.status === 'done' && !existing.ai;
+      if ((existing && !retryAi) || body.generate !== true) {
+        res.status(200).json({ success: true, tool: 'daily_review', review: existing });
+        return;
+      }
+      // Opening the app in the morning notifies the other parent's phone too; later in the day it does not.
+      const { hour } = localDay(Date.now(), utcOffsetMinutes);
+      const { review } = await generateDailyReview(uid, {
+        ...options,
+        trigger: 'app',
+        push: hour >= WAKE_FROM_HOUR && hour < UNTIL_HOUR,
+        retryAi
+      });
+      res.status(200).json({ success: true, tool: 'daily_review', review });
       return;
     }
 

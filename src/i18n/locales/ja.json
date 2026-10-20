@@ -566,5 +566,30 @@
     "aiTitle": "直近7日間のAIコメント",
     "aiFailed": "分析できませんでした。後でもう一度お試しください。",
     "aiQuota": "今日のAI利用上限に達しました。"
+  },
+  "dailyReview": {
+    "title": "昨日のふりかえり",
+    "dismiss": "今日は非表示",
+    "waiting": "赤ちゃんが起きたら（または朝9時に）AIが昨日をふりかえります。",
+    "generate": "今すぐふりかえる",
+    "loading": "AIが昨日をふりかえっています...",
+    "failed": "ふりかえりを取得できませんでした。後でもう一度お試しください。",
+    "aiUnavailable": "AIのコメントはまだありません。アプリの集計を表示しています。",
+    "retry": "AIを再試行",
+    "tipsTitle": "今日の改善ポイント",
+    "amountOfTarget": "{{total}} / 目安 {{target}}",
+    "mealsOfTarget": "{{count}}回 / 目安 {{target}}回",
+    "labels": {
+      "milk": "ミルク",
+      "solids": "離乳食",
+      "sleep": "睡眠"
+    },
+    "status": {
+      "ok": "十分",
+      "low": "少なめ",
+      "high": "多め",
+      "notLogged": "記録なし",
+      "notApplicable": "—"
+    }
   }
 }

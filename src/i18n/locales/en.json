@@ -584,5 +584,30 @@
     "aiTitle": "AI on the last 7 days",
     "aiFailed": "Couldn't analyze right now, please try again later.",
     "aiQuota": "Today's AI limit has been reached."
+  },
+  "dailyReview": {
+    "title": "Yesterday in review",
+    "dismiss": "Hide for today",
+    "waiting": "AI reviews yesterday once the baby wakes up (or at 9 AM).",
+    "generate": "Review now",
+    "loading": "AI is looking back at yesterday...",
+    "failed": "Could not load the review. Please try again later.",
+    "aiUnavailable": "The AI could not comment yet; this is the app's own summary.",
+    "retry": "Try AI again",
+    "tipsTitle": "To improve today",
+    "amountOfTarget": "{{total}} / target {{target}}",
+    "mealsOfTarget": "{{count}} meals / target {{target}}",
+    "labels": {
+      "milk": "Milk",
+      "solids": "Solids",
+      "sleep": "Sleep"
+    },
+    "status": {
+      "ok": "Enough",
+      "low": "Low",
+      "high": "More than usual",
+      "notLogged": "Not logged",
+      "notApplicable": "—"
+    }
   }
 }

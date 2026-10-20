@@ -36,13 +36,27 @@ export function createFakeDb() {
         return { docs: found, empty: found.length === 0, size: found.length, forEach: (fn: any) => found.forEach(fn) };
     };
 
-    const collectionRef = (collectionPath: string, filters: Array<[string, unknown]> = []): any => ({
+    // Dates (and Timestamp-like values) compare by time, like Firestore does.
+    const comparable = (value: any) => (value instanceof Date ? value.getTime() : typeof value?.toMillis === 'function' ? value.toMillis() : value);
+    const matches = (actual: unknown, op: string, expected: unknown) => {
+        const a = comparable(actual);
+        const b = comparable(expected);
+        if (op === '==') return a === b;
+        if (a === undefined || a === null) return false;
+        if (op === '>=') return a >= b;
+        if (op === '>') return a > b;
+        if (op === '<=') return a <= b;
+        if (op === '<') return a < b;
+        throw new Error(`fake db: unsupported operator ${op}`);
+    };
+
+    const collectionRef = (collectionPath: string, filters: Array<[string, string, unknown]> = []): any => ({
         doc: (id?: string) => docRef(`${collectionPath}/${id ?? `auto-${++autoId}`}`),
-        where: (field: string, _op: string, value: unknown) => collectionRef(collectionPath, [...filters, [field, value]]),
+        where: (field: string, op: string, value: unknown) => collectionRef(collectionPath, [...filters, [field, op, value]]),
         get: async () => snapshotOf([...docs.keys()].filter((p) => {
             const rest = p.slice(collectionPath.length + 1);
             return p.startsWith(`${collectionPath}/`) && !rest.includes('/')
-                && filters.every(([field, value]) => docs.get(p)?.[field] === value);
+                && filters.every(([field, op, value]) => matches(docs.get(p)?.[field], op, value));
         }))
     });
 

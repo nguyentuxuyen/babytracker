@@ -228,4 +228,106 @@ async function analyzeDailyTrends(summary, language) {
   return text;
 }
 
-module.exports = { parseWithGemini, analyzeDailyTrends, sanitizeInsightSummary, buildInsightPrompt };
+const REVIEW_LIMITS = { headline: 160, section: 400, tip: 200, tips: 3 };
+
+const clipText = (value, max) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '');
+
+/**
+ * Keep only short plain strings from the model's JSON, so a malformed or
+ * oversized answer cannot end up in a notification or the app as is.
+ * Returns null when there is no headline.
+ */
+function sanitizeDailyReview(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const headline = clipText(raw.headline, REVIEW_LIMITS.headline);
+  if (!headline) return null;
+  return {
+    headline,
+    milk: clipText(raw.milk, REVIEW_LIMITS.section),
+    solids: clipText(raw.solids, REVIEW_LIMITS.section),
+    sleep: clipText(raw.sleep, REVIEW_LIMITS.section),
+    tips: (Array.isArray(raw.tips) ? raw.tips : [])
+      .map((tip) => clipText(tip, REVIEW_LIMITS.tip))
+      .filter(Boolean)
+      .slice(0, REVIEW_LIMITS.tips)
+  };
+}
+
+function buildDailyReviewPrompt(facts, language) {
+  const languageName = INSIGHT_LANGUAGES[language] || INSIGHT_LANGUAGES.vi;
+  return `
+You write a short morning review of yesterday for the parents of a baby, from their log.
+"yesterday" has the totals (milk in ml, solid food in grams and meals, sleep in minutes counted
+on the day the baby woke up, diapers). "status" was decided by the app against "targets"
+(the reference for this baby's age and weight): "ok", "low", "high" (more sleep than the usual range),
+"notLogged" (nothing recorded, which may just mean it was not written down) or
+"notApplicable" (for example no solid food expected before 6 months).
+"previousDays" are the six days before, oldest first, for comparison.
+
+Answer in ${languageName} with JSON only:
+{"headline": "...", "milk": "...", "solids": "...", "sleep": "...", "tips": ["...", "..."]}
+- headline: one sentence of at most 120 characters for a phone notification, saying whether
+  yesterday was enough for milk, solid food and sleep.
+- milk, solids, sleep: one or two sentences each with yesterday's numbers against the target,
+  and how it compares with the previous days. Empty string for "notApplicable".
+- tips: one to three short, practical, gentle things to improve today; none if all is fine.
+Never contradict "status". Do not diagnose. If the numbers are clearly worrying for several
+days, suggest asking a doctor.
+
+Data:
+${JSON.stringify(facts)}
+`.trim();
+}
+
+/**
+ * Ask Gemini for the morning review of yesterday.
+ * @param {object} facts - totals, statuses and targets built by api/_dailyReview.js
+ * @param {string} language - "vi" | "en" | "ja"
+ * @returns {Promise<{ headline: string, milk: string, solids: string, sleep: string, tips: string[] }>}
+ */
+async function writeDailyReview(facts, language) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw Object.assign(new Error('GEMINI_API_KEY is not configured'), { code: 'GEMINI_NOT_CONFIGURED' });
+  }
+
+  const res = await fetch(GEMINI_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: buildDailyReviewPrompt(facts, language) }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 800, responseMimeType: 'application/json' }
+    })
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    console.error('[gemini] review API error', res.status, errBody.slice(0, 300));
+    throw Object.assign(new Error(`Gemini API error ${res.status}`), { code: 'GEMINI_API_ERROR' });
+  }
+
+  const data = await res.json();
+  const text = String(data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+    .replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    parsed = null;
+  }
+  const review = sanitizeDailyReview(parsed);
+  if (!review) {
+    throw Object.assign(new Error('Gemini returned no usable review'), { code: 'GEMINI_PARSE_ERROR' });
+  }
+  return review;
+}
+
+module.exports = {
+  parseWithGemini,
+  analyzeDailyTrends,
+  sanitizeInsightSummary,
+  buildInsightPrompt,
+  writeDailyReview,
+  sanitizeDailyReview,
+  buildDailyReviewPrompt
+};
