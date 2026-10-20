@@ -94,7 +94,7 @@ describe('morning review from the reminder cron', () => {
 
         expect(reviews()).toEqual([{
             endpoint: 'https://fcm.googleapis.com/phone',
-            payload: { title: 'Đánh giá ngày hôm qua 🌤️', body: AI_REVIEW.headline, url: '/activities' }
+            payload: { title: 'Đánh giá ngày hôm qua 🌤️', body: AI_REVIEW.headline, url: '/activities?review=1' }
         }]);
         expect(reviewDoc()).toMatchObject({
             status: 'done',

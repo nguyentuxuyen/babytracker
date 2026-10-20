@@ -155,7 +155,7 @@ async function sendReviewPush(uid, review) {
     try {
       await webpush.sendNotification(
         { endpoint: data.endpoint, keys: data.keys },
-        JSON.stringify({ title: pushMessages(data.language).reviewTitle, body: review.headline, url: '/activities' })
+        JSON.stringify({ title: pushMessages(data.language).reviewTitle, body: review.headline, url: '/activities?review=1' })
       );
       sent += 1;
     } catch (error) {
