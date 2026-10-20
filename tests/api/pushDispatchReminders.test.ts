@@ -60,7 +60,7 @@ describe('/api/pushDispatchReminders', () => {
 
         const res = await dispatch();
 
-        expect(res.body).toEqual({ success: true, checked: 3, sent: 2, removed: 0 });
+        expect(res.body).toEqual({ success: true, checked: 3, sent: 2, removed: 0, reviews: 0 });
         expect(sent.map((s) => s.endpoint).sort()).toEqual(['https://fcm.googleapis.com/due', 'https://fcm.googleapis.com/never-sent']);
         expect(sent.find((s) => s.endpoint.endsWith('/due'))?.payload).toEqual({
             title: 'Baby Tracker リマインダー',
@@ -90,7 +90,7 @@ describe('/api/pushDispatchReminders', () => {
             }
         });
 
-        expect(res.body).toEqual({ success: true, checked: 3, sent: 0, removed: 2 });
+        expect(res.body).toEqual({ success: true, checked: 3, sent: 0, removed: 2, reviews: 0 });
         expect([...db.docs.keys()]).toEqual(['users/a/pushSubscriptions/flaky']);
     });
 });

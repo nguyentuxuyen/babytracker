@@ -54,7 +54,9 @@ export const subscribeUserToPush = async (user: User, intervalMinutes: number) =
             subscription: subscription.toJSON(),
             enabled: true,
             intervalMinutes,
-            language: currentLanguage()
+            language: currentLanguage(),
+            // The morning review is sent by this clock.
+            utcOffsetMinutes: -new Date().getTimezoneOffset()
         })
     });
 

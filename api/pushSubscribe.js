@@ -1,6 +1,7 @@
 const { admin, db } = require('./_admin');
 const { verifyUserFromRequest } = require('./_auth');
 const { normalizeLanguage } = require('./_pushMessages');
+const { normalizeOffset } = require('./_time');
 const { isAllowedPushEndpoint, subscriptionIdFor, legacySubscriptionIdFor } = require('./_subscriptions');
 
 module.exports = async function handler(req, res) {
@@ -17,7 +18,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const { subscription, intervalMinutes = 180, enabled = true, language } = req.body || {};
+  const { subscription, intervalMinutes = 180, enabled = true, language, utcOffsetMinutes } = req.body || {};
   if (!subscription || !subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
     res.status(400).json({ error: 'Invalid push subscription payload' });
     return;
@@ -41,6 +42,8 @@ module.exports = async function handler(req, res) {
       enabled: Boolean(enabled),
       intervalMinutes: interval,
       language: normalizeLanguage(language),
+      // The morning review goes out by the family's clock, not the server's.
+      utcOffsetMinutes: normalizeOffset(utcOffsetMinutes),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       // Changing settings must not reset the reminder clock (that sent an extra reminder).
       ...(existing.exists ? {} : {

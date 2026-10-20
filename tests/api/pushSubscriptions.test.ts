@@ -52,6 +52,7 @@ describe('POST /api/pushSubscribe', () => {
             enabled: true,
             intervalMinutes: 15,
             language: 'vi',
+            utcOffsetMinutes: 540,
             updatedAt: SERVER_TIMESTAMP,
             createdAt: SERVER_TIMESTAMP,
             lastSentAt: SERVER_TIMESTAMP

@@ -1,6 +1,7 @@
 import { auth } from '../firebase/config';
 import { AssistantCommand } from './assistantCore';
-import type { InsightSummary } from '../utils/dailyTargets';
+import type { DailyTargetSettings, InsightSummary } from '../utils/dailyTargets';
+import type { DayAssessment, DayTotals } from '../domain/dailyTargets.mjs';
 import { firestore } from '../firebase/firestore';
 import i18n from '../i18n';
 
@@ -162,4 +163,61 @@ export const requestDailyInsight = async (summary: InsightSummary, language: str
         throw new Error(i18n.t('yesterdayCheck.aiFailed'));
     }
     return String(payload.message);
+};
+
+export interface DailyReview {
+    /** Reviewed day (yesterday), YYYY-MM-DD. */
+    day: string;
+    /** "empty" when nothing was logged that day. */
+    status: 'done' | 'empty';
+    language: string | null;
+    headline: string;
+    facts: {
+        ageMonths: number;
+        targets: { milkMinMl: number | null; sleepMinHours: number; sleepMaxHours: number | null; solidMinMeals: number | null };
+        yesterday: DayTotals;
+        status: DayAssessment;
+    } | null;
+    /** Null when the AI was unavailable; the headline is then the app's own summary. */
+    ai: { headline: string; milk: string; solids: string; sleep: string; tips: string[] } | null;
+}
+
+/**
+ * Yesterday's morning review. With `generate`, the server writes it now if it
+ * does not exist yet (and notifies the family's phones in the morning).
+ */
+export const fetchDailyReview = async (options: {
+    generate?: boolean;
+    retryAi?: boolean;
+    settings?: DailyTargetSettings;
+    language: string;
+}): Promise<DailyReview | null> => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        throw new Error(i18n.t('assistant.loginRequired'));
+    }
+    const token = await currentUser.getIdToken();
+    const response = await fetch(ASSISTANT_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+            action: 'daily_review',
+            generate: options.generate === true,
+            retryAi: options.retryAi === true,
+            settings: options.settings,
+            language: options.language,
+            utcOffsetMinutes: -new Date().getTimezoneOffset()
+        })
+    });
+
+    let payload: any = {};
+    try {
+        payload = await response.json();
+    } catch {
+        throw new Error(i18n.t('assistant.api.invalidResponse', { status: response.status }));
+    }
+    if (!response.ok || !payload?.success) {
+        throw new Error(i18n.t('dailyReview.failed'));
+    }
+    return payload.review ?? null;
 };

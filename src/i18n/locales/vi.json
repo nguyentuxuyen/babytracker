@@ -566,5 +566,30 @@
     "aiTitle": "AI nhận xét 7 ngày gần nhất",
     "aiFailed": "Chưa phân tích được, bạn thử lại sau nhé.",
     "aiQuota": "Hôm nay đã dùng hết lượt AI."
+  },
+  "dailyReview": {
+    "title": "Đánh giá ngày hôm qua",
+    "dismiss": "Ẩn hôm nay",
+    "waiting": "AI sẽ đánh giá hôm qua khi bé thức dậy (hoặc lúc 9 giờ sáng).",
+    "generate": "Đánh giá ngay",
+    "loading": "AI đang xem lại ngày hôm qua...",
+    "failed": "Chưa lấy được đánh giá, bạn thử lại sau nhé.",
+    "aiUnavailable": "AI chưa nhận xét được, đây là tóm tắt của app.",
+    "retry": "Thử lại AI",
+    "tipsTitle": "Hôm nay nên cải thiện",
+    "amountOfTarget": "{{total}} / mức {{target}}",
+    "mealsOfTarget": "{{count}} bữa / mức {{target}} bữa",
+    "labels": {
+      "milk": "Bú sữa",
+      "solids": "Ăn dặm",
+      "sleep": "Ngủ"
+    },
+    "status": {
+      "ok": "Đủ",
+      "low": "Thiếu",
+      "high": "Nhiều hơn thường lệ",
+      "notLogged": "Chưa ghi",
+      "notApplicable": "—"
+    }
   }
 }

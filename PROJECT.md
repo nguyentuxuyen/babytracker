@@ -96,7 +96,9 @@ api/
   mcp.js      # endpoint AI, xem §5.2
   logMilk.js  # POST từ Siri Shortcut, auth bằng header x-log-secret
   pushSubscribe.js / pushUnsubscribe.js / pushSendTest.js   # cần Bearer token
-  pushDispatchReminders.js   # cron gửi nhắc, auth bằng x-reminder-secret
+  pushDispatchReminders.js   # cron gửi nhắc + đánh giá buổi sáng, auth bằng x-reminder-secret
+  _quota.js   # hạn mức AI mỗi ngày (ASSISTANT_DAILY_LIMIT)
+  _dailyReview.js   # đánh giá AI ngày hôm qua, xem §5.7
 
 scripts/      # syncChangelogToFirebase.js, normalizeActivities.js (chuẩn hoá dữ liệu cũ), parse_milk_shortcut.js, tài liệu Siri
 firestore.rules              # security rules (deploy tay: `npx firebase-tools deploy --only firestore:rules`)
@@ -171,6 +173,8 @@ Từ giấc ngủ gần nhất trong ngày: ≥2h "sắp đến giờ ngủ", �
 
 ### 5.7 Nhắc nhở
 Cài đặt ở `localStorage` (`baby-tracker-reminder-settings`, mặc định 180 phút). Hai cơ chế song song: `setInterval` + `new Notification` khi app đang mở, và Web Push qua `pushDispatchReminders` (cần cron ngoài gọi — `vercel.json` **không** khai báo cron). Nhắc theo chu kỳ cố định, không dựa vào hoạt động cuối. Nội dung push lấy theo `language` lưu trên subscription (`api/_pushMessages.js`, thiếu thì dùng tiếng Việt); đổi ngôn ngữ khi đang bật push sẽ đăng ký lại để cập nhật. Server chỉ gửi tới endpoint của các push service đã biết (`api/_subscriptions.js`).
+
+**Đánh giá ngày hôm qua (buổi sáng).** `api/_dailyReview.js` tính tổng sữa / ăn dặm / ngủ của hôm qua theo giờ của gia đình (`utcOffsetMinutes` lưu trên subscription, mặc định JST), so với mức trong `src/domain/dailyTargets.mjs` (cùng số với thẻ cảnh báo trên Home; mức tự đặt được app gửi lên `users/{uid}/settings/dailyTargets`), nhờ Gemini viết nhận xét rồi lưu ở `users/{uid}/dailyReviews/{YYYY-MM-DD}` (mỗi ngày một lần, tính vào hạn mức AI). Cron `pushDispatchReminders` gửi push cho các máy đang bật nhắc: khi đã ghi giấc ngủ kết thúc từ 05:00 sáng nay, hoặc lúc 09:00 nếu chưa ghi; sau 12:00 thì không gửi. Mở app trên Home cũng tự tạo đánh giá (`/api/mcp` action `daily_review`, thẻ `DailyReviewCard`). Gemini lỗi thì dùng tóm tắt của app ("sữa thiếu · ăn dặm thiếu · ngủ đủ"); hôm qua không ghi gì thì bỏ qua.
 
 ### 5.8 Thống kê & ăn dặm
 `StatsPageNewGlass` và `FoodHistoryPage` gọi `getActivities` (toàn bộ lịch sử, `limit(5000)`) rồi tổng hợp phía client theo ngày/tuần/tháng/khoảng. `FoodHistoryPage`: thẻ tóm tắt, xem theo món hoặc theo ngày, tìm kiếm không phân biệt dấu (`utils/foodSearch.ts`), chip phản ứng (thích / bình thường / không thích / dị ứng).
