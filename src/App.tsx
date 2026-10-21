@@ -15,6 +15,7 @@ import { loadReminderSettings, saveReminderSettings } from './utils/reminderSett
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 import { ChangelogRelease } from './types';
 import LanguageSwitcher from './components/common/LanguageSwitcher';
+import { HEADER_NOTIFICATION_SLOT_ID } from './components/common/NotificationCenter';
 import i18n from './i18n';
 
 import {
@@ -284,6 +285,8 @@ const HeaderComponent: React.FC<{
 
                 {currentUser && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* Filled with the notification bell by the page (NotificationCenter) */}
+                        <div id={HEADER_NOTIFICATION_SLOT_ID} style={{ display: 'flex' }} />
                         <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}

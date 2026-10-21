@@ -594,5 +594,11 @@
     "open": "見る",
     "gotIt": "OK",
     "titleFor": "{{date}}のふりかえり"
+  },
+  "notifications": {
+    "title": "お知らせ",
+    "open": "お知らせを開く",
+    "openWithCount": "お知らせを開く（新着{{count}}件）",
+    "empty": "お知らせはまだありません"
   }
 }

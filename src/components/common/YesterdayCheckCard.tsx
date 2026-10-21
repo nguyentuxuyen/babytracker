@@ -16,6 +16,7 @@ import {
 } from '../../utils/dailyTargets';
 import { ACTIVITY_COLORS, formatDuration } from './activityDisplay';
 import { MilkIcon, SleepIcon } from './icons';
+import { useNotificationEntry } from './NotificationCenter';
 
 type YesterdayCheckCardProps = {
     activities: Array<{ type: string; timestamp: Date; details?: any }>;
@@ -46,7 +47,7 @@ const readDismissed = () => {
     }
 };
 
-// Gentle note on Home when yesterday's milk or sleep was below the baby's daily minimum.
+// Gentle note in the header's notification list when yesterday's milk or sleep was below the baby's daily minimum.
 const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, baby, now }) => {
     const { t, i18n } = useTranslation();
     const [settings, setSettings] = useState<DailyTargetSettings>(loadTargetSettings);
@@ -179,7 +180,13 @@ const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, bab
         </Dialog>
     );
 
-    if (shortfalls.length === 0 || dismissedDay === today) return settingsDialog;
+    const showing = shortfalls.length > 0 && dismissedDay !== today;
+    useNotificationEntry('yesterdayCheck', {
+        visible: showing,
+        key: showing ? `yesterdayCheck:${today}:${shortfalls.map((item) => item.kind).join(',')}` : null
+    });
+
+    if (!showing) return settingsDialog;
 
     return (
         <>
