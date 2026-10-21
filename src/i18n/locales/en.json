@@ -612,5 +612,11 @@
     "open": "Open",
     "gotIt": "Got it",
     "titleFor": "Review of {{date}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "open": "Open notifications",
+    "openWithCount": "Open notifications ({{count}} new)",
+    "empty": "No notifications yet"
   }
 }

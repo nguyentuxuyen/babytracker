@@ -18,6 +18,7 @@ import { formatHoursMinutes } from '../i18n/format';
 import DayStatsCard from '../components/common/DayStatsCard';
 import YesterdayCheckCard from '../components/common/YesterdayCheckCard';
 import DailyReviewCard from '../components/common/DailyReviewCard';
+import NotificationCenter, { useNotificationEntry } from '../components/common/NotificationCenter';
 import { suggestMilkAmounts } from '../utils/milkPresets';
 import RecentActivityList from '../components/common/RecentActivityList';
 import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityDisplay';
@@ -30,6 +31,20 @@ const isSameLocalDay = (left: Date, right: Date) => (
     && left.getMonth() === right.getMonth()
     && left.getDate() === right.getDate()
 );
+
+// Baby awake for a long time: listed under the header bell, new again when the level rises
+// or after the next nap.
+const WakeWindowNotice: React.FC<{ noticeKey: string; text: string }> = ({ noticeKey, text }) => {
+    const { t } = useTranslation();
+    useNotificationEntry('wakeWindow', { visible: true, key: noticeKey });
+    return (
+        <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.5, bgcolor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '16px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {t('activities.wakeWindow.label')} <Box component="span" sx={{ fontWeight: 400 }}>{text}</Box>
+            </Typography>
+        </Alert>
+    );
+};
 
 const RECENT_FOOD_CHIP_COUNT = 8;
 
@@ -763,7 +778,12 @@ const ActivitiesPage: React.FC = () => {
         // Bé bù sữa/tã ở giữa thì vẫn thức, cứ tính Wake Window
         const status = getWakeWindowStatus(activities, currentTime || new Date());
         if (status) {
-            return t(`activities.wakeWindow.${status.level}`, { duration: formatHoursMinutes(status.hours, status.mins) });
+            // When the baby last woke up: a new awake stretch is a new notification.
+            const wokeAt = Math.max(...activities.filter((activity) => activity.type === 'sleep').map((activity) => new Date(activity.timestamp).getTime()));
+            return {
+                key: `wakeWindow:${wokeAt}:${status.level}`,
+                text: t(`activities.wakeWindow.${status.level}`, { duration: formatHoursMinutes(status.hours, status.mins) })
+            };
         }
         return null;
     }, [activities, ongoingSleep, currentTime, selectedDate, t]);
@@ -793,22 +813,23 @@ const ActivitiesPage: React.FC = () => {
             </Dialog>
             <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
                 <Box>
-                {/* WAKE WINDOWS WARNING BANNER */}
-                {wakeWindowWarning && (
-                    <Alert severity="warning" sx={{ mb: 1.5, py: 0.25, px: 1.5, bgcolor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '16px', '& .MuiAlert-message': { width: '100%', py: 0.25 } }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {t('activities.wakeWindow.label')} <Box component="span" sx={{ fontWeight: 400 }}>{wakeWindowWarning}</Box>
-                        </Typography>
-                    </Alert>
-                )}
+                {/* Wake window warning, yesterday's review and checks live behind the header bell */}
+                <NotificationCenter>
+                    {wakeWindowWarning && (
+                        <WakeWindowNotice
+                            noticeKey={wakeWindowWarning.key}
+                            text={wakeWindowWarning.text}
+                        />
+                    )}
 
-                {baby && isSameLocalDay(selectedDate, currentTime) && (
-                    <DailyReviewCard activities={activities || []} now={currentTime} />
-                )}
+                    {baby && isSameLocalDay(selectedDate, currentTime) && (
+                        <DailyReviewCard activities={activities || []} now={currentTime} />
+                    )}
 
-                {baby && isSameLocalDay(selectedDate, currentTime) && (
-                    <YesterdayCheckCard activities={activities || []} baby={baby} now={currentTime} />
-                )}
+                    {baby && isSameLocalDay(selectedDate, currentTime) && (
+                        <YesterdayCheckCard activities={activities || []} baby={baby} now={currentTime} />
+                    )}
+                </NotificationCenter>
 
                 <RecentDaysStrip
                     selectedDate={selectedDate}

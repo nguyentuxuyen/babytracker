@@ -594,5 +594,11 @@
     "open": "Xem",
     "gotIt": "Đã hiểu",
     "titleFor": "Đánh giá {{date}}"
+  },
+  "notifications": {
+    "title": "Thông báo",
+    "open": "Mở thông báo",
+    "openWithCount": "Mở thông báo ({{count}} mới)",
+    "empty": "Chưa có thông báo nào"
   }
 }

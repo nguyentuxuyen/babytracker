@@ -9,6 +9,7 @@ import { loadTargetSettings } from '../../utils/dailyTargets';
 import type { DayStatus } from '../../domain/dailyTargets.mjs';
 import { ACTIVITY_COLORS, formatDuration } from './activityDisplay';
 import { FoodIcon, MilkIcon, SleepIcon } from './icons';
+import { useNotificationEntry } from './NotificationCenter';
 
 type DailyReviewCardProps = {
     activities: Array<{ type: string; timestamp: Date }>;
@@ -75,7 +76,7 @@ const STATUS_STYLE: Record<DayStatus, { color: string; bg: string }> = {
 };
 
 // AI review of yesterday (milk, solid food, sleep, what to improve): pops up once when it
-// arrives, then stays on Home as a small notification that reopens it.
+// arrives, then stays in the header's notification list as a small row that reopens it.
 const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) => {
     const { t, i18n } = useTranslation();
     const yesterday = useMemo(() => {
@@ -134,9 +135,17 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
         if (ready && (fromPush || readStorage(SEEN_KEY) !== yesterday)) setOpen(true);
     }, [ready, fromPush, yesterday]);
 
+    // In the header bell: counts as new once the review is written, and stays listed
+    // until it is dismissed for the day.
+    const markSeen = useNotificationEntry('dailyReview', {
+        visible: dismissedDay !== today && !(review?.day === yesterday && review.status === 'empty'),
+        key: ready ? `dailyReview:${yesterday}` : null
+    });
+
     const closePopup = () => {
         setOpen(false);
         writeStorage(SEEN_KEY, yesterday);
+        markSeen?.(`dailyReview:${yesterday}`);
         if (fromPush) history.replace(location.pathname);
     };
 
