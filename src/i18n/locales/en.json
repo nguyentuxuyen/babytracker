@@ -434,6 +434,28 @@
       "17": "Month 17: Expanding communication (17-18 months)",
       "18": "Month 18: Fine motor skills (18-19 months)",
       "19": "Month 19 (1.5 years): Independence & creativity"
+    },
+    "photos": {
+      "open": "Photos for {{title}}",
+      "count_one": "{{count}} photo",
+      "count_other": "{{count}} photos",
+      "empty": "No photos yet",
+      "addFirst": "Add the first photo for this milestone",
+      "limit": "Up to {{count}} photos at a time",
+      "add": "Add photos",
+      "delete": "Delete",
+      "confirmDelete": "Tap again to delete",
+      "previous": "Previous photo",
+      "next": "Next photo",
+      "photoAlt": "Photo {{index}}",
+      "uploading": "Uploading photo {{done}}/{{total}}…",
+      "errors": {
+        "storageDisabled": "Photos can't be saved yet: Firebase Storage is not enabled or its security rules are not deployed.",
+        "notImage": "This file is not an image or could not be read.",
+        "tooLarge": "The photo is too large even after compression.",
+        "failed": "Upload failed, please try again.",
+        "tooMany": "You can pick up to {{count}} photos at a time; the first {{count}} were used."
+      }
     }
   },
   "wonderWeeks": {

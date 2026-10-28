@@ -417,6 +417,27 @@
       "17": "Tháng 17: Giao tiếp mở rộng (17-18 tháng)",
       "18": "Tháng 18: Phát triển tinh tế (18-19 tháng)",
       "19": "Tháng 19 (1.5 tuổi): Độc lập và sáng tạo"
+    },
+    "photos": {
+      "open": "Ảnh của mốc {{title}}",
+      "count": "{{count}} ảnh",
+      "empty": "Chưa có ảnh",
+      "addFirst": "Thêm ảnh đầu tiên cho mốc này",
+      "limit": "Chọn tối đa {{count}} ảnh mỗi lần",
+      "add": "Thêm ảnh",
+      "delete": "Xóa ảnh",
+      "confirmDelete": "Bấm lần nữa để xóa",
+      "previous": "Ảnh trước",
+      "next": "Ảnh sau",
+      "photoAlt": "Ảnh {{index}}",
+      "uploading": "Đang tải ảnh {{done}}/{{total}}…",
+      "errors": {
+        "storageDisabled": "Chưa lưu được ảnh: Firebase Storage chưa được bật hoặc chưa cập nhật quy tắc bảo mật cho Storage.",
+        "notImage": "File này không phải ảnh hoặc không đọc được.",
+        "tooLarge": "Ảnh quá lớn, kể cả sau khi nén.",
+        "failed": "Không tải được ảnh, bạn thử lại nhé.",
+        "tooMany": "Mỗi lần chỉ chọn tối đa {{count}} ảnh, mình đã lấy {{count}} ảnh đầu."
+      }
     }
   },
   "wonderWeeks": {
