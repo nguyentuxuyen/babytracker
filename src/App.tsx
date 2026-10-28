@@ -12,6 +12,8 @@ import TranslationsPage from './pages/TranslationsPage';
 import { loadTranslationOverrides } from './i18n/overrides';
 import { firestore } from './firebase/firestore';
 import { loadReminderSettings, saveReminderSettings } from './utils/reminderSettings';
+import { loadCachedDefaultMilkType, loadDefaultMilkType, saveDefaultMilkType } from './utils/feedingSettings';
+import type { MilkType } from './domain/activitySchema.mjs';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 import { ChangelogRelease } from './types';
 import LanguageSwitcher from './components/common/LanguageSwitcher';
@@ -53,6 +55,8 @@ const HeaderComponent: React.FC<{
     onChangeReminderInterval: (minutes: number) => void;
     onSendTestPush: () => void;
     onLanguageChange: () => void;
+    defaultMilkType: MilkType | null;
+    onChangeDefaultMilkType: (milkType: MilkType | null) => void;
 }> = ({
     currentUser,
     logout,
@@ -73,7 +77,9 @@ const HeaderComponent: React.FC<{
     onToggleReminder,
     onChangeReminderInterval,
     onSendTestPush,
-    onLanguageChange
+    onLanguageChange,
+    defaultMilkType,
+    onChangeDefaultMilkType
 }) => {
     const { baby } = useBaby();
     const { t } = useTranslation();
@@ -438,6 +444,33 @@ const HeaderComponent: React.FC<{
                                         fontSize: '12px',
                                         color: '#6b7f8a'
                                     }}>
+                                        <div style={{ marginBottom: '6px' }}>{t('menu.defaultMilkType')}</div>
+                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            {([null, 'formula', 'breast'] as const).map((milkType) => (
+                                                <button
+                                                    key={milkType ?? 'none'}
+                                                    onClick={() => onChangeDefaultMilkType(milkType)}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: '999px',
+                                                        padding: '4px 10px',
+                                                        fontSize: '12px',
+                                                        cursor: 'pointer',
+                                                        color: defaultMilkType === milkType ? '#ffffff' : '#334155',
+                                                        backgroundColor: defaultMilkType === milkType ? '#13a4ec' : '#e5e7eb'
+                                                    }}
+                                                >
+                                                    {milkType ? t(`feeding.milkType.${milkType}`) : t('menu.defaultMilkTypeNone')}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        borderTop: '1px solid #e5e7eb',
+                                        padding: '10px 16px',
+                                        fontSize: '12px',
+                                        color: '#6b7f8a'
+                                    }}>
                                         <div style={{ marginBottom: '6px' }}>{t('settings.language')}</div>
                                         <LanguageSwitcher onChange={onLanguageChange} />
                                         <button
@@ -591,6 +624,7 @@ const MainApp: React.FC = () => {
     const [versionLabel, setVersionLabel] = useState(import.meta.env.REACT_APP_VERSION || packageJson.version);
     const [changelogReady, setChangelogReady] = useState(false);
     const [changelogUsesFirebase, setChangelogUsesFirebase] = useState(false);
+    const [defaultMilkType, setDefaultMilkType] = useState<MilkType | null>(loadCachedDefaultMilkType);
 
     const refreshPendingSyncCount = useCallback(async () => {
         if (!currentUser?.uid) {
@@ -647,6 +681,22 @@ const MainApp: React.FC = () => {
             window.removeEventListener('offline-queue-updated', handleQueueUpdated as EventListener);
         };
     }, [currentUser?.uid, refreshPendingSyncCount, syncPendingActivities]);
+
+    // The account's milk kind wins over the copy cached on this phone.
+    useEffect(() => {
+        if (!currentUser?.uid) return;
+        loadDefaultMilkType(currentUser.uid).then(setDefaultMilkType).catch((error) => {
+            console.error('Failed to load the default milk type:', error);
+        });
+    }, [currentUser?.uid]);
+
+    const onChangeDefaultMilkType = useCallback((milkType: MilkType | null) => {
+        if (!currentUser?.uid) return;
+        setDefaultMilkType(milkType);
+        saveDefaultMilkType(currentUser.uid, milkType).catch((error) => {
+            console.error('Failed to save the default milk type:', error);
+        });
+    }, [currentUser?.uid]);
 
     // The account copy of translation edits wins over the cached one applied at startup.
     useEffect(() => {
@@ -910,6 +960,8 @@ const MainApp: React.FC = () => {
                 onChangeReminderInterval={onChangeReminderInterval}
                 onSendTestPush={onSendTestPush}
                 onLanguageChange={onLanguageChange}
+                defaultMilkType={defaultMilkType}
+                onChangeDefaultMilkType={onChangeDefaultMilkType}
             />
 
             {/* Main content with router and bottom nav */}

@@ -72,7 +72,9 @@
     "sendTestPush": "Gửi thông báo thử",
     "logout": "Đăng xuất",
     "editTranslations": "Sửa bản dịch",
-    "account": "Tài khoản"
+    "account": "Tài khoản",
+    "defaultMilkType": "Loại sữa bé uống",
+    "defaultMilkTypeNone": "Chưa chọn"
   },
   "changelog": {
     "title": "Nội dung cập nhật",

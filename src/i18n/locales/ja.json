@@ -72,7 +72,9 @@
     "sendTestPush": "テスト通知を送信",
     "logout": "ログアウト",
     "editTranslations": "翻訳を編集",
-    "account": "アカウント"
+    "account": "アカウント",
+    "defaultMilkType": "飲んでいるミルク",
+    "defaultMilkTypeNone": "未設定"
   },
   "changelog": {
     "title": "更新内容",

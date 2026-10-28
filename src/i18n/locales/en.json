@@ -78,7 +78,9 @@
     "sendTestPush": "Send test notification",
     "logout": "Log out",
     "editTranslations": "Edit translations",
-    "account": "Account"
+    "account": "Account",
+    "defaultMilkType": "Milk your baby drinks",
+    "defaultMilkTypeNone": "Not set"
   },
   "changelog": {
     "title": "What's new",

@@ -25,6 +25,8 @@ import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityD
 import { ChoiceChips, SectionLabel, SegmentedControl, fieldSx, nativeTimeInputStyle } from '../components/common/FormControls';
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { getWakeWindowStatus } from '../utils/sleepStats';
+import { DEFAULT_MILK_TYPE_EVENT, loadCachedDefaultMilkType } from '../utils/feedingSettings';
+import type { MilkType } from '../domain/activitySchema.mjs';
 
 const isSameLocalDay = (left: Date, right: Date) => (
     left.getFullYear() === right.getFullYear()
@@ -220,6 +222,14 @@ const ActivitiesPage: React.FC = () => {
         loadFoodItems();
     }, [currentUser]);    
 
+    // The milk kind set in the menu; new milk feeds start with it selected.
+    const [defaultMilkType, setDefaultMilkType] = useState<MilkType | null>(loadCachedDefaultMilkType);
+    useEffect(() => {
+        const onChange = (event: Event) => setDefaultMilkType((event as CustomEvent<MilkType | null>).detail);
+        window.addEventListener(DEFAULT_MILK_TYPE_EVENT, onChange);
+        return () => window.removeEventListener(DEFAULT_MILK_TYPE_EVENT, onChange);
+    }, []);
+
     const [formData, setFormData] = useState<{
         type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
         time: string;
@@ -254,10 +264,15 @@ const ActivitiesPage: React.FC = () => {
         stoolConsistency: 'bình thường',
         timestamp: undefined,
         foodType: 'milk',
+        milkType: defaultMilkType ?? undefined,
         foodItem: '',
         isAllergic: false,
         foodPreference: 'normal'
     });
+    // A kind chosen in the menu applies to the next feed, unless one is being filled in.
+    useEffect(() => {
+        if (!showForm) setFormData((current) => ({ ...current, milkType: defaultMilkType ?? undefined }));
+    }, [defaultMilkType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // States for edit and delete functionality
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -722,6 +737,7 @@ const ActivitiesPage: React.FC = () => {
                 stoolConsistency: 'bình thường',
                 timestamp: undefined,
                 foodType: 'milk',
+                milkType: defaultMilkType ?? undefined,
                 foodItem: '',
                 isAllergic: false,
                 foodPreference: 'normal'
@@ -974,8 +990,8 @@ const ActivitiesPage: React.FC = () => {
                                             const lastMilk = (activities || [])
                                                 .filter((item) => item.type === 'feeding' && item.details?.foodType !== 'solid' && Number(item.details?.amount) > 0)
                                                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-                                            // Same milk as last time (breast milk or formula), when it was given.
-                                            const lastMilkType = (activities || [])
+                                            // The milk set in the menu, else the same milk as last time.
+                                            const lastMilkType = defaultMilkType ?? (activities || [])
                                                 .filter((item) => item.type === 'feeding' && item.details?.foodType !== 'solid' && item.details?.milkType)
                                                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]?.details.milkType;
                                             setFormData({ ...baseForm, foodType: 'milk', milkType: lastMilkType, amount: lastMilk ? String(lastMilk.details.amount) : '' });

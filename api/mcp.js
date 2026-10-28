@@ -4,6 +4,7 @@ const { parseWithGemini, analyzeDailyTrends, sanitizeInsightSummary } = require(
 const { loadSchema, isActivityValidationError } = require('./_schema');
 const { parseUserTimestamp, formatLocalIso, normalizeOffset } = require('./_time');
 const { consumeAiQuota } = require('./_quota');
+const { withDefaultMilkType } = require('./_feedingSettings');
 const { getDailyReview, generateDailyReview, saveTargetSettings, localDay, WAKE_FROM_HOUR, UNTIL_HOUR } = require('./_dailyReview');
 
 const MAX_TEXT_LENGTH = 300;
@@ -26,7 +27,7 @@ async function executeTool(tool, params, uid, utcOffsetMinutes, res) {
       babyId: uid,
       type: params.activityType,
       timestamp,
-      details: params.details
+      details: await withDefaultMilkType(uid, params.activityType, params.details)
     });
 
     const docRef = db.collection('users').doc(uid).collection('activities').doc();
