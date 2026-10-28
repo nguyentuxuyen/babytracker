@@ -56,7 +56,10 @@ export const getActivityDetails = (activity: DisplayActivity): string[] => {
     if (activity.type === 'feeding') {
         const amount = details.amount ? `${details.amount}${isSolidFeeding(activity) ? 'g' : 'ml'}` : '';
         const food = isSolidFeeding(activity) && details.foodItem ? String(details.foodItem) : '';
-        return [food, amount].filter(Boolean);
+        const milk = !isSolidFeeding(activity) && (details.milkType === 'breast' || details.milkType === 'formula')
+            ? i18n.t(`feeding.milkType.${details.milkType}`)
+            : '';
+        return [food, milk, amount].filter(Boolean);
     }
     if (activity.type === 'sleep') return details.duration ? [formatDuration(Number(details.duration))] : [];
     if (activity.type === 'measurement') {

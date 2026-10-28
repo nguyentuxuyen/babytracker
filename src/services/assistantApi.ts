@@ -177,6 +177,11 @@ export interface DailyReview {
         targets: { milkMinMl: number | null; sleepMinHours: number; sleepMaxHours: number | null; solidMinMeals: number | null };
         yesterday: DayTotals;
         status: DayAssessment;
+        /** Milk by kind; reviews written before kinds were recorded do not have it. */
+        milkByType?: Partial<Record<'breast' | 'formula' | 'unspecified', { feeds: number; ml: number }>>;
+        milkProduct?: string | null;
+        solidFoods?: Array<{ name: string; meals: number; grams: number; reaction: string; newThisWeek: boolean }>;
+        weekFoods?: Array<{ name: string; days: number }>;
     } | null;
     /** Null when the AI was unavailable; the headline is then the app's own summary. */
     ai: { headline: string; milk: string; solids: string; sleep: string; tips: string[] } | null;

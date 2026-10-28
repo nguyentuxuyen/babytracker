@@ -72,7 +72,11 @@
     "sendTestPush": "Gửi thông báo thử",
     "logout": "Đăng xuất",
     "editTranslations": "Sửa bản dịch",
-    "account": "Tài khoản"
+    "account": "Tài khoản",
+    "defaultMilkType": "Loại sữa bé uống",
+    "defaultMilkTypeNone": "Chưa chọn",
+    "milkProduct": "Tên sữa",
+    "milkProductPlaceholder": "Tên sữa, ví dụ Meiji Hohoemi"
   },
   "changelog": {
     "title": "Nội dung cập nhật",
@@ -178,6 +182,10 @@
   "feeding": {
     "milk": "Sữa",
     "solid": "Ăn dặm",
+    "milkType": {
+      "breast": "Sữa mẹ",
+      "formula": "Sữa công thức"
+    },
     "amountMl": "Lượng (ml)",
     "amountG": "Lượng (g)",
     "recentFoods": "Món gần đây",
@@ -593,7 +601,8 @@
     },
     "open": "Xem",
     "gotIt": "Đã hiểu",
-    "titleFor": "Đánh giá {{date}}"
+    "titleFor": "Đánh giá {{date}}",
+    "newFood": "mới"
   },
   "notifications": {
     "title": "Thông báo",

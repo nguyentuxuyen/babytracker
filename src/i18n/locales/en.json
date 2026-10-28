@@ -78,7 +78,11 @@
     "sendTestPush": "Send test notification",
     "logout": "Log out",
     "editTranslations": "Edit translations",
-    "account": "Account"
+    "account": "Account",
+    "defaultMilkType": "Milk your baby drinks",
+    "defaultMilkTypeNone": "Not set",
+    "milkProduct": "Formula name",
+    "milkProductPlaceholder": "Formula name, e.g. Meiji Hohoemi"
   },
   "changelog": {
     "title": "What's new",
@@ -189,6 +193,10 @@
   "feeding": {
     "milk": "Milk",
     "solid": "Solids",
+    "milkType": {
+      "breast": "Breast milk",
+      "formula": "Formula"
+    },
     "amountMl": "Amount (ml)",
     "amountG": "Amount (g)",
     "recentFoods": "Recent foods",
@@ -611,7 +619,8 @@
     },
     "open": "Open",
     "gotIt": "Got it",
-    "titleFor": "Review of {{date}}"
+    "titleFor": "Review of {{date}}",
+    "newFood": "new"
   },
   "notifications": {
     "title": "Notifications",

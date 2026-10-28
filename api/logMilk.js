@@ -2,6 +2,7 @@ const { db, admin } = require('./_admin');
 const { hasValidSecret } = require('./_secrets');
 const { loadSchema, isActivityValidationError } = require('./_schema');
 const { parseUserTimestamp, normalizeOffset } = require('./_time');
+const { withDefaultMilkType } = require('./_feedingSettings');
 
 /**
  * Quick milk logging for the Siri shortcut (scripts/SIRI_SHORTCUT.md).
@@ -40,7 +41,7 @@ module.exports = async function handler(req, res) {
       babyId: userUid,
       type: 'feeding',
       timestamp: timestamp ? parseUserTimestamp(timestamp, normalizeOffset(utcOffsetMinutes)) : new Date(),
-      details: { foodType: 'milk', amount, notes: notes || note || '' }
+      details: await withDefaultMilkType(userUid, 'feeding', { foodType: 'milk', amount, notes: notes || note || '' })
     });
 
     const docRef = db.collection('users').doc(userUid).collection('activities').doc();

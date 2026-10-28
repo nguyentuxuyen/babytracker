@@ -29,6 +29,13 @@ describe('buildActivityDoc', () => {
     expect(built.details).toEqual({ foodType: 'solid', amount: 30, notes: '', foodItem: 'Cháo', foodPreference: 'allergic', isAllergic: true });
   });
 
+  it('keeps a known milk kind on milk feeds only', () => {
+    const milk = (details: Record<string, unknown>) => buildActivityDoc({ babyId: 'u1', type: 'feeding', timestamp: at, details }).details;
+    expect(milk({ foodType: 'milk', amount: 90, milkType: 'breast' })).toEqual({ foodType: 'milk', amount: 90, notes: '', milkType: 'breast' });
+    expect(milk({ foodType: 'milk', amount: 90, milkType: 'goat' })).toEqual({ foodType: 'milk', amount: 90, notes: '' });
+    expect(milk({ foodType: 'solid', amount: 30, foodItem: 'Cháo', milkType: 'formula' })).not.toHaveProperty('milkType');
+  });
+
   it('never stores undefined', () => {
     const built = buildActivityDoc({ babyId: 'u1', type: 'sleep', timestamp: at.toISOString(), details: { durationMinutes: undefined } });
 

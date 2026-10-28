@@ -25,6 +25,8 @@ import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityD
 import { ChoiceChips, SectionLabel, SegmentedControl, fieldSx, nativeTimeInputStyle } from '../components/common/FormControls';
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { getWakeWindowStatus } from '../utils/sleepStats';
+import { DEFAULT_MILK_TYPE_EVENT, loadCachedDefaultMilkType } from '../utils/feedingSettings';
+import type { MilkType } from '../domain/activitySchema.mjs';
 
 const isSameLocalDay = (left: Date, right: Date) => (
     left.getFullYear() === right.getFullYear()
@@ -219,6 +221,14 @@ const ActivitiesPage: React.FC = () => {
         };
         loadFoodItems();
     }, [currentUser]);    
+
+    // Milk feeds get the kind set in the menu (it is not chosen per feed).
+    const [defaultMilkType, setDefaultMilkType] = useState<MilkType | null>(loadCachedDefaultMilkType);
+    useEffect(() => {
+        const onChange = (event: Event) => setDefaultMilkType((event as CustomEvent<MilkType | null>).detail);
+        window.addEventListener(DEFAULT_MILK_TYPE_EVENT, onChange);
+        return () => window.removeEventListener(DEFAULT_MILK_TYPE_EVENT, onChange);
+    }, []);
 
     const [formData, setFormData] = useState<{
         type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
@@ -499,6 +509,7 @@ const ActivitiesPage: React.FC = () => {
                         amount: formData.amount ? Number(formData.amount) : 0,
                         notes: formData.notes || '',
                         foodType: effectiveFoodType,
+                        ...(!isSolid && defaultMilkType ? { milkType: defaultMilkType } : {}),
                         foodItem: isSolid ? formData.foodItem || '' : '',
                         isAllergic: isSolid && !!formData.isAllergic,
                         foodPreference: isSolid ? formData.foodPreference || 'normal' : 'normal'

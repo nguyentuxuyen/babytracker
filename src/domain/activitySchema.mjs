@@ -41,6 +41,8 @@ const TYPE_ALIASES = {
 };
 
 const FOOD_PREFERENCES = ['enthusiastic', 'normal', 'dislike', 'allergic'];
+// Milk feeds may say which milk; older records and Siri logs have none.
+const MILK_TYPES = ['breast', 'formula'];
 const STOOL_CONSISTENCIES = ['lỏng', 'bình thường', 'khô'];
 const STOOL_SHAPE_TO_CONSISTENCY = { watery: 'lỏng', soft: 'bình thường', normal: 'bình thường', formed: 'khô' };
 const STOOL_COLOR_ALIASES = { yellow: 'vàng', brown: 'nâu', gray: 'xám', grey: 'xám' };
@@ -165,6 +167,8 @@ const normalizeDetails = (type, rawDetails) => {
                 result.foodItem = toText(details.foodItem, MAX_FOOD_NAME_LENGTH);
                 result.foodPreference = foodPreference;
                 result.isAllergic = toBoolean(details.isAllergic) || foodPreference === 'allergic';
+            } else if (MILK_TYPES.includes(details.milkType)) {
+                result.milkType = details.milkType;
             }
             return result;
         }
@@ -264,6 +268,7 @@ const normalizeActivityRecord = (id, data, fallbackBabyId) => {
 export {
     SCHEMA_VERSION,
     ACTIVITY_TYPES,
+    MILK_TYPES,
     LIMITS,
     ActivityValidationError,
     normalizeActivityType,

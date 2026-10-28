@@ -72,7 +72,11 @@
     "sendTestPush": "テスト通知を送信",
     "logout": "ログアウト",
     "editTranslations": "翻訳を編集",
-    "account": "アカウント"
+    "account": "アカウント",
+    "defaultMilkType": "飲んでいるミルク",
+    "defaultMilkTypeNone": "未設定",
+    "milkProduct": "ミルクの商品名",
+    "milkProductPlaceholder": "商品名(例: 明治ほほえみ)"
   },
   "changelog": {
     "title": "更新内容",
@@ -178,6 +182,10 @@
   "feeding": {
     "milk": "ミルク",
     "solid": "離乳食",
+    "milkType": {
+      "breast": "母乳",
+      "formula": "ミルク"
+    },
     "amountMl": "量 (ml)",
     "amountG": "量 (g)",
     "recentFoods": "最近の食品",
@@ -593,7 +601,8 @@
     },
     "open": "見る",
     "gotIt": "OK",
-    "titleFor": "{{date}}のふりかえり"
+    "titleFor": "{{date}}のふりかえり",
+    "newFood": "初"
   },
   "notifications": {
     "title": "お知らせ",

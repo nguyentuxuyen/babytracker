@@ -168,6 +168,11 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
             value: facts.targets.milkMinMl
                 ? t('dailyReview.amountOfTarget', { total: `${facts.yesterday.milkMl}ml`, target: `${facts.targets.milkMinMl}ml` })
                 : `${facts.yesterday.milkMl}ml`,
+            // "Sữa mẹ 150ml · Sữa công thức (Meiji Hohoemi) 250ml" when the kinds were recorded.
+            detail: (['breast', 'formula'] as const)
+                .filter((kind) => facts.milkByType?.[kind])
+                .map((kind) => `${t(`feeding.milkType.${kind}`)}${kind === 'formula' && facts.milkProduct ? ` (${facts.milkProduct})` : ''} ${facts.milkByType![kind]!.ml}ml`)
+                .join(' · '),
             text: current?.ai?.milk
         },
         {
@@ -177,6 +182,11 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
             value: facts.targets.solidMinMeals
                 ? t('dailyReview.mealsOfTarget', { count: facts.yesterday.solidMeals, target: facts.targets.solidMinMeals })
                 : '',
+            // "Cháo bí (mới) · Cà rốt ⚠" — the foods eaten, new ones and reactions marked.
+            detail: (facts.solidFoods || [])
+                .filter((food) => food.name !== '?')
+                .map((food) => `${food.name}${food.newThisWeek ? ` (${t('dailyReview.newFood')})` : ''}${food.reaction === 'allergic' ? ' ⚠' : ''}`)
+                .join(' · '),
             text: current?.ai?.solids
         },
         {
@@ -211,6 +221,7 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
                                     </Box>
                                     {row.value && <Typography sx={{ fontSize: 12, color: '#64748b' }}>{row.value}</Typography>}
                                 </Box>
+                                {row.detail && <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{row.detail}</Typography>}
                                 {row.text && <Typography sx={{ fontSize: 13, color: '#334155' }}>{row.text}</Typography>}
                             </Box>
                         </Box>

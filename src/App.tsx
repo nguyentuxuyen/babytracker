@@ -12,6 +12,7 @@ import TranslationsPage from './pages/TranslationsPage';
 import { loadTranslationOverrides } from './i18n/overrides';
 import { firestore } from './firebase/firestore';
 import { loadReminderSettings, saveReminderSettings } from './utils/reminderSettings';
+import { MAX_MILK_PRODUCT_LENGTH, loadCachedFeedingSettings, loadFeedingSettings, saveFeedingSettings, type FeedingSettings } from './utils/feedingSettings';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 import { ChangelogRelease } from './types';
 import LanguageSwitcher from './components/common/LanguageSwitcher';
@@ -53,6 +54,8 @@ const HeaderComponent: React.FC<{
     onChangeReminderInterval: (minutes: number) => void;
     onSendTestPush: () => void;
     onLanguageChange: () => void;
+    feedingSettings: FeedingSettings;
+    onChangeFeedingSettings: (settings: FeedingSettings) => void;
 }> = ({
     currentUser,
     logout,
@@ -73,7 +76,9 @@ const HeaderComponent: React.FC<{
     onToggleReminder,
     onChangeReminderInterval,
     onSendTestPush,
-    onLanguageChange
+    onLanguageChange,
+    feedingSettings,
+    onChangeFeedingSettings
 }) => {
     const { baby } = useBaby();
     const { t } = useTranslation();
@@ -438,6 +443,58 @@ const HeaderComponent: React.FC<{
                                         fontSize: '12px',
                                         color: '#6b7f8a'
                                     }}>
+                                        <div style={{ marginBottom: '6px' }}>{t('menu.defaultMilkType')}</div>
+                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            {([null, 'formula', 'breast'] as const).map((milkType) => (
+                                                <button
+                                                    key={milkType ?? 'none'}
+                                                    onClick={() => onChangeFeedingSettings({ ...feedingSettings, defaultMilkType: milkType })}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: '999px',
+                                                        padding: '4px 10px',
+                                                        fontSize: '12px',
+                                                        cursor: 'pointer',
+                                                        color: feedingSettings.defaultMilkType === milkType ? '#ffffff' : '#334155',
+                                                        backgroundColor: feedingSettings.defaultMilkType === milkType ? '#13a4ec' : '#e5e7eb'
+                                                    }}
+                                                >
+                                                    {milkType ? t(`feeding.milkType.${milkType}`) : t('menu.defaultMilkTypeNone')}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {feedingSettings.defaultMilkType === 'formula' && (
+                                            <input
+                                                // Saved when the field loses focus; the review uses it to judge the amount.
+                                                key={feedingSettings.milkProduct}
+                                                defaultValue={feedingSettings.milkProduct}
+                                                maxLength={MAX_MILK_PRODUCT_LENGTH}
+                                                placeholder={t('menu.milkProductPlaceholder')}
+                                                aria-label={t('menu.milkProduct')}
+                                                onBlur={(e) => {
+                                                    if (e.target.value.trim() !== feedingSettings.milkProduct) {
+                                                        onChangeFeedingSettings({ ...feedingSettings, milkProduct: e.target.value });
+                                                    }
+                                                }}
+                                                style={{
+                                                    marginTop: '8px',
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    border: '1px solid #cbd5e1',
+                                                    borderRadius: '8px',
+                                                    padding: '6px 8px',
+                                                    fontSize: '16px',
+                                                    color: '#101c22'
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                    <div style={{
+                                        borderTop: '1px solid #e5e7eb',
+                                        padding: '10px 16px',
+                                        fontSize: '12px',
+                                        color: '#6b7f8a'
+                                    }}>
                                         <div style={{ marginBottom: '6px' }}>{t('settings.language')}</div>
                                         <LanguageSwitcher onChange={onLanguageChange} />
                                         <button
@@ -591,6 +648,7 @@ const MainApp: React.FC = () => {
     const [versionLabel, setVersionLabel] = useState(import.meta.env.REACT_APP_VERSION || packageJson.version);
     const [changelogReady, setChangelogReady] = useState(false);
     const [changelogUsesFirebase, setChangelogUsesFirebase] = useState(false);
+    const [feedingSettings, setFeedingSettings] = useState<FeedingSettings>(loadCachedFeedingSettings);
 
     const refreshPendingSyncCount = useCallback(async () => {
         if (!currentUser?.uid) {
@@ -647,6 +705,22 @@ const MainApp: React.FC = () => {
             window.removeEventListener('offline-queue-updated', handleQueueUpdated as EventListener);
         };
     }, [currentUser?.uid, refreshPendingSyncCount, syncPendingActivities]);
+
+    // The account's milk settings win over the copy cached on this phone.
+    useEffect(() => {
+        if (!currentUser?.uid) return;
+        loadFeedingSettings(currentUser.uid).then(setFeedingSettings).catch((error) => {
+            console.error('Failed to load the milk settings:', error);
+        });
+    }, [currentUser?.uid]);
+
+    const onChangeFeedingSettings = useCallback((settings: FeedingSettings) => {
+        if (!currentUser?.uid) return;
+        setFeedingSettings({ ...settings, milkProduct: settings.milkProduct.trim() });
+        saveFeedingSettings(currentUser.uid, settings).catch((error) => {
+            console.error('Failed to save the milk settings:', error);
+        });
+    }, [currentUser?.uid]);
 
     // The account copy of translation edits wins over the cached one applied at startup.
     useEffect(() => {
@@ -910,6 +984,8 @@ const MainApp: React.FC = () => {
                 onChangeReminderInterval={onChangeReminderInterval}
                 onSendTestPush={onSendTestPush}
                 onLanguageChange={onLanguageChange}
+                feedingSettings={feedingSettings}
+                onChangeFeedingSettings={onChangeFeedingSettings}
             />
 
             {/* Main content with router and bottom nav */}
