@@ -115,7 +115,9 @@ describe('morning review from the reminder cron', () => {
                     formula: { feeds: 2, ml: 200 },
                     unspecified: { feeds: 1, ml: 100 }
                 },
-                solidFoods: [{ name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true }]
+                milkProduct: null,
+                solidFoods: [{ name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true }],
+                weekFoods: [{ name: 'cháo bí', days: 1 }, { name: 'Cà rốt', days: 1 }]
             }
         });
         const prompt = JSON.parse(fetchMock.mock.calls[0][1].body).contents[0].parts[0].text;
@@ -151,6 +153,29 @@ describe('morning review from the reminder cron', () => {
             { name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true },
             { name: 'cà rốt', meals: 2, grams: 30, reaction: 'allergic', newThisWeek: false }
         ]);
+    });
+
+    it('tells the AI which formula the baby drinks', async () => {
+        logYesterday();
+        db.docs.set(`users/${UID}/settings/feeding`, { defaultMilkType: 'formula', milkProduct: '  Meiji   Hohoemi ' });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.milkProduct).toBe('Meiji Hohoemi');
+        const prompt = JSON.parse(fetchMock.mock.calls[0][1].body).contents[0].parts[0].text;
+        expect(prompt).toContain('"milkProduct":"Meiji Hohoemi"');
+        expect(prompt).toContain('mostly fruit');
+    });
+
+    it('ignores the formula name once breast milk is the chosen milk', async () => {
+        logYesterday();
+        db.docs.set(`users/${UID}/settings/feeding`, { defaultMilkType: 'breast', milkProduct: 'Meiji Hohoemi' });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.milkProduct).toBeNull();
     });
 
     it('sends nothing in the afternoon', async () => {

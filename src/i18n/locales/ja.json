@@ -74,7 +74,9 @@
     "editTranslations": "翻訳を編集",
     "account": "アカウント",
     "defaultMilkType": "飲んでいるミルク",
-    "defaultMilkTypeNone": "未設定"
+    "defaultMilkTypeNone": "未設定",
+    "milkProduct": "ミルクの商品名",
+    "milkProductPlaceholder": "商品名(例: 明治ほほえみ)"
   },
   "changelog": {
     "title": "更新内容",

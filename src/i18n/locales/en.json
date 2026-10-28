@@ -80,7 +80,9 @@
     "editTranslations": "Edit translations",
     "account": "Account",
     "defaultMilkType": "Milk your baby drinks",
-    "defaultMilkTypeNone": "Not set"
+    "defaultMilkTypeNone": "Not set",
+    "milkProduct": "Formula name",
+    "milkProductPlaceholder": "Formula name, e.g. Meiji Hohoemi"
   },
   "changelog": {
     "title": "What's new",

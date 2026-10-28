@@ -74,7 +74,9 @@
     "editTranslations": "Sửa bản dịch",
     "account": "Tài khoản",
     "defaultMilkType": "Loại sữa bé uống",
-    "defaultMilkTypeNone": "Chưa chọn"
+    "defaultMilkTypeNone": "Chưa chọn",
+    "milkProduct": "Tên sữa",
+    "milkProductPlaceholder": "Tên sữa, ví dụ Meiji Hohoemi"
   },
   "changelog": {
     "title": "Nội dung cập nhật",

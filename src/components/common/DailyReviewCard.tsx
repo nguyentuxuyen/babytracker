@@ -168,10 +168,10 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
             value: facts.targets.milkMinMl
                 ? t('dailyReview.amountOfTarget', { total: `${facts.yesterday.milkMl}ml`, target: `${facts.targets.milkMinMl}ml` })
                 : `${facts.yesterday.milkMl}ml`,
-            // "Sữa mẹ 150ml · Sữa công thức 250ml" when the kinds were recorded.
+            // "Sữa mẹ 150ml · Sữa công thức (Meiji Hohoemi) 250ml" when the kinds were recorded.
             detail: (['breast', 'formula'] as const)
                 .filter((kind) => facts.milkByType?.[kind])
-                .map((kind) => `${t(`feeding.milkType.${kind}`)} ${facts.milkByType![kind]!.ml}ml`)
+                .map((kind) => `${t(`feeding.milkType.${kind}`)}${kind === 'formula' && facts.milkProduct ? ` (${facts.milkProduct})` : ''} ${facts.milkByType![kind]!.ml}ml`)
                 .join(' · '),
             text: current?.ai?.milk
         },

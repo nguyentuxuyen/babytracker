@@ -222,7 +222,7 @@ const ActivitiesPage: React.FC = () => {
         loadFoodItems();
     }, [currentUser]);    
 
-    // The milk kind set in the menu; new milk feeds start with it selected.
+    // Milk feeds get the kind set in the menu (it is not chosen per feed).
     const [defaultMilkType, setDefaultMilkType] = useState<MilkType | null>(loadCachedDefaultMilkType);
     useEffect(() => {
         const onChange = (event: Event) => setDefaultMilkType((event as CustomEvent<MilkType | null>).detail);
@@ -245,7 +245,6 @@ const ActivitiesPage: React.FC = () => {
         stoolConsistency?: 'lỏng' | 'bình thường' | 'khô';
         timestamp?: string;
         foodType?: 'milk' | 'solid';
-        milkType?: 'breast' | 'formula';
         foodItem?: string;
         isAllergic?: boolean;
         foodPreference?: 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
@@ -264,15 +263,10 @@ const ActivitiesPage: React.FC = () => {
         stoolConsistency: 'bình thường',
         timestamp: undefined,
         foodType: 'milk',
-        milkType: defaultMilkType ?? undefined,
         foodItem: '',
         isAllergic: false,
         foodPreference: 'normal'
     });
-    // A kind chosen in the menu applies to the next feed, unless one is being filled in.
-    useEffect(() => {
-        if (!showForm) setFormData((current) => ({ ...current, milkType: defaultMilkType ?? undefined }));
-    }, [defaultMilkType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // States for edit and delete functionality
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -515,7 +509,7 @@ const ActivitiesPage: React.FC = () => {
                         amount: formData.amount ? Number(formData.amount) : 0,
                         notes: formData.notes || '',
                         foodType: effectiveFoodType,
-                        ...(!isSolid && formData.milkType ? { milkType: formData.milkType } : {}),
+                        ...(!isSolid && defaultMilkType ? { milkType: defaultMilkType } : {}),
                         foodItem: isSolid ? formData.foodItem || '' : '',
                         isAllergic: isSolid && !!formData.isAllergic,
                         foodPreference: isSolid ? formData.foodPreference || 'normal' : 'normal'
@@ -737,7 +731,6 @@ const ActivitiesPage: React.FC = () => {
                 stoolConsistency: 'bình thường',
                 timestamp: undefined,
                 foodType: 'milk',
-                milkType: defaultMilkType ?? undefined,
                 foodItem: '',
                 isAllergic: false,
                 foodPreference: 'normal'
@@ -990,11 +983,7 @@ const ActivitiesPage: React.FC = () => {
                                             const lastMilk = (activities || [])
                                                 .filter((item) => item.type === 'feeding' && item.details?.foodType !== 'solid' && Number(item.details?.amount) > 0)
                                                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-                                            // The milk set in the menu, else the same milk as last time.
-                                            const lastMilkType = defaultMilkType ?? (activities || [])
-                                                .filter((item) => item.type === 'feeding' && item.details?.foodType !== 'solid' && item.details?.milkType)
-                                                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]?.details.milkType;
-                                            setFormData({ ...baseForm, foodType: 'milk', milkType: lastMilkType, amount: lastMilk ? String(lastMilk.details.amount) : '' });
+                                            setFormData({ ...baseForm, foodType: 'milk', amount: lastMilk ? String(lastMilk.details.amount) : '' });
                                         } else if (action.type === 'diaper') {
                                             setFormData({
                                                 ...baseForm,
@@ -1428,16 +1417,6 @@ const ActivitiesPage: React.FC = () => {
 
                                         {formData.foodType !== 'solid' ? (
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                            <ChoiceChips
-                                                color={ACTIVITY_COLORS.feeding}
-                                                selected={formData.milkType ? [formData.milkType] : []}
-                                                // Tapping the selected kind again clears it.
-                                                onToggle={(milkType) => setFormData({ ...formData, milkType: formData.milkType === milkType ? undefined : milkType })}
-                                                options={[
-                                                    { value: 'breast' as const, label: t('feeding.milkType.breast') },
-                                                    { value: 'formula' as const, label: t('feeding.milkType.formula') }
-                                                ]}
-                                            />
                                             <ChoiceChips
                                                 color={ACTIVITY_COLORS.feeding}
                                                 selected={[Number(formData.amount)]}
