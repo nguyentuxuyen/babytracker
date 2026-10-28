@@ -24,7 +24,8 @@ Markdownのコードブロック（\`\`\`json）や余分なテキストは一�
      timestamp: ISO 8601形式の文字列、必ずユーザーのタイムゾーンのオフセット付き (例: "2026-07-23T09:15:00+09:00")
        時刻の指定がなければ「現在時刻」を使う。睡眠は目が覚めた時刻を timestamp にする。
      details (activityTypeに応じて):
-       feeding  → { amount: number (ml), foodType: "milk"|"solid", foodItem?: string, notes?: string }
+       feeding  → { amount: number (ml), foodType: "milk"|"solid", milkType?: "breast"|"formula", foodItem?: string, notes?: string }
+         milkType は母乳 (sữa mẹ) なら "breast"、粉ミルク・ミルク (sữa công thức) なら "formula"、言及がなければ省略。
        sleep    → { duration: number (分), notes?: string }
        diaper   → { isUrine: boolean, isStool: boolean, notes?: string }
        bath     → { notes?: string }
@@ -263,6 +264,12 @@ on the day the baby woke up, diapers). "status" was decided by the app against "
 "notLogged" (nothing recorded, which may just mean it was not written down) or
 "notApplicable" (for example no solid food expected before 6 months).
 "previousDays" are the six days before, oldest first, for comparison.
+"milkByType" splits yesterday's milk into "breast" (breast milk), "formula" and "unspecified"
+(kind not recorded), with feeds and ml. The ml target is for total milk. Formula should stay
+under about 960 ml a day; breast milk taken straight from the breast is often not measured,
+so a low ml total with breast feeds may just be unmeasured.
+"solidFoods" lists each food eaten yesterday (as the parents named it) with meals, grams,
+the baby's reaction ("enthusiastic", "normal", "dislike", "allergic") and "newThisWeek".
 
 Answer in ${languageName} with JSON only:
 {"headline": "...", "milk": "...", "solids": "...", "sleep": "...", "tips": ["...", "..."]}
@@ -270,6 +277,11 @@ Answer in ${languageName} with JSON only:
   yesterday was enough for milk, solid food and sleep.
 - milk, solids, sleep: one or two sentences each with yesterday's numbers against the target,
   and how it compares with the previous days. Empty string for "notApplicable".
+  milk: name the kinds of milk and their share when "milkByType" has them.
+  solids: name the foods, say which food groups are covered and which are missing
+  (grains or starch, iron-rich protein such as meat, fish, egg or tofu, vegetables, fruit),
+  and mention new foods and any "dislike" or "allergic" reaction.
+- When a food got an "allergic" reaction, a tip says to stop that food and ask a doctor.
 - tips: one to three short, practical, gentle things to improve today; none if all is fine.
 Never contradict "status". Do not diagnose. If the numbers are clearly worrying for several
 days, suggest asking a doctor.

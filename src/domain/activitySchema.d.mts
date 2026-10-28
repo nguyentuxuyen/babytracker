@@ -1,5 +1,7 @@
 export type ActivityType = 'feeding' | 'sleep' | 'diaper' | 'bath' | 'measurement' | 'memo' | 'dailyRating';
 
+export type MilkType = 'breast' | 'formula';
+
 export type FoodPreference = 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
 export type StoolConsistency = 'lỏng' | 'bình thường' | 'khô';
 
@@ -8,6 +10,8 @@ export interface FeedingDetails {
     /** ml for milk, g for solid food; 0 when not given. */
     amount: number;
     notes: string;
+    /** Milk feeds only: breast milk or formula; absent when not given. */
+    milkType?: MilkType;
     foodItem?: string;
     foodPreference?: FoodPreference;
     isAllergic?: boolean;
@@ -81,6 +85,7 @@ export interface NormalizedActivity {
 
 export declare const SCHEMA_VERSION: number;
 export declare const ACTIVITY_TYPES: ActivityType[];
+export declare const MILK_TYPES: MilkType[];
 export declare const LIMITS: {
     amount: number;
     duration: number;

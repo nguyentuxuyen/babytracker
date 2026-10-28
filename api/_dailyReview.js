@@ -61,8 +61,9 @@ function sanitizeTargetSettings(raw) {
 }
 
 /**
- * Totals, statuses and targets for yesterday plus the six days before: the only
- * data the AI sees (no notes or names). Null when there is no baby profile.
+ * Totals, statuses and targets for yesterday plus the six days before, with
+ * yesterday's milk by kind and the foods eaten: the only data the AI sees (no
+ * notes or the baby's name). Null when there is no baby profile.
  */
 function buildReviewFacts({ targetsModule, activities, baby, settings, nowMs, utcOffsetMinutes }) {
   const birthDate = baby && toDate(baby.birthDate);
@@ -79,6 +80,8 @@ function buildReviewFacts({ targetsModule, activities, baby, settings, nowMs, ut
 
   const totalsFor = (index) => targetsModule.summarizeDay(activities.filter((a) => dayOf(a.timestamp) === index));
   const yesterday = totalsFor(yesterdayIndex);
+  const yesterdayActivities = activities.filter((a) => dayOf(a.timestamp) === yesterdayIndex);
+  const earlierActivities = activities.filter((a) => dayOf(a.timestamp) < yesterdayIndex);
   const previousDays = [];
   for (let index = yesterdayIndex - (HISTORY_DAYS - 1); index < yesterdayIndex; index++) {
     previousDays.push({ date: isoDayOf(index), ...totalsFor(index) });
@@ -96,8 +99,52 @@ function buildReviewFacts({ targetsModule, activities, baby, settings, nowMs, ut
     },
     yesterday,
     status: targetsModule.assessDay(yesterday, targets),
+    milkByType: milkByType(yesterdayActivities),
+    solidFoods: solidFoods(yesterdayActivities, earlierActivities),
     previousDays
   };
+}
+
+const MAX_FOOD_NAME = 40;
+const MAX_FOODS = 30;
+// Worst reaction first, so a food the baby reacted to once is reported that way.
+const REACTION_ORDER = ['allergic', 'dislike', 'enthusiastic', 'normal'];
+
+const foodName = (activity) => String(activity.details.foodItem || '').replace(/\s+/g, ' ').trim().slice(0, MAX_FOOD_NAME);
+const isMilk = (a) => a.type === 'feeding' && a.details.foodType !== 'solid';
+const isSolid = (a) => a.type === 'feeding' && a.details.foodType === 'solid';
+
+/** Milk split by kind (breast milk, formula, not given), only the kinds that were logged. */
+function milkByType(dayActivities) {
+  const result = {};
+  for (const activity of dayActivities.filter(isMilk)) {
+    const kind = activity.details.milkType === 'breast' || activity.details.milkType === 'formula' ? activity.details.milkType : 'unspecified';
+    result[kind] = result[kind] || { feeds: 0, ml: 0 };
+    result[kind].feeds += 1;
+    result[kind].ml += Number(activity.details.amount) || 0;
+  }
+  return result;
+}
+
+/** Each food eaten that day with meals, grams and the baby's reaction; plus whether it is new this week. */
+function solidFoods(dayActivities, earlierActivities) {
+  const seenBefore = new Set(earlierActivities.filter(isSolid).map((a) => foodName(a).toLocaleLowerCase()).filter(Boolean));
+  const byName = new Map();
+  for (const activity of dayActivities.filter(isSolid)) {
+    const name = foodName(activity) || '?';
+    const entry = byName.get(name.toLocaleLowerCase()) || { name, meals: 0, grams: 0, reaction: 'normal' };
+    entry.meals += 1;
+    entry.grams += Number(activity.details.amount) || 0;
+    const reaction = activity.details.isAllergic ? 'allergic' : activity.details.foodPreference || 'normal';
+    if (REACTION_ORDER.indexOf(reaction) !== -1 && REACTION_ORDER.indexOf(reaction) < REACTION_ORDER.indexOf(entry.reaction)) {
+      entry.reaction = reaction;
+    }
+    byName.set(name.toLocaleLowerCase(), entry);
+  }
+  return [...byName.values()].slice(0, MAX_FOODS).map((entry) => ({
+    ...entry,
+    newThisWeek: entry.name !== '?' && !seenBefore.has(entry.name.toLocaleLowerCase())
+  }));
 }
 
 const hasAnyLog = (totals) => totals.milkFeeds + totals.solidMeals + totals.sleeps + totals.wetDiapers + totals.stools > 0;

@@ -178,6 +178,10 @@
   "feeding": {
     "milk": "ミルク",
     "solid": "離乳食",
+    "milkType": {
+      "breast": "母乳",
+      "formula": "ミルク"
+    },
     "amountMl": "量 (ml)",
     "amountG": "量 (g)",
     "recentFoods": "最近の食品",
@@ -593,7 +597,8 @@
     },
     "open": "見る",
     "gotIt": "OK",
-    "titleFor": "{{date}}のふりかえり"
+    "titleFor": "{{date}}のふりかえり",
+    "newFood": "初"
   },
   "notifications": {
     "title": "お知らせ",

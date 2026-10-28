@@ -25,8 +25,13 @@ const addActivity = (type: string, timestamp: Date, details: Record<string, unkn
 
 // Yesterday (20/10): milk 4 × 100ml (low for 6 months), one solid meal (low), 13 h of sleep (ok).
 const logYesterday = () => {
-    for (const hour of [7, 11, 15, 19]) addActivity('feeding', jst(20, hour), { foodType: 'milk', amount: 100 });
-    addActivity('feeding', jst(20, 12), { foodType: 'solid', amount: 60, foodItem: 'cháo' });
+    addActivity('feeding', jst(20, 7), { foodType: 'milk', amount: 100, milkType: 'breast' });
+    addActivity('feeding', jst(20, 11), { foodType: 'milk', amount: 100, milkType: 'formula' });
+    addActivity('feeding', jst(20, 15), { foodType: 'milk', amount: 100, milkType: 'formula' });
+    addActivity('feeding', jst(20, 19), { foodType: 'milk', amount: 100 });
+    addActivity('feeding', jst(20, 12), { foodType: 'solid', amount: 60, foodItem: 'cháo bí', foodPreference: 'enthusiastic' });
+    // Eaten earlier in the week, so not new; a reaction is reported once.
+    addActivity('feeding', jst(18, 12), { foodType: 'solid', amount: 30, foodItem: 'Cà rốt' });
     addActivity('sleep', jst(20, 6), { duration: 600 });
     addActivity('sleep', jst(20, 14), { duration: 180 });
 };
@@ -104,12 +109,21 @@ describe('morning review from the reminder cron', () => {
                 day: '2026-10-20',
                 targets: { milkMinMl: 500, sleepMinHours: 12, sleepMaxHours: 16, solidMinMeals: 2 },
                 yesterday: { milkMl: 400, milkFeeds: 4, solidMeals: 1, solidGrams: 60, sleepMinutes: 780, sleeps: 2 },
-                status: { milk: 'low', solids: 'low', sleep: 'ok' }
+                status: { milk: 'low', solids: 'low', sleep: 'ok' },
+                milkByType: {
+                    breast: { feeds: 1, ml: 100 },
+                    formula: { feeds: 2, ml: 200 },
+                    unspecified: { feeds: 1, ml: 100 }
+                },
+                solidFoods: [{ name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true }]
             }
         });
         const prompt = JSON.parse(fetchMock.mock.calls[0][1].body).contents[0].parts[0].text;
         expect(prompt).toContain('in Vietnamese');
-        expect(prompt).not.toContain('cháo');
+        // The AI sees the kinds of milk and the foods, but not notes or the baby's name.
+        expect(prompt).toContain('"milkByType"');
+        expect(prompt).toContain('cháo bí');
+        expect(prompt).not.toContain('Bin');
         expect(db.docs.get(`users/${UID}/usage/assistant`)).toMatchObject({ count: 1 });
 
         await dispatch();
@@ -123,6 +137,20 @@ describe('morning review from the reminder cron', () => {
 
         expect((await dispatch()).body).toMatchObject({ reviews: 1 });
         expect(reviewDoc()).toMatchObject({ trigger: 'fallback' });
+    });
+
+    it('reports foods already eaten this week and the worst reaction', async () => {
+        logYesterday();
+        addActivity('feeding', jst(20, 17), { foodType: 'solid', amount: 20, foodItem: 'cà rốt' });
+        addActivity('feeding', jst(20, 18), { foodType: 'solid', amount: 10, foodItem: 'Cà rốt', isAllergic: true });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.solidFoods).toEqual([
+            { name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true },
+            { name: 'cà rốt', meals: 2, grams: 30, reaction: 'allergic', newThisWeek: false }
+        ]);
     });
 
     it('sends nothing in the afternoon', async () => {

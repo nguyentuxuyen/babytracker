@@ -178,6 +178,10 @@
   "feeding": {
     "milk": "Sữa",
     "solid": "Ăn dặm",
+    "milkType": {
+      "breast": "Sữa mẹ",
+      "formula": "Sữa công thức"
+    },
     "amountMl": "Lượng (ml)",
     "amountG": "Lượng (g)",
     "recentFoods": "Món gần đây",
@@ -593,7 +597,8 @@
     },
     "open": "Xem",
     "gotIt": "Đã hiểu",
-    "titleFor": "Đánh giá {{date}}"
+    "titleFor": "Đánh giá {{date}}",
+    "newFood": "mới"
   },
   "notifications": {
     "title": "Thông báo",
