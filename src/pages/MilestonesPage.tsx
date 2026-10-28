@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useBaby } from '../contexts/BabyContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import MilestonePhotosSheet from '../components/common/MilestonePhotosSheet';
+import { MilestonePhoto, groupPhotosByMilestone, subscribeMilestonePhotos } from '../firebase/milestonePhotos';
 
 interface MilestoneItem {
     id: string;
@@ -224,6 +226,51 @@ const defaultMilestones: Milestone[] = [
   ] }
 ];
 
+// Camera button on each milestone row; shows the latest photo and the count once there are photos.
+const MilestonePhotoButton: React.FC<{ photos: MilestonePhoto[]; label: string; onClick: () => void }> = ({ photos, label, onClick }) => {
+    const latest = photos[photos.length - 1];
+    return (
+        <Box
+            component="button"
+            type="button"
+            onClick={onClick}
+            aria-label={label}
+            sx={{
+                position: 'relative',
+                flex: '0 0 auto',
+                alignSelf: 'center',
+                width: 44,
+                height: 44,
+                p: 0,
+                borderRadius: '12px',
+                border: latest ? '2px solid #ffffff' : '1px dashed #cbd5e1',
+                boxShadow: latest ? '0 1px 4px rgba(15,23,42,0.2)' : 'none',
+                bgcolor: latest ? '#e2e8f0' : '#f8fafc',
+                backgroundImage: latest ? `url("${latest.url}")` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
+        >
+            {!latest && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 8h3l2-2.5h6L17 8h3v11H4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <circle cx="12" cy="13" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+                </svg>
+            )}
+            {photos.length > 1 && (
+                <Box sx={{ position: 'absolute', right: -6, top: -6, minWidth: 20, height: 20, px: 0.5, borderRadius: '10px', bgcolor: '#13a4ec', color: '#fff', fontSize: 11, fontWeight: 700, lineHeight: '20px', textAlign: 'center' }}>
+                    {photos.length}
+                </Box>
+            )}
+        </Box>
+    );
+};
+
 const MilestonesPage: React.FC = () => {
     const history = useHistory();
     const { baby } = useBaby();
@@ -238,6 +285,18 @@ const MilestonesPage: React.FC = () => {
     const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>(
         defaultMilestones.reduce((acc, month) => ({ ...acc, [month.id]: true }), {})
     );
+
+    const [photosByMilestone, setPhotosByMilestone] = useState<Record<string, MilestonePhoto[]>>({});
+    const [photoSheet, setPhotoSheet] = useState<{ milestoneId: string; title: string } | null>(null);
+
+    useEffect(() => {
+        if (!currentUser?.uid) return undefined;
+        return subscribeMilestonePhotos(
+            currentUser.uid,
+            (photos) => setPhotosByMilestone(groupPhotosByMilestone(photos)),
+            (error) => console.error('Error loading milestone photos:', error)
+        );
+    }, [currentUser?.uid]);
 
     const toggleMonthExpansion = (monthId: string) => {
         setExpandedMonths(prev => ({ ...prev, [monthId]: !prev[monthId] }));
@@ -657,6 +716,11 @@ const MilestonesPage: React.FC = () => {
                                                 {milestone.description}
                                             </Typography>
                                         </Box>
+                                        <MilestonePhotoButton
+                                            photos={photosByMilestone[milestone.id] || []}
+                                            label={t('milestones.photos.open', { title: milestone.title })}
+                                            onClick={() => setPhotoSheet({ milestoneId: milestone.id, title: milestone.title })}
+                                        />
                                     </Box>
                                 ))}
                             </Box>
@@ -679,6 +743,17 @@ const MilestonesPage: React.FC = () => {
                     <strong>{t('milestones.noteLabel')}</strong> {t('milestones.note')}
                 </Typography>
             </Box>
+
+            {currentUser?.uid && photoSheet && (
+                <MilestonePhotosSheet
+                    open
+                    onClose={() => setPhotoSheet(null)}
+                    uid={currentUser.uid}
+                    milestoneId={photoSheet.milestoneId}
+                    title={photoSheet.title}
+                    photos={photosByMilestone[photoSheet.milestoneId] || []}
+                />
+            )}
 
             {/* Add Item Dialog */}
             <Dialog 

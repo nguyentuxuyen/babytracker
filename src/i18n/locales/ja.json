@@ -417,6 +417,27 @@
       "17": "17か月: ことばが広がる（17〜18か月）",
       "18": "18か月: 細かな動きの発達（18〜19か月）",
       "19": "19か月（1歳半）: 自立と創造"
+    },
+    "photos": {
+      "open": "{{title}} の写真",
+      "count": "写真 {{count}} 枚",
+      "empty": "写真はまだありません",
+      "addFirst": "この目安の最初の写真を追加",
+      "limit": "一度に最大 {{count}} 枚まで",
+      "add": "写真を追加",
+      "delete": "削除",
+      "confirmDelete": "もう一度押すと削除",
+      "previous": "前の写真",
+      "next": "次の写真",
+      "photoAlt": "写真 {{index}}",
+      "uploading": "写真をアップロード中 {{done}}/{{total}}…",
+      "errors": {
+        "storageDisabled": "写真を保存できません。Firebase Storage が有効になっていないか、Storage のルールが未設定です。",
+        "notImage": "画像ファイルではないか、読み込めませんでした。",
+        "tooLarge": "圧縮後も画像が大きすぎます。",
+        "failed": "アップロードに失敗しました。もう一度お試しください。",
+        "tooMany": "一度に選べるのは {{count}} 枚までです。最初の {{count}} 枚を使います。"
+      }
     }
   },
   "wonderWeeks": {
