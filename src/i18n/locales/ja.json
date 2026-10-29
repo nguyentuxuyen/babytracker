@@ -76,7 +76,8 @@
     "defaultMilkType": "飲んでいるミルク",
     "defaultMilkTypeNone": "未設定",
     "milkProduct": "ミルクの商品名",
-    "milkProductPlaceholder": "商品名(例: 明治ほほえみ)"
+    "milkProductPlaceholder": "商品名(例: 明治ほほえみ)",
+    "dailyReviews": "毎日の評価"
   },
   "changelog": {
     "title": "更新内容",
@@ -602,12 +603,27 @@
     "open": "見る",
     "gotIt": "OK",
     "titleFor": "{{date}}のふりかえり",
-    "newFood": "初"
+    "newFood": "初",
+    "history": "過去の日",
+    "rewrite": "もう一度評価",
+    "rewriteFailed": "AIが混み合っているため再評価できませんでした。前の評価はそのまま残っています。",
+    "historyTitle": "毎日の評価",
+    "historyHint": "日付をタップすると詳細が見られます。「もう一度評価」は今の記録で書き直します(後から授乳を追加したときなど)。",
+    "historyEmpty": "まだ評価はありません。",
+    "nothingLogged": "この日は記録がないため評価できません。"
   },
   "notifications": {
     "title": "お知らせ",
     "open": "お知らせを開く",
     "openWithCount": "お知らせを開く（新着{{count}}件）",
     "empty": "お知らせはまだありません"
+  },
+  "settingsPage": {
+    "title": "設定",
+    "milk": "赤ちゃんのミルク",
+    "milkHint": "アプリ・Siri・アシスタントで記録したすべての授乳にこのミルクが使われます。朝の評価は商品名をもとに量が足りているかを判断します。",
+    "reminders": "リマインダー",
+    "reminderSwitch": "記録のリマインダー",
+    "reminderInterval": "通知の間隔"
   }
 }

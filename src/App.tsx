@@ -12,10 +12,10 @@ import TranslationsPage from './pages/TranslationsPage';
 import { loadTranslationOverrides } from './i18n/overrides';
 import { firestore } from './firebase/firestore';
 import { loadReminderSettings, saveReminderSettings } from './utils/reminderSettings';
-import { MAX_MILK_PRODUCT_LENGTH, loadCachedFeedingSettings, loadFeedingSettings, saveFeedingSettings, type FeedingSettings } from './utils/feedingSettings';
+import { loadCachedFeedingSettings, loadFeedingSettings, saveFeedingSettings, type FeedingSettings } from './utils/feedingSettings';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 import { ChangelogRelease } from './types';
-import LanguageSwitcher from './components/common/LanguageSwitcher';
+import { SettingsProvider, navigateTo, useAppSettings } from './contexts/SettingsContext';
 import { HEADER_NOTIFICATION_SLOT_ID } from './components/common/NotificationCenter';
 import i18n from './i18n';
 
@@ -23,11 +23,9 @@ import {
     AccountIcon as AccountCircleIcon,
     BabyIcon as ChildCareIcon,
     LogoutIcon,
-    NotificationsIcon,
-    NotificationsOffIcon,
-    SendIcon,
-    TranslateIcon
+    SettingsIcon
 } from './components/common/icons';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
 import packageJson from '../package.json';
 import { CHANGELOG_SEEN_STORAGE_KEY, fallbackChangelogReleases, formatChangelogDate } from './utils/changelog';
@@ -37,51 +35,28 @@ const HeaderComponent: React.FC<{
     currentUser: any;
     logout: () => Promise<void>;
     onShowBabyInfo: () => void;
-    onShowTranslations: () => void;
     isOnline: boolean;
     pendingSyncCount: number;
     isSyncing: boolean;
-    reminderEnabled: boolean;
-    reminderIntervalMinutes: number;
-    notificationPermission: NotificationPermission | 'unsupported';
-    pushSupported: boolean;
-    pushEnabled: boolean;
     versionLabel: string;
     changelogReleases: ChangelogRelease[];
     changelogReady: boolean;
     changelogUsesFirebase: boolean;
-    onToggleReminder: () => void;
-    onChangeReminderInterval: (minutes: number) => void;
-    onSendTestPush: () => void;
-    onLanguageChange: () => void;
-    feedingSettings: FeedingSettings;
-    onChangeFeedingSettings: (settings: FeedingSettings) => void;
 }> = ({
     currentUser,
     logout,
     onShowBabyInfo,
-    onShowTranslations,
     isOnline,
     pendingSyncCount,
     isSyncing,
-    reminderEnabled,
-    reminderIntervalMinutes,
-    notificationPermission,
-    pushSupported,
-    pushEnabled,
     versionLabel,
     changelogReleases,
     changelogReady,
-    changelogUsesFirebase,
-    onToggleReminder,
-    onChangeReminderInterval,
-    onSendTestPush,
-    onLanguageChange,
-    feedingSettings,
-    onChangeFeedingSettings
+    changelogUsesFirebase
 }) => {
     const { baby } = useBaby();
     const { t } = useTranslation();
+    const appSettings = useAppSettings();
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -260,7 +235,7 @@ const HeaderComponent: React.FC<{
                                 {t('header.syncing')}
                             </div>
                         )}
-                        {reminderEnabled && (
+                        {appSettings?.reminderEnabled && (
                             <div style={{
                                 fontSize: '11px',
                                 fontWeight: 600,
@@ -269,10 +244,10 @@ const HeaderComponent: React.FC<{
                                 borderRadius: '999px',
                                 padding: '2px 8px'
                             }}>
-                                {t('header.reminderEvery', { count: Math.round(reminderIntervalMinutes / 60) })}
+                                {t('header.reminderEvery', { count: Math.round(appSettings.reminderIntervalMinutes / 60) })}
                             </div>
                         )}
-                        {pushEnabled && (
+                        {appSettings?.pushEnabled && (
                             <div style={{
                                 fontSize: '11px',
                                 fontWeight: 600,
@@ -292,6 +267,24 @@ const HeaderComponent: React.FC<{
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {/* Filled with the notification bell by the page (NotificationCenter) */}
                         <div id={HEADER_NOTIFICATION_SLOT_ID} style={{ display: 'flex' }} />
+                        <button
+                            onClick={() => navigateTo('/settings')}
+                            aria-label={t('settingsPage.title')}
+                            style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '50%',
+                                background: '#ffffff',
+                                border: '1px solid #e5e7eb',
+                                color: '#475569',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            <SettingsIcon sx={{ fontSize: '22px' }} />
+                        </button>
                         <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
@@ -359,13 +352,15 @@ const HeaderComponent: React.FC<{
                                         {t('menu.babyInfo')}
                                     </button>
                                     <button
-                                        onClick={onToggleReminder}
+                                        onClick={() => {
+                                            navigateTo('/reviews');
+                                            setShowMenu(false);
+                                        }}
                                         style={{
                                             width: '100%',
                                             padding: '12px 16px',
                                             background: 'none',
                                             border: 'none',
-                                            borderTop: '1px solid #e5e7eb',
                                             textAlign: 'left',
                                             cursor: 'pointer',
                                             fontSize: '14px',
@@ -379,147 +374,35 @@ const HeaderComponent: React.FC<{
                                         onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
                                         onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                     >
-                                        {reminderEnabled ? (
-                                            <NotificationsIcon sx={{ fontSize: '20px', color: '#10b981' }} />
-                                        ) : (
-                                            <NotificationsOffIcon sx={{ fontSize: '20px', color: '#6b7f8a' }} />
-                                        )}
-                                        {reminderEnabled ? t('menu.reminderOff') : t('menu.reminderOn')}
+                                        <AutoAwesomeIcon sx={{ fontSize: '20px', color: '#7c3aed' }} />
+                                        {t('menu.dailyReviews')}
                                     </button>
-                                    <div style={{
-                                        borderTop: '1px solid #e5e7eb',
-                                        padding: '10px 16px',
-                                        fontSize: '12px',
-                                        color: '#6b7f8a'
-                                    }}>
-                                        {t('menu.notificationPermission')}: {t(`menu.permission.${notificationPermission}`)}
-                                        <div style={{ marginTop: '6px' }}>
-                                            {t('menu.push')}: {pushSupported ? (pushEnabled ? t('menu.enabled') : t('menu.disabled')) : t('menu.permission.unsupported')}
-                                        </div>
-                                        <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            {[60, 120, 180, 240].map((minutes) => (
-                                                <button
-                                                    key={minutes}
-                                                    onClick={() => onChangeReminderInterval(minutes)}
-                                                    style={{
-                                                        border: 'none',
-                                                        borderRadius: '999px',
-                                                        padding: '4px 8px',
-                                                        fontSize: '11px',
-                                                        cursor: 'pointer',
-                                                        color: reminderIntervalMinutes === minutes ? '#ffffff' : '#334155',
-                                                        backgroundColor: reminderIntervalMinutes === minutes ? '#13a4ec' : '#e5e7eb'
-                                                    }}
-                                                >
-                                                    {minutes / 60}h
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {pushSupported && (
-                                            <button
-                                                onClick={onSendTestPush}
-                                                style={{
-                                                    marginTop: '8px',
-                                                    border: 'none',
-                                                    borderRadius: '8px',
-                                                    padding: '6px 10px',
-                                                    fontSize: '12px',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '6px',
-                                                    color: '#ffffff',
-                                                    backgroundColor: '#0f766e'
-                                                }}
-                                            >
-                                                <SendIcon sx={{ fontSize: '16px' }} />
-                                                {t('menu.sendTestPush')}
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div style={{
-                                        borderTop: '1px solid #e5e7eb',
-                                        padding: '10px 16px',
-                                        fontSize: '12px',
-                                        color: '#6b7f8a'
-                                    }}>
-                                        <div style={{ marginBottom: '6px' }}>{t('menu.defaultMilkType')}</div>
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            {([null, 'formula', 'breast'] as const).map((milkType) => (
-                                                <button
-                                                    key={milkType ?? 'none'}
-                                                    onClick={() => onChangeFeedingSettings({ ...feedingSettings, defaultMilkType: milkType })}
-                                                    style={{
-                                                        border: 'none',
-                                                        borderRadius: '999px',
-                                                        padding: '4px 10px',
-                                                        fontSize: '12px',
-                                                        cursor: 'pointer',
-                                                        color: feedingSettings.defaultMilkType === milkType ? '#ffffff' : '#334155',
-                                                        backgroundColor: feedingSettings.defaultMilkType === milkType ? '#13a4ec' : '#e5e7eb'
-                                                    }}
-                                                >
-                                                    {milkType ? t(`feeding.milkType.${milkType}`) : t('menu.defaultMilkTypeNone')}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {feedingSettings.defaultMilkType === 'formula' && (
-                                            <input
-                                                // Saved when the field loses focus; the review uses it to judge the amount.
-                                                key={feedingSettings.milkProduct}
-                                                defaultValue={feedingSettings.milkProduct}
-                                                maxLength={MAX_MILK_PRODUCT_LENGTH}
-                                                placeholder={t('menu.milkProductPlaceholder')}
-                                                aria-label={t('menu.milkProduct')}
-                                                onBlur={(e) => {
-                                                    if (e.target.value.trim() !== feedingSettings.milkProduct) {
-                                                        onChangeFeedingSettings({ ...feedingSettings, milkProduct: e.target.value });
-                                                    }
-                                                }}
-                                                style={{
-                                                    marginTop: '8px',
-                                                    width: '100%',
-                                                    boxSizing: 'border-box',
-                                                    border: '1px solid #cbd5e1',
-                                                    borderRadius: '8px',
-                                                    padding: '6px 8px',
-                                                    fontSize: '16px',
-                                                    color: '#101c22'
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-                                    <div style={{
-                                        borderTop: '1px solid #e5e7eb',
-                                        padding: '10px 16px',
-                                        fontSize: '12px',
-                                        color: '#6b7f8a'
-                                    }}>
-                                        <div style={{ marginBottom: '6px' }}>{t('settings.language')}</div>
-                                        <LanguageSwitcher onChange={onLanguageChange} />
-                                        <button
-                                            onClick={() => {
-                                                onShowTranslations();
-                                                setShowMenu(false);
-                                            }}
-                                            style={{
-                                                marginTop: '8px',
-                                                border: 'none',
-                                                borderRadius: '8px',
-                                                padding: '6px 10px',
-                                                fontSize: '12px',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px',
-                                                color: '#0f766e',
-                                                backgroundColor: '#e0f2fe'
-                                            }}
-                                        >
-                                            <TranslateIcon sx={{ fontSize: '16px' }} />
-                                            {t('menu.editTranslations')}
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            navigateTo('/settings');
+                                            setShowMenu(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: '#101c22',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                        onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
+                                        onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                                    >
+                                        <SettingsIcon sx={{ fontSize: '20px', color: '#475569' }} />
+                                        {t('settingsPage.title')}
+                                    </button>
                                     <button
                                         onClick={() => {
                                             setShowChangelog(true);
@@ -955,7 +838,23 @@ const MainApp: React.FC = () => {
         return <TranslationsPage onBack={() => setShowTranslations(false)} />;
     }
 
+    const appSettings = {
+        reminderEnabled,
+        reminderIntervalMinutes,
+        notificationPermission,
+        pushSupported,
+        pushEnabled,
+        onToggleReminder,
+        onChangeReminderInterval,
+        onSendTestPush,
+        onLanguageChange,
+        onShowTranslations: () => setShowTranslations(true),
+        feedingSettings,
+        onChangeFeedingSettings
+    };
+
     return (
+        <SettingsProvider value={appSettings}>
         <Box sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -967,25 +866,13 @@ const MainApp: React.FC = () => {
                 currentUser={currentUser}
                 logout={logout}
                 onShowBabyInfo={() => setShowBabyInfo(true)}
-                onShowTranslations={() => setShowTranslations(true)}
                 isOnline={isOnline}
                 pendingSyncCount={pendingSyncCount}
                 isSyncing={isSyncing}
-                reminderEnabled={reminderEnabled}
-                reminderIntervalMinutes={reminderIntervalMinutes}
-                notificationPermission={notificationPermission}
-                pushSupported={pushSupported}
-                pushEnabled={pushEnabled}
                 versionLabel={versionLabel}
                 changelogReleases={changelogReleases}
                 changelogReady={changelogReady}
                 changelogUsesFirebase={changelogUsesFirebase}
-                onToggleReminder={onToggleReminder}
-                onChangeReminderInterval={onChangeReminderInterval}
-                onSendTestPush={onSendTestPush}
-                onLanguageChange={onLanguageChange}
-                feedingSettings={feedingSettings}
-                onChangeFeedingSettings={onChangeFeedingSettings}
             />
 
             {/* Main content with router and bottom nav */}
@@ -993,6 +880,7 @@ const MainApp: React.FC = () => {
                 <AppRouter />
             </Box>
         </Box>
+        </SettingsProvider>
     );
 };
 

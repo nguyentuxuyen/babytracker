@@ -76,7 +76,8 @@
     "defaultMilkType": "Loại sữa bé uống",
     "defaultMilkTypeNone": "Chưa chọn",
     "milkProduct": "Tên sữa",
-    "milkProductPlaceholder": "Tên sữa, ví dụ Meiji Hohoemi"
+    "milkProductPlaceholder": "Tên sữa, ví dụ Meiji Hohoemi",
+    "dailyReviews": "Đánh giá hằng ngày"
   },
   "changelog": {
     "title": "Nội dung cập nhật",
@@ -602,12 +603,27 @@
     "open": "Xem",
     "gotIt": "Đã hiểu",
     "titleFor": "Đánh giá {{date}}",
-    "newFood": "mới"
+    "newFood": "mới",
+    "history": "Các ngày trước",
+    "rewrite": "Đánh giá lại",
+    "rewriteFailed": "AI đang bận, chưa đánh giá lại được. Đánh giá cũ vẫn được giữ.",
+    "historyTitle": "Đánh giá hằng ngày",
+    "historyHint": "Bấm vào một ngày để xem chi tiết. \"Đánh giá lại\" viết lại theo nhật ký hiện tại, ví dụ khi bạn ghi thêm cữ sữa sau đó.",
+    "historyEmpty": "Chưa có đánh giá nào.",
+    "nothingLogged": "Ngày này chưa ghi gì nên chưa đánh giá được."
   },
   "notifications": {
     "title": "Thông báo",
     "open": "Mở thông báo",
     "openWithCount": "Mở thông báo ({{count}} mới)",
     "empty": "Chưa có thông báo nào"
+  },
+  "settingsPage": {
+    "title": "Cài đặt",
+    "milk": "Sữa của bé",
+    "milkHint": "Mỗi cữ sữa (ghi trên app, Siri hay trợ lý AI) đều dùng loại sữa này. Đánh giá buổi sáng dựa vào tên sữa để xét lượng ml có đủ không.",
+    "reminders": "Nhắc nhở",
+    "reminderSwitch": "Nhắc ghi nhật ký",
+    "reminderInterval": "Nhắc sau mỗi"
   }
 }

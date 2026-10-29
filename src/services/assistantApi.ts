@@ -187,16 +187,7 @@ export interface DailyReview {
     ai: { headline: string; milk: string; solids: string; sleep: string; tips: string[] } | null;
 }
 
-/**
- * Yesterday's morning review. With `generate`, the server writes it now if it
- * does not exist yet (and notifies the family's phones in the morning).
- */
-export const fetchDailyReview = async (options: {
-    generate?: boolean;
-    retryAi?: boolean;
-    settings?: DailyTargetSettings;
-    language: string;
-}): Promise<DailyReview | null> => {
+const postReviewAction = async (body: Record<string, unknown>) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
         throw new Error(i18n.t('assistant.loginRequired'));
@@ -205,14 +196,7 @@ export const fetchDailyReview = async (options: {
     const response = await fetch(ASSISTANT_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-            action: 'daily_review',
-            generate: options.generate === true,
-            retryAi: options.retryAi === true,
-            settings: options.settings,
-            language: options.language,
-            utcOffsetMinutes: -new Date().getTimezoneOffset()
-        })
+        body: JSON.stringify({ ...body, utcOffsetMinutes: -new Date().getTimezoneOffset() })
     });
 
     let payload: any = {};
@@ -222,7 +206,36 @@ export const fetchDailyReview = async (options: {
         throw new Error(i18n.t('assistant.api.invalidResponse', { status: response.status }));
     }
     if (!response.ok || !payload?.success) {
-        throw new Error(i18n.t('dailyReview.failed'));
+        throw new Error(i18n.t(payload?.code === 'AI_UNAVAILABLE' ? 'dailyReview.rewriteFailed' : 'dailyReview.failed'));
     }
+    return payload;
+};
+
+/**
+ * Yesterday's morning review. With `generate`, the server writes it now if it
+ * does not exist yet (and notifies the family's phones in the morning).
+ * With `rewriteDay`, it writes that past day's review again from the current log.
+ */
+export const fetchDailyReview = async (options: {
+    generate?: boolean;
+    retryAi?: boolean;
+    rewriteDay?: string;
+    settings?: DailyTargetSettings;
+    language: string;
+}): Promise<DailyReview | null> => {
+    const payload = await postReviewAction({
+        action: 'daily_review',
+        generate: options.generate === true,
+        retryAi: options.retryAi === true,
+        ...(options.rewriteDay ? { rewriteDay: options.rewriteDay } : {}),
+        settings: options.settings,
+        language: options.language
+    });
     return payload.review ?? null;
+};
+
+/** Written reviews, newest day first. */
+export const fetchDailyReviewHistory = async (): Promise<DailyReview[]> => {
+    const payload = await postReviewAction({ action: 'daily_review_history' });
+    return Array.isArray(payload.reviews) ? payload.reviews : [];
 };

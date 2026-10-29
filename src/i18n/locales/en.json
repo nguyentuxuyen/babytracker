@@ -82,7 +82,8 @@
     "defaultMilkType": "Milk your baby drinks",
     "defaultMilkTypeNone": "Not set",
     "milkProduct": "Formula name",
-    "milkProductPlaceholder": "Formula name, e.g. Meiji Hohoemi"
+    "milkProductPlaceholder": "Formula name, e.g. Meiji Hohoemi",
+    "dailyReviews": "Daily reviews"
   },
   "changelog": {
     "title": "What's new",
@@ -620,12 +621,27 @@
     "open": "Open",
     "gotIt": "Got it",
     "titleFor": "Review of {{date}}",
-    "newFood": "new"
+    "newFood": "new",
+    "history": "Past days",
+    "rewrite": "Review again",
+    "rewriteFailed": "The AI is busy, so the review was not rewritten. The previous one is kept.",
+    "historyTitle": "Daily reviews",
+    "historyHint": "Tap a day to see the details. \"Review again\" rewrites it from the current log, for example after you added a feed.",
+    "historyEmpty": "No reviews yet.",
+    "nothingLogged": "Nothing was logged that day, so there is nothing to review."
   },
   "notifications": {
     "title": "Notifications",
     "open": "Open notifications",
     "openWithCount": "Open notifications ({{count}} new)",
     "empty": "No notifications yet"
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "milk": "Baby's milk",
+    "milkHint": "Every milk feed (in the app, via Siri or the assistant) uses this milk. The morning review uses the formula name to judge whether the amount is enough.",
+    "reminders": "Reminders",
+    "reminderSwitch": "Logging reminders",
+    "reminderInterval": "Remind every"
   }
 }

@@ -271,4 +271,61 @@ describe('POST /api/mcp daily_review', () => {
         expect(reviews()).toHaveLength(1);
         expect(reviewDoc()?.pushedAt).toBeTruthy();
     });
+
+    it('writes a past day again from the current log, without notifying', async () => {
+        logYesterday();
+        await request({ generate: true });
+        expect(reviews()).toHaveLength(1);
+
+        // A feed added afterwards, then "Đánh giá lại".
+        addActivity('feeding', jst(20, 21), { foodType: 'milk', amount: 150 });
+        const res = await request({ rewriteDay: '2026-10-20' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.review.facts.yesterday).toMatchObject({ milkMl: 550, milkFeeds: 5 });
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(reviews()).toHaveLength(1);
+        expect(reviewDoc()).toMatchObject({ trigger: 'rewrite', status: 'done' });
+        expect(reviewDoc()?.pushedAt).toBeTruthy();
+    });
+
+    it('writes an older day as that day, using only the log up to it', async () => {
+        logYesterday();
+        addActivity('feeding', jst(19, 9), { foodType: 'milk', amount: 120 });
+
+        const res = await request({ rewriteDay: '2026-10-19' });
+
+        expect(res.body.review).toMatchObject({ day: '2026-10-19', status: 'done' });
+        expect(res.body.review.facts.yesterday).toMatchObject({ milkMl: 120, milkFeeds: 1 });
+        expect(reviews()).toHaveLength(0);
+    });
+
+    it('keeps the previous review when the AI fails on a rewrite', async () => {
+        logYesterday();
+        await request({ generate: true });
+        fetchMock.mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'busy' });
+
+        const res = await request({ rewriteDay: '2026-10-20' });
+
+        expect(res.statusCode).toBe(503);
+        expect(res.body.code).toBe('AI_UNAVAILABLE');
+        expect(reviewDoc()).toMatchObject({ status: 'done', ai: AI_REVIEW });
+    });
+
+    it.each(['2026-10-21', '2026-08-01', 'yesterday'])('refuses to rewrite %s', async (day) => {
+        const res = await request({ rewriteDay: day });
+        expect(res.statusCode).toBe(400);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('lists written reviews, newest first', async () => {
+        db.docs.set(`users/${UID}/dailyReviews/2026-10-18`, { day: '2026-10-18', status: 'done', headline: 'a', facts: null, ai: null });
+        db.docs.set(`users/${UID}/dailyReviews/2026-10-20`, { day: '2026-10-20', status: 'done', headline: 'c', facts: null, ai: null, pushedAt: 'x' });
+        db.docs.set(`users/${UID}/dailyReviews/2026-10-19`, { day: '2026-10-19', status: 'empty' });
+
+        const res = await call(loadHandler('mcp.js', { db, uid: UID }), { headers: auth, body: { action: 'daily_review_history' } });
+
+        expect(res.body.reviews.map((review: any) => review.day)).toEqual(['2026-10-20', '2026-10-18']);
+        expect(res.body.reviews[0]).not.toHaveProperty('pushedAt');
+    });
 });

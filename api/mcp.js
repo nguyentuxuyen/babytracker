@@ -5,7 +5,7 @@ const { loadSchema, isActivityValidationError } = require('./_schema');
 const { parseUserTimestamp, formatLocalIso, normalizeOffset } = require('./_time');
 const { consumeAiQuota } = require('./_quota');
 const { withDefaultMilkType } = require('./_feedingSettings');
-const { getDailyReview, generateDailyReview, saveTargetSettings, localDay, WAKE_FROM_HOUR, UNTIL_HOUR } = require('./_dailyReview');
+const { getDailyReview, generateDailyReview, listDailyReviews, saveTargetSettings, localDay, WAKE_FROM_HOUR, UNTIL_HOUR } = require('./_dailyReview');
 
 const MAX_TEXT_LENGTH = 300;
 const MAX_FOOD_NAME_LENGTH = 100;
@@ -117,11 +117,31 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // ── Morning review of yesterday: { action: 'daily_review', generate?, retryAi?, settings?, language } ──
+    // ── Past reviews, newest first: { action: 'daily_review_history' } ──
+    if (body.action === 'daily_review_history') {
+      res.status(200).json({ success: true, tool: 'daily_review_history', reviews: await listDailyReviews(uid) });
+      return;
+    }
+
+    // ── Morning review of yesterday: { action: 'daily_review', generate?, retryAi?, rewriteDay?, settings?, language } ──
     if (body.action === 'daily_review') {
       // The parents' own minimums live on the device; keep a copy for the morning cron.
       if (body.settings) await saveTargetSettings(uid, body.settings);
       const options = { utcOffsetMinutes, language: body.language };
+      // "Đánh giá lại": write a past day's review again from the current log, without a push.
+      if (body.rewriteDay !== undefined) {
+        const { review, aiFailed } = await generateDailyReview(uid, { ...options, trigger: 'rewrite', push: false, rewriteDay: body.rewriteDay });
+        if (!review) {
+          sendError(res, 400, 'Invalid day', { code: 'INVALID_DAY' });
+          return;
+        }
+        if (aiFailed) {
+          sendError(res, 503, 'AI unavailable', { code: 'AI_UNAVAILABLE', review });
+          return;
+        }
+        res.status(200).json({ success: true, tool: 'daily_review', review });
+        return;
+      }
       const existing = await getDailyReview(uid, options);
       const retryAi = body.retryAi === true && existing && existing.status === 'done' && !existing.ai;
       if ((existing && !retryAi) || body.generate !== true) {

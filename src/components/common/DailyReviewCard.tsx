@@ -6,9 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useHistory, useLocation } from 'react-router-dom';
 import { DailyReview, fetchDailyReview } from '../../services/assistantApi';
 import { loadTargetSettings } from '../../utils/dailyTargets';
-import type { DayStatus } from '../../domain/dailyTargets.mjs';
-import { ACTIVITY_COLORS, formatDuration } from './activityDisplay';
-import { FoodIcon, MilkIcon, SleepIcon } from './icons';
+import DailyReviewDetails from './DailyReviewDetails';
 import { useNotificationEntry } from './NotificationCenter';
 
 type DailyReviewCardProps = {
@@ -67,14 +65,6 @@ export const formatReviewDay = (day: string, language: string) => {
     });
 };
 
-const STATUS_STYLE: Record<DayStatus, { color: string; bg: string }> = {
-    ok: { color: '#047857', bg: '#d1fae5' },
-    low: { color: '#b45309', bg: '#fef3c7' },
-    high: { color: '#1d4ed8', bg: '#dbeafe' },
-    notLogged: { color: '#64748b', bg: '#f1f5f9' },
-    notApplicable: { color: '#64748b', bg: '#f1f5f9' }
-};
-
 // AI review of yesterday (milk, solid food, sleep, what to improve): pops up once when it
 // arrives, then stays in the header's notification list as a small row that reopens it.
 const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) => {
@@ -107,7 +97,7 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
     }, [activities, now]);
     const autoGenerate = wokeUp || now.getHours() >= FALLBACK_HOUR;
 
-    const load = useCallback(async (options: { generate: boolean; retryAi?: boolean }) => {
+    const load = useCallback(async (options: { generate: boolean; retryAi?: boolean; rewriteDay?: string }) => {
         setLoading(true);
         setError('');
         try {
@@ -158,94 +148,9 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
     };
 
     const current = review?.day === yesterday && review.status === 'done' ? review : null;
-    const facts = current?.facts;
-
-    const rows = facts ? [
-        {
-            key: 'milk' as const,
-            icon: <MilkIcon />,
-            color: ACTIVITY_COLORS.feeding,
-            value: facts.targets.milkMinMl
-                ? t('dailyReview.amountOfTarget', { total: `${facts.yesterday.milkMl}ml`, target: `${facts.targets.milkMinMl}ml` })
-                : `${facts.yesterday.milkMl}ml`,
-            // "Sữa mẹ 150ml · Sữa công thức (Meiji Hohoemi) 250ml" when the kinds were recorded.
-            detail: (['breast', 'formula'] as const)
-                .filter((kind) => facts.milkByType?.[kind])
-                .map((kind) => `${t(`feeding.milkType.${kind}`)}${kind === 'formula' && facts.milkProduct ? ` (${facts.milkProduct})` : ''} ${facts.milkByType![kind]!.ml}ml`)
-                .join(' · '),
-            text: current?.ai?.milk
-        },
-        {
-            key: 'solids' as const,
-            icon: <FoodIcon />,
-            color: ACTIVITY_COLORS.solid,
-            value: facts.targets.solidMinMeals
-                ? t('dailyReview.mealsOfTarget', { count: facts.yesterday.solidMeals, target: facts.targets.solidMinMeals })
-                : '',
-            // "Cháo bí (mới) · Cà rốt ⚠" — the foods eaten, new ones and reactions marked.
-            detail: (facts.solidFoods || [])
-                .filter((food) => food.name !== '?')
-                .map((food) => `${food.name}${food.newThisWeek ? ` (${t('dailyReview.newFood')})` : ''}${food.reaction === 'allergic' ? ' ⚠' : ''}`)
-                .join(' · '),
-            text: current?.ai?.solids
-        },
-        {
-            key: 'sleep' as const,
-            icon: <SleepIcon />,
-            color: ACTIVITY_COLORS.sleep,
-            value: t('dailyReview.amountOfTarget', {
-                total: formatDuration(facts.yesterday.sleepMinutes),
-                target: formatDuration(facts.targets.sleepMinHours * 60)
-            }),
-            text: current?.ai?.sleep
-        }
-    ].filter((row) => facts.status[row.key] !== 'notApplicable') : [];
 
     const details = current && (
-        <>
-            <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#1e293b', mb: 1 }}>{current.headline}</Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {rows.map((row) => {
-                    const status = facts!.status[row.key];
-                    const style = STATUS_STYLE[status];
-                    return (
-                        <Box key={row.key} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                            <Box sx={{ width: 26, height: 26, borderRadius: '50%', bgcolor: row.color, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, '& svg': { fontSize: 15 } }}>
-                                {row.icon}
-                            </Box>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{t(`dailyReview.labels.${row.key}`)}</Typography>
-                                    <Box component="span" sx={{ fontSize: 11, fontWeight: 700, px: 0.75, py: 0.1, borderRadius: '999px', color: style.color, bgcolor: style.bg }}>
-                                        {t(`dailyReview.status.${status}`)}
-                                    </Box>
-                                    {row.value && <Typography sx={{ fontSize: 12, color: '#64748b' }}>{row.value}</Typography>}
-                                </Box>
-                                {row.detail && <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{row.detail}</Typography>}
-                                {row.text && <Typography sx={{ fontSize: 13, color: '#334155' }}>{row.text}</Typography>}
-                            </Box>
-                        </Box>
-                    );
-                })}
-            </Box>
-            {current.ai && current.ai.tips.length > 0 && (
-                <Box sx={{ mt: 1.25, p: 1.25, borderRadius: '12px', bgcolor: '#ffffff', border: '1px solid #ddd6fe' }}>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#5b21b6', mb: 0.5 }}>{t('dailyReview.tipsTitle')}</Typography>
-                    {current.ai.tips.map((tip) => (
-                        <Typography key={tip} sx={{ fontSize: 13, color: '#1e293b' }}>• {tip}</Typography>
-                    ))}
-                </Box>
-            )}
-            {!current.ai && (
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1 }}>
-                    <Typography sx={{ fontSize: 12, color: '#64748b' }}>{t('dailyReview.aiUnavailable')}</Typography>
-                    <Button size="small" onClick={() => load({ generate: true, retryAi: true })} disabled={loading} sx={{ color: '#5b21b6', fontWeight: 700, textTransform: 'none', flexShrink: 0 }}>
-                        {loading ? <CircularProgress size={14} color="inherit" /> : t('dailyReview.retry')}
-                    </Button>
-                </Box>
-            )}
-            <Typography sx={{ fontSize: 11, color: '#7c3aed', mt: 1 }}>{t('yesterdayCheck.disclaimer')}</Typography>
-        </>
+        <DailyReviewDetails review={current} loading={loading} onRetryAi={() => load({ generate: true, retryAi: true })} />
     );
 
     const header = (
@@ -308,7 +213,20 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
                     {details}
                     {error && <Typography sx={{ fontSize: 12, color: '#b91c1c', mt: 1 }}>{error}</Typography>}
                 </DialogContent>
-                <DialogActions>
+                <DialogActions sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                    <Button
+                        onClick={() => { closePopup(); history.push('/reviews'); }}
+                        sx={{ color: '#5b21b6', textTransform: 'none', fontWeight: 700, mr: 'auto' }}
+                    >
+                        {t('dailyReview.history')}
+                    </Button>
+                    <Button
+                        onClick={() => current && load({ generate: true, rewriteDay: current.day })}
+                        disabled={loading}
+                        sx={{ color: '#5b21b6', textTransform: 'none', fontWeight: 700 }}
+                    >
+                        {loading ? <CircularProgress size={14} color="inherit" /> : t('dailyReview.rewrite')}
+                    </Button>
                     <Button variant="contained" onClick={closePopup} sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none', fontWeight: 700, borderRadius: '12px' }}>
                         {t('dailyReview.gotIt')}
                     </Button>
