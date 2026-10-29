@@ -15,6 +15,7 @@ const MilestonesPage = lazy(() => import('../pages/MilestonesPage'));
 const WonderWeeksPage = lazy(() => import('../pages/WonderWeeksPage'));
 const FoodHistoryPage = lazy(() => import('../pages/FoodHistoryPage'));
 const TimelinePage = lazy(() => import('../pages/TimelinePage'));
+const DailyReviewsPage = lazy(() => import('../pages/DailyReviewsPage'));
 
 // Fallback loader
 const FallbackLoader = () => (
@@ -44,6 +45,7 @@ const AppRouter: React.FC = () => {
                                     <PrivateRoute path="/milestones" component={MilestonesPage} />
                                     <PrivateRoute path="/wonder-weeks" component={WonderWeeksPage} />
                                     <PrivateRoute path="/food-history" component={FoodHistoryPage} />
+                                    <PrivateRoute path="/reviews" component={DailyReviewsPage} />
                                 </Switch>
                             </Box>
                             <BottomNav />

@@ -28,6 +28,7 @@ import {
     SendIcon,
     TranslateIcon
 } from './components/common/icons';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
 import packageJson from '../package.json';
 import { CHANGELOG_SEEN_STORAGE_KEY, fallbackChangelogReleases, formatChangelogDate } from './utils/changelog';
@@ -357,6 +358,34 @@ const HeaderComponent: React.FC<{
                                     >
                                         <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
                                         {t('menu.babyInfo')}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            // The header sits outside the router: change the URL and let it follow.
+                                            window.history.pushState({}, '', '/reviews');
+                                            window.dispatchEvent(new PopStateEvent('popstate'));
+                                            setShowMenu(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: '#101c22',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                        onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
+                                        onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                                    >
+                                        <AutoAwesomeIcon sx={{ fontSize: '20px', color: '#7c3aed' }} />
+                                        {t('menu.dailyReviews')}
                                     </button>
                                     <button
                                         onClick={onToggleReminder}
