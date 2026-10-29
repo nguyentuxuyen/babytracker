@@ -635,5 +635,13 @@
     "open": "Open notifications",
     "openWithCount": "Open notifications ({{count}} new)",
     "empty": "No notifications yet"
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "milk": "Baby's milk",
+    "milkHint": "Every milk feed (in the app, via Siri or the assistant) uses this milk. The morning review uses the formula name to judge whether the amount is enough.",
+    "reminders": "Reminders",
+    "reminderSwitch": "Logging reminders",
+    "reminderInterval": "Remind every"
   }
 }

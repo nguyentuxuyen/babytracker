@@ -617,5 +617,13 @@
     "open": "お知らせを開く",
     "openWithCount": "お知らせを開く（新着{{count}}件）",
     "empty": "お知らせはまだありません"
+  },
+  "settingsPage": {
+    "title": "設定",
+    "milk": "赤ちゃんのミルク",
+    "milkHint": "アプリ・Siri・アシスタントで記録したすべての授乳にこのミルクが使われます。朝の評価は商品名をもとに量が足りているかを判断します。",
+    "reminders": "リマインダー",
+    "reminderSwitch": "記録のリマインダー",
+    "reminderInterval": "通知の間隔"
   }
 }

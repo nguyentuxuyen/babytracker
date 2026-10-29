@@ -617,5 +617,13 @@
     "open": "Mở thông báo",
     "openWithCount": "Mở thông báo ({{count}} mới)",
     "empty": "Chưa có thông báo nào"
+  },
+  "settingsPage": {
+    "title": "Cài đặt",
+    "milk": "Sữa của bé",
+    "milkHint": "Mỗi cữ sữa (ghi trên app, Siri hay trợ lý AI) đều dùng loại sữa này. Đánh giá buổi sáng dựa vào tên sữa để xét lượng ml có đủ không.",
+    "reminders": "Nhắc nhở",
+    "reminderSwitch": "Nhắc ghi nhật ký",
+    "reminderInterval": "Nhắc sau mỗi"
   }
 }
