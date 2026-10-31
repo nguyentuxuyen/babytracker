@@ -60,6 +60,8 @@ const TimelinePage: React.FC = () => {
     // Deletes wait a few seconds so the user can undo; the write happens when the timer fires.
     const UNDO_DELAY_MS = 5000;
     const [pendingDelete, setPendingDelete] = useState<Activity | null>(null);
+    // The record the user tapped delete on, waiting for them to confirm.
+    const [confirmingDelete, setConfirmingDelete] = useState<Activity | null>(null);
     const pendingDeleteRef = useRef<{ activity: Activity; timer: number } | null>(null);
 
     const commitDelete = async (activity: Activity) => {
@@ -280,7 +282,7 @@ const TimelinePage: React.FC = () => {
                                                         <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{getActivityLabel(activity)}</Typography>
                                                         <Box sx={{ display: 'flex' }}>
                                                             <Tooltip title={t('timeline.edit')}><IconButton aria-label={t('timeline.edit')} onClick={() => openEdit(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                            <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} onClick={() => handleDelete(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                                                            <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} onClick={() => setConfirmingDelete(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
                                                         </Box>
                                                     </Box>
                                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -323,6 +325,32 @@ const TimelinePage: React.FC = () => {
                     <Button onClick={() => setEditingActivity(null)}>{t('common.cancel')}</Button>
                     <Button variant="contained" onClick={() => void saveEdit()} disabled={savingEdit || (editingActivity?.type === 'diaper' && !editIsUrine && !editIsStool)}>
                         {savingEdit ? <CircularProgress size={16} color="inherit" /> : t('common.save')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            <Dialog open={Boolean(confirmingDelete)} onClose={() => setConfirmingDelete(null)} fullWidth maxWidth="xs">
+                <DialogTitle>{t('timeline.confirmDelete')}</DialogTitle>
+                {confirmingDelete && (
+                    <DialogContent>
+                        <Typography sx={{ fontWeight: 700, color: getActivityColor(confirmingDelete) }}>
+                            {getActivityLabel(confirmingDelete)} · {new Date(confirmingDelete.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5 }}>
+                            {getActivityDetails(confirmingDelete).join(' · ')}
+                        </Typography>
+                    </DialogContent>
+                )}
+                <DialogActions>
+                    <Button onClick={() => setConfirmingDelete(null)}>{t('common.cancel')}</Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={() => {
+                            if (confirmingDelete) handleDelete(confirmingDelete);
+                            setConfirmingDelete(null);
+                        }}
+                    >
+                        {t('timeline.delete')}
                     </Button>
                 </DialogActions>
             </Dialog>

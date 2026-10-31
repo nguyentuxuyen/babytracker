@@ -330,7 +330,19 @@ const ActivitiesPage: React.FC = () => {
         };
         window.addEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
 
+        // A sleep stopped here while offline turned out to be stopped first on another device.
+        const handleSleepStopDiscarded = () => {
+            loadActivities();
+            setSnackbar({
+                open: true,
+                message: t('activities.snackbar.sleepAlreadyStopped'),
+                severity: 'info'
+            });
+        };
+        window.addEventListener('sleep-stop-discarded', handleSleepStopDiscarded);
+
         return () => {
+            window.removeEventListener('sleep-stop-discarded', handleSleepStopDiscarded);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
         };
@@ -419,17 +431,22 @@ const ActivitiesPage: React.FC = () => {
         // Hide the timer immediately; restore it if saving the sleep fails.
         setOngoingSleep(null);
         try {
-            const [savedActivity, cleared] = await Promise.all([
-                firestore.saveActivity(userId, activityData).catch((error) => {
-                    console.error('Error stopping sleep:', error);
-                    return null;
-                }),
-                firestore.clearOngoingSleep(userId, babyId)
-            ]);
+            const result = await firestore.finishOngoingSleep(userId, babyId, stopped.startTime, activityData);
 
-            if (!savedActivity) {
-                // Put the session back so the sleep is not lost.
-                if (cleared) void firestore.startOngoingSleep(userId, babyId, stopped.startTime);
+            if (result.status === 'alreadyStopped') {
+                // Stopped (or restarted) on another device: keep that record, add none here.
+                const current = await firestore.getOngoingSleep(userId, babyId);
+                setOngoingSleep(current);
+                void refreshActivities(selectedDate);
+                setSnackbar({
+                    open: true,
+                    message: t('activities.snackbar.sleepAlreadyStopped'),
+                    severity: 'info'
+                });
+                return;
+            }
+
+            if (result.status !== 'saved') {
                 setOngoingSleep(prev => prev ?? stopped);
                 setSnackbar({
                     open: true,
@@ -439,21 +456,20 @@ const ActivitiesPage: React.FC = () => {
                 return;
             }
 
-            if (!cleared) void firestore.clearOngoingSleep(userId, babyId);
-
+            const savedActivity = result.activity;
             const localActivity = {
                 id: savedActivity.id,
                 type: 'sleep' as const,
                 timestamp: savedActivity.timestamp,
                 details: savedActivity.details
             };
-            setActivities(prev => [localActivity, ...(prev || [])]);
+            setActivities(prev => [localActivity, ...(prev || []).filter(item => item.id !== localActivity.id)]);
             setSnackbar({
                 open: true,
-                message: firestore.isPendingWrite(savedActivity.id)
+                message: result.pending
                     ? t('activities.snackbar.sleepSavedOffline', { count: duration })
                     : t('activities.snackbar.sleepSaved', { count: duration }),
-                severity: firestore.isPendingWrite(savedActivity.id) ? 'info' : 'success'
+                severity: result.pending ? 'info' : 'success'
             });
         } finally {
             unlock();
