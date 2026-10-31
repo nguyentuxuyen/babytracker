@@ -22,6 +22,9 @@ vi.mock('firebase/firestore', () => {
         limit: vi.fn(),
         where: vi.fn(),
         serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
+        runTransaction: vi.fn(),
+        writeBatch: vi.fn(),
+        onSnapshot: vi.fn(),
         Timestamp: { fromDate: (date: Date) => date }
     };
 });
@@ -198,5 +201,139 @@ describe('saveActivity while offline', () => {
     it('throws for an invalid activity without writing anything', async () => {
         await expect(firestore.saveActivity(USER, { ...milk, type: 'party' } as any)).rejects.toThrow();
         expect(sdk.setDoc).not.toHaveBeenCalled();
+    });
+});
+
+describe('finishOngoingSleep (stopping the sleep timer)', () => {
+    const BABY = 'baby-1';
+    const start = new Date(2026, 9, 31, 13, 0);
+    const end = new Date(2026, 9, 31, 14, 30);
+    const sleep = { babyId: BABY, type: 'sleep' as const, timestamp: end, details: { time: end, duration: 90 } };
+    const markerPath = `users/${USER}/ongoingSleep/${BABY}`;
+    const activityId = `sleep-${BABY}-${start.getTime()}`;
+
+    // Fake server: docs by path; runTransaction applies writes like Firestore does.
+    let server: Map<string, Record<string, any>>;
+    const snap = (path: string) => ({ exists: () => server.has(path), data: () => server.get(path) });
+    beforeEach(() => {
+        server = new Map();
+        (sdk.runTransaction as Mock).mockImplementation(async (_db: unknown, update: (tx: any) => Promise<unknown>) => {
+            const writes: Array<() => void> = [];
+            const tx = {
+                get: vi.fn(async (ref: { path: string }) => snap(ref.path)),
+                set: vi.fn((ref: { path: string }, data: any) => { writes.push(() => server.set(ref.path, data)); }),
+                delete: vi.fn((ref: { path: string }) => { writes.push(() => server.delete(ref.path)); })
+            };
+            const result = await update(tx);
+            writes.forEach((write) => write());
+            return result;
+        });
+        (sdk.writeBatch as Mock).mockImplementation(() => {
+            const writes: Array<() => void> = [];
+            return {
+                set: (ref: { path: string }, data: any) => writes.push(() => server.set(ref.path, data)),
+                delete: (ref: { path: string }) => writes.push(() => server.delete(ref.path)),
+                commit: vi.fn(async () => writes.forEach((write) => write()))
+            };
+        });
+    });
+    const sleepRecords = () => Array.from(server.keys()).filter((path) => path.startsWith(`users/${USER}/activities/`));
+
+    it('saves one sleep and clears the timer when the session is still running', async () => {
+        server.set(markerPath, { startTime: start });
+
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+
+        expect(result).toMatchObject({ status: 'saved', pending: false, activity: { id: activityId, type: 'sleep' } });
+        expect(server.has(markerPath)).toBe(false);
+        expect(sleepRecords()).toEqual([`users/${USER}/activities/${activityId}`]);
+        expect(server.get(`users/${USER}/activities/${activityId}`)).toMatchObject({ details: { duration: 90 } });
+    });
+
+    it('adds no second record when another device already stopped the same sleep', async () => {
+        server.set(markerPath, { startTime: start });
+        const first = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+        expect(first.status).toBe('saved');
+
+        // This device still shows the old timer and stops it a bit later.
+        const later = new Date(end.getTime() + 10 * 60 * 1000);
+        const second = await firestore.finishOngoingSleep(USER, BABY, start, { ...sleep, timestamp: later, details: { time: later, duration: 100 } } as any);
+
+        expect(second).toEqual({ status: 'alreadyStopped' });
+        expect(sleepRecords()).toHaveLength(1);
+        expect(server.get(`users/${USER}/activities/${activityId}`)).toMatchObject({ details: { duration: 90 } });
+    });
+
+    it('adds no record when the timer was stopped by an older app version (marker gone)', async () => {
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+
+        expect(result).toEqual({ status: 'alreadyStopped' });
+        expect(sleepRecords()).toHaveLength(0);
+    });
+
+    it('leaves a newer sleep running when the stale timer belongs to an earlier session', async () => {
+        const newer = new Date(2026, 9, 31, 15, 0);
+        server.set(markerPath, { startTime: newer });
+
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+
+        expect(result).toEqual({ status: 'alreadyStopped' });
+        expect(server.get(markerPath)).toEqual({ startTime: newer });
+        expect(sleepRecords()).toHaveLength(0);
+    });
+
+    it('offline: writes to the local cache under the same id, so both devices end with one record', async () => {
+        server.set(markerPath, { startTime: start });
+        await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+
+        (sdk.runTransaction as Mock).mockRejectedValueOnce(Object.assign(new Error('offline'), { code: 'unavailable' }));
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+
+        expect(result).toMatchObject({ status: 'saved', pending: true, activity: { id: activityId } });
+        await vi.waitFor(() => expect(firestore.isPendingWrite(activityId)).toBe(false));
+        expect(sleepRecords()).toEqual([`users/${USER}/activities/${activityId}`]);
+    });
+
+    it('skips the server check when the browser reports no network', async () => {
+        vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+        server.set(markerPath, { startTime: start });
+
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+
+        expect(result).toMatchObject({ status: 'saved', pending: true });
+        expect(sdk.runTransaction).not.toHaveBeenCalled();
+        await vi.waitFor(() => expect(server.has(markerPath)).toBe(false));
+    });
+
+    it('reports an error and writes nothing when the server refuses', async () => {
+        server.set(markerPath, { startTime: start });
+        (sdk.runTransaction as Mock).mockRejectedValueOnce(Object.assign(new Error('denied'), { code: 'permission-denied' }));
+
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+
+        expect(result).toEqual({ status: 'error' });
+        expect(sdk.writeBatch).not.toHaveBeenCalled();
+        expect(server.has(markerPath)).toBe(true);
+    });
+});
+
+describe('subscribeOngoingSleep', () => {
+    it('reports the running session and its end as they happen on any device', () => {
+        let emit!: (snapshot: any) => void;
+        const unsubscribe = vi.fn();
+        (sdk.onSnapshot as Mock).mockImplementation((_ref: unknown, next: (snapshot: any) => void) => {
+            emit = next;
+            return unsubscribe;
+        });
+        const onChange = vi.fn();
+        const start = new Date(2026, 9, 31, 13, 0);
+
+        const stop = firestore.subscribeOngoingSleep(USER, 'baby-1', onChange);
+        emit({ exists: () => true, data: () => ({ startTime: { toDate: () => start } }) });
+        emit({ exists: () => false, data: () => undefined });
+        stop();
+
+        expect(onChange.mock.calls).toEqual([[{ startTime: start }], [null]]);
+        expect(unsubscribe).toHaveBeenCalled();
     });
 });

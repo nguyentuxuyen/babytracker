@@ -12,7 +12,10 @@ import {
     limit,
     where,
     Timestamp,
-    QueryDocumentSnapshot
+    QueryDocumentSnapshot,
+    onSnapshot,
+    runTransaction,
+    writeBatch
 } from 'firebase/firestore';
 import { db } from './config';
 import { Baby, Activity, ChangelogConfig, ChangelogRelease } from '../types';
@@ -119,6 +122,24 @@ const WRITE_ACK_TIMEOUT_MS = 4000;
 
 // Ids of saved activities the server has not confirmed yet.
 const pendingWriteIds = new Set<string>();
+
+// Outcome of stopping the sleep timer with finishOngoingSleep.
+export type FinishSleepResult =
+    | { status: 'saved'; activity: Activity; pending: boolean }
+    | { status: 'alreadyStopped' }
+    | { status: 'error' };
+
+// One sleep session always maps to the same activity id, so two devices that
+// stop the same session write one record, never two.
+export const sleepActivityId = (babyId: string, startTime: Date) => `sleep-${babyId}-${startTime.getTime()}`;
+
+// Errors that mean "no connection", where the write can still go to the local cache.
+const isOfflineError = (error: unknown) => {
+    const code = (error as { code?: unknown } | null)?.code;
+    return code === 'unavailable' || code === 'deadline-exceeded';
+};
+
+const TRANSACTION_TIMED_OUT = Symbol('transaction-timed-out');
 
 let syncInFlight: Promise<{ synced: number; failed: number }> | null = null;
 
@@ -580,6 +601,115 @@ export const firestore = {
         } catch (error) {
             console.error('Error starting sleep timer:', error);
             return false;
+        }
+    },
+
+    // Follow the ongoing sleep session live, so a sleep stopped or started on
+    // another device shows up here right away. Returns the unsubscribe function.
+    subscribeOngoingSleep: (
+        userId: string,
+        babyId: string,
+        onChange: (sleep: { startTime: Date } | null) => void
+    ): (() => void) => {
+        try {
+            return onSnapshot(
+                doc(db, 'users', userId, 'ongoingSleep', babyId),
+                (snapshot) => {
+                    const startTime = snapshot.exists() ? toDateValue(snapshot.data()?.startTime) : undefined;
+                    onChange(startTime ? { startTime } : null);
+                },
+                (error) => console.error('Error watching ongoing sleep:', error)
+            );
+        } catch (error) {
+            console.error('Error watching ongoing sleep:', error);
+            return () => undefined;
+        }
+    },
+
+    /**
+     * Stop the sleep session that started at `startTime` and save it as a sleep activity.
+     *
+     * Online, this runs in a transaction: if that session is no longer the ongoing
+     * one on the server (stopped on another device, or replaced by a new sleep),
+     * nothing is written and the result is `alreadyStopped`.
+     * Offline, the server cannot be checked, so the write goes to the local cache;
+     * the activity id comes from the start time, so if another device already
+     * saved this session the same record is updated instead of a second one added.
+     */
+    finishOngoingSleep: async (
+        userId: string,
+        babyId: string,
+        startTime: Date,
+        activity: Omit<Activity, 'id'>
+    ): Promise<FinishSleepResult> => {
+        let built: Record<string, any>;
+        try {
+            built = buildActivityDoc(activity as any);
+        } catch (error) {
+            console.error('Invalid sleep activity:', error);
+            return { status: 'error' };
+        }
+        invalidateHistoryCache();
+
+        const markerRef = doc(db, 'users', userId, 'ongoingSleep', babyId);
+        const activityRef = doc(db, 'users', userId, 'activities', sleepActivityId(babyId, startTime));
+        const saved = normalizeActivityRecord(activityRef.id, built, userId) as Activity;
+        const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+
+        if (online) {
+            try {
+                const transaction = runTransaction(db, async (tx) => {
+                    const marker = await tx.get(markerRef);
+                    const existing = await tx.get(activityRef);
+                    const markerStart = marker.exists() ? toDateValue(marker.data()?.startTime) : undefined;
+                    if (!markerStart || markerStart.getTime() !== startTime.getTime()) {
+                        return 'alreadyStopped' as const;
+                    }
+                    tx.delete(markerRef);
+                    if (existing.exists()) return 'alreadyStopped' as const;
+                    tx.set(activityRef, { ...built, createdAt: serverTimestamp() });
+                    return 'saved' as const;
+                });
+                // A late result after the timeout is harmless: the offline write below uses the same id.
+                transaction.catch(() => undefined);
+                const outcome = await Promise.race([
+                    transaction,
+                    new Promise<typeof TRANSACTION_TIMED_OUT>((resolve) =>
+                        setTimeout(() => resolve(TRANSACTION_TIMED_OUT), WRITE_ACK_TIMEOUT_MS)
+                    )
+                ]);
+                if (outcome === 'alreadyStopped') return { status: 'alreadyStopped' };
+                if (outcome === 'saved') return { status: 'saved', activity: saved, pending: false };
+            } catch (error) {
+                if (!isOfflineError(error)) {
+                    console.error('Error stopping sleep:', error);
+                    return { status: 'error' };
+                }
+            }
+        }
+
+        try {
+            const batch = writeBatch(db);
+            batch.set(activityRef, { ...built, createdAt: serverTimestamp() });
+            batch.delete(markerRef);
+            pendingWriteIds.add(activityRef.id);
+            batch
+                .commit()
+                .then(() => {
+                    pendingWriteIds.delete(activityRef.id);
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('offline-sync-complete', { detail: { synced: 1, failed: 0 } }));
+                    }
+                })
+                .catch((error) => {
+                    pendingWriteIds.delete(activityRef.id);
+                    console.error('Pending sleep write was rejected:', error);
+                });
+            return { status: 'saved', activity: saved, pending: true };
+        } catch (error) {
+            pendingWriteIds.delete(activityRef.id);
+            console.error('Error stopping sleep:', error);
+            return { status: 'error' };
         }
     },
 
