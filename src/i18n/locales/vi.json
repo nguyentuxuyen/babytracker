@@ -147,7 +147,7 @@
       "sleepTimerStarted": "Đã bắt đầu hẹn giờ ngủ. ⏱️",
       "sleepTimerStartFailed": "Không bắt đầu được hẹn giờ ngủ.",
       "sleepTimerStopFailed": "Không dừng được hẹn giờ ngủ.",
-      "sleepAlreadyStopped": "Giấc ngủ này đã được kết thúc trên máy khác, không ghi thêm bản ghi nữa.",
+      "sleepAlreadyStopped": "Giấc ngủ đã được tắt ở máy khác rồi nên không tắt được nữa. Giữ giờ của lần tắt đầu tiên.",
       "sleepSaved": "Đã ghi giấc ngủ: {{count}} phút 😴",
       "sleepSavedOffline": "Đã lưu giấc ngủ ngoại tuyến: {{count}} phút. Sẽ tự đồng bộ khi có mạng.",
       "updated": "Đã cập nhật hoạt động.",

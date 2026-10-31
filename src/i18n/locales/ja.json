@@ -147,7 +147,7 @@
       "sleepTimerStarted": "睡眠タイマーを開始しました。⏱️",
       "sleepTimerStartFailed": "睡眠タイマーの開始に失敗しました。",
       "sleepTimerStopFailed": "睡眠タイマーの停止に失敗しました。",
-      "sleepAlreadyStopped": "この睡眠は別の端末で既に終了しているため、記録は追加しませんでした。",
+      "sleepAlreadyStopped": "この睡眠は別の端末で既に終了しているため、もう一度終了できません。最初に終了した時刻を記録しています。",
       "sleepSaved": "睡眠を記録しました: {{count}}分 😴",
       "sleepSavedOffline": "睡眠をオフライン保存しました: {{count}}分。オンライン時に自動同期されます。",
       "updated": "アクティビティを更新しました。",

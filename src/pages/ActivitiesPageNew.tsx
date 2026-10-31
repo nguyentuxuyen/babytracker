@@ -330,7 +330,19 @@ const ActivitiesPage: React.FC = () => {
         };
         window.addEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
 
+        // A sleep stopped here while offline turned out to be stopped first on another device.
+        const handleSleepStopDiscarded = () => {
+            loadActivities();
+            setSnackbar({
+                open: true,
+                message: t('activities.snackbar.sleepAlreadyStopped'),
+                severity: 'info'
+            });
+        };
+        window.addEventListener('sleep-stop-discarded', handleSleepStopDiscarded);
+
         return () => {
+            window.removeEventListener('sleep-stop-discarded', handleSleepStopDiscarded);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('offline-sync-complete', handleOfflineSyncComplete as EventListener);
         };

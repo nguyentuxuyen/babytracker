@@ -282,27 +282,89 @@ describe('finishOngoingSleep (stopping the sleep timer)', () => {
         expect(sleepRecords()).toHaveLength(0);
     });
 
-    it('offline: writes to the local cache under the same id, so both devices end with one record', async () => {
-        server.set(markerPath, { startTime: start });
-        await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+    const offline = () => vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    const online = () => vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(true);
+    const at = (minutes: number) => {
+        const time = new Date(start.getTime() + minutes * 60 * 1000);
+        return { ...sleep, timestamp: time, details: { time, duration: minutes } } as any;
+    };
+    const savedDuration = () => server.get(`users/${USER}/activities/${activityId}`)?.details.duration;
 
-        (sdk.runTransaction as Mock).mockRejectedValueOnce(Object.assign(new Error('offline'), { code: 'unavailable' }));
-        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+    it('offline: keeps the stop on this device, hides the timer, and saves it once back online', async () => {
+        server.set(markerPath, { startTime: start });
+        offline();
+
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, at(90));
 
         expect(result).toMatchObject({ status: 'saved', pending: true, activity: { id: activityId } });
-        await vi.waitFor(() => expect(firestore.isPendingWrite(activityId)).toBe(false));
+        expect(sdk.runTransaction).not.toHaveBeenCalled();
+        expect(sleepRecords()).toHaveLength(0);
+        await expect(firestore.getPendingActivitiesCount(USER)).resolves.toBe(1);
+        (sdk.getDocs as Mock).mockResolvedValueOnce({ docs: [] });
+        const listed = await firestore.getActivitiesByDateRange(USER, start, 1);
+        expect(listed.map((item) => item.id)).toEqual([activityId]);
+        (sdk.getDoc as Mock).mockResolvedValueOnce({ exists: () => true, data: () => ({ startTime: start }) });
+        await expect(firestore.getOngoingSleep(USER, BABY)).resolves.toBeNull();
+
+        online();
+        await expect(firestore.syncPendingActivities(USER)).resolves.toEqual({ synced: 1, failed: 0 });
         expect(sleepRecords()).toEqual([`users/${USER}/activities/${activityId}`]);
+        expect(savedDuration()).toBe(90);
+        expect(server.has(markerPath)).toBe(false);
+        await expect(firestore.getPendingActivitiesCount(USER)).resolves.toBe(0);
     });
 
-    it('skips the server check when the browser reports no network', async () => {
-        vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    it('offline stop made after the other device stopped: dropped on sync, first time kept', async () => {
         server.set(markerPath, { startTime: start });
+        await firestore.finishOngoingSleep(USER, BABY, start, at(90));
+        offline();
+        await firestore.finishOngoingSleep(USER, BABY, start, at(100));
+        const discarded = vi.fn();
+        window.addEventListener('sleep-stop-discarded', discarded);
 
-        const result = await firestore.finishOngoingSleep(USER, BABY, start, sleep as any);
+        online();
+        await firestore.syncPendingActivities(USER);
+
+        expect(sleepRecords()).toHaveLength(1);
+        expect(savedDuration()).toBe(90);
+        expect((discarded.mock.calls[0][0] as CustomEvent).detail).toEqual({ count: 1 });
+        await expect(firestore.getPendingActivitiesCount(USER)).resolves.toBe(0);
+        window.removeEventListener('sleep-stop-discarded', discarded);
+    });
+
+    it('offline stop pressed first but synced later still wins with its earlier time', async () => {
+        server.set(markerPath, { startTime: start });
+        offline();
+        await firestore.finishOngoingSleep(USER, BABY, start, at(80));
+        online();
+        await firestore.finishOngoingSleep(USER, BABY, start, at(90)); // other device, online
+
+        await firestore.syncPendingActivities(USER);
+
+        expect(sleepRecords()).toHaveLength(1);
+        expect(savedDuration()).toBe(80);
+    });
+
+    it('does not overwrite a record someone edited after it was saved', async () => {
+        server.set(`users/${USER}/activities/${activityId}`, { ...at(90), updatedAt: 'EDITED' });
+        offline();
+        await firestore.finishOngoingSleep(USER, BABY, start, at(80));
+        online();
+
+        await firestore.syncPendingActivities(USER);
+
+        expect(savedDuration()).toBe(90);
+    });
+
+    it('falls back to waiting on this device when the transaction reports no connection', async () => {
+        server.set(markerPath, { startTime: start });
+        (sdk.runTransaction as Mock).mockRejectedValueOnce(Object.assign(new Error('offline'), { code: 'unavailable' }));
+
+        const result = await firestore.finishOngoingSleep(USER, BABY, start, at(90));
 
         expect(result).toMatchObject({ status: 'saved', pending: true });
-        expect(sdk.runTransaction).not.toHaveBeenCalled();
-        await vi.waitFor(() => expect(server.has(markerPath)).toBe(false));
+        await firestore.syncPendingActivities(USER);
+        expect(savedDuration()).toBe(90);
     });
 
     it('reports an error and writes nothing when the server refuses', async () => {
