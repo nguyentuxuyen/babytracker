@@ -1,4 +1,4 @@
-import { buildActivityDoc, normalizeActivityRecord, ActivityValidationError } from './activitySchema.mjs';
+import { buildActivityDoc, normalizeActivityRecord, ActivityValidationError, foodNamesOf, foodGramsOf } from './activitySchema.mjs';
 
 const at = new Date(2026, 9, 9, 8, 30);
 
@@ -26,7 +26,37 @@ describe('buildActivityDoc', () => {
       details: { foodType: 'solid', amount: 30, foodItem: 'Cháo', foodPreference: 'allergic' }
     });
 
-    expect(built.details).toEqual({ foodType: 'solid', amount: 30, notes: '', foodItem: 'Cháo', foodPreference: 'allergic', isAllergic: true });
+    expect(built.details).toEqual({ foodType: 'solid', amount: 30, notes: '', foodItem: 'Cháo', foodItems: ['Cháo'], foodPreference: 'allergic', isAllergic: true });
+  });
+
+  it('keeps every dish of a meal with several foods', () => {
+    const built = buildActivityDoc({
+      babyId: 'u1', type: 'feeding', timestamp: at,
+      details: { foodType: 'solid', amount: 50, foodItems: [' Cháo  bí ', 'Chuối', 'chuối', '', 'Sữa chua'] }
+    });
+
+    expect(built.details).toMatchObject({ foodItem: 'Cháo bí, Chuối, Sữa chua', foodItems: ['Cháo bí', 'Chuối', 'Sữa chua'] });
+  });
+
+  it('keeps grams per dish and makes the meal amount their total', () => {
+    const built = buildActivityDoc({
+      babyId: 'u1', type: 'feeding', timestamp: at,
+      details: { foodType: 'solid', amount: 999, foodItems: ['Cơm', 'Chuối', 'cơm'], foodGrams: [50, '20', 10] }
+    });
+
+    expect(built.details).toMatchObject({ amount: 80, foodItems: ['Cơm', 'Chuối'], foodGrams: [60, 20] });
+  });
+
+  it('drops grams per dish when none were given or there is one dish', () => {
+    const solid = (details: Record<string, unknown>) => buildActivityDoc({ babyId: 'u1', type: 'feeding', timestamp: at, details: { foodType: 'solid', ...details } }).details;
+    expect(solid({ amount: 40, foodItems: ['Cơm', 'Chuối'], foodGrams: [0, 0] })).not.toHaveProperty('foodGrams');
+    expect(solid({ amount: 40, foodItems: ['Cơm'], foodGrams: [30] })).toMatchObject({ amount: 40 });
+    expect(solid({ amount: 40, foodItems: ['Cơm'], foodGrams: [30] })).not.toHaveProperty('foodGrams');
+  });
+
+  it('treats a meal with only foodItems as solid food', () => {
+    const built = buildActivityDoc({ babyId: 'u1', type: 'feeding', timestamp: at, details: { foodItems: ['Bơ'] } });
+    expect(built.details).toMatchObject({ foodType: 'solid', foodItems: ['Bơ'] });
   });
 
   it('keeps a known milk kind on milk feeds only', () => {
@@ -53,6 +83,25 @@ describe('buildActivityDoc', () => {
   it('only keeps stool details when there was stool', () => {
     expect(buildActivityDoc({ babyId: 'u1', type: 'diaper', timestamp: at, details: { isUrine: true, isStool: false, stoolColor: ['vàng'] } }).details)
       .toEqual({ isUrine: true, isStool: false, stoolColor: [], notes: '' });
+  });
+});
+
+describe('foodGramsOf', () => {
+  it('uses grams of weighed dishes and shares out the rest', () => {
+    expect(foodGramsOf({ amount: 100, foodItems: ['Cơm', 'Chuối', 'Bơ'], foodGrams: [60, 0, 0] })).toEqual([
+      { name: 'Cơm', grams: 60, estimated: false },
+      { name: 'Chuối', grams: 20, estimated: true },
+      { name: 'Bơ', grams: 20, estimated: true }
+    ]);
+    expect(foodGramsOf({ amount: 30, foodItem: 'Cháo' })).toEqual([{ name: 'Cháo', grams: 30, estimated: false }]);
+  });
+});
+
+describe('foodNamesOf', () => {
+  it('reads older single-food records', () => {
+    expect(foodNamesOf({ foodItem: 'Cà rốt' })).toEqual(['Cà rốt']);
+    expect(foodNamesOf({ foodItem: '' })).toEqual([]);
+    expect(foodNamesOf(undefined)).toEqual([]);
   });
 });
 

@@ -199,7 +199,12 @@
       "normal": "Bình thường",
       "dislike": "Không thích",
       "allergic": "Dị ứng"
-    }
+    },
+    "pickSeveral": "chọn được nhiều món",
+    "addAnotherFood": "Thêm món khác",
+    "gramsPerFood": "Lượng từng món",
+    "gramsOf": "Lượng {{food}} (g)",
+    "totalGrams": "Tổng {{amount}}g"
   },
   "sleep": {
     "startTime": "Giờ bắt đầu",
@@ -240,7 +245,8 @@
     "triedCount": "Món đã thử",
     "lovedCount": "Bé thích",
     "averageAmount": "TB {{amount}}g",
-    "yesterday": "Hôm qua"
+    "yesterday": "Hôm qua",
+    "eatenWith": "Ăn cùng: {{foods}}"
   },
   "stats": {
     "loading": "Đang tải thống kê...",

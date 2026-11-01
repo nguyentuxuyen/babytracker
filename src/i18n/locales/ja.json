@@ -199,7 +199,12 @@
       "normal": "普通",
       "dislike": "嫌がる",
       "allergic": "アレルギー"
-    }
+    },
+    "pickSeveral": "複数選べます",
+    "addAnotherFood": "別の食品を追加",
+    "gramsPerFood": "食品ごとの量",
+    "gramsOf": "{{food}}の量 (g)",
+    "totalGrams": "合計 {{amount}}g"
   },
   "sleep": {
     "startTime": "開始時刻",
@@ -240,7 +245,8 @@
     "triedCount": "試した食材",
     "lovedCount": "好き",
     "averageAmount": "平均{{amount}}g",
-    "yesterday": "昨日"
+    "yesterday": "昨日",
+    "eatenWith": "一緒に: {{foods}}"
   },
   "stats": {
     "loading": "統計を読み込んでいます...",

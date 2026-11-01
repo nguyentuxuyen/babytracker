@@ -114,7 +114,23 @@ const MAX_FOODS = 30;
 // Worst reaction first, so a food the baby reacted to once is reported that way.
 const REACTION_ORDER = ['allergic', 'dislike', 'enthusiastic', 'normal'];
 
-const foodName = (activity) => String(activity.details.foodItem || '').replace(/\s+/g, ' ').trim().slice(0, MAX_FOOD_NAME);
+const cleanFoodName = (value) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, MAX_FOOD_NAME);
+// Every dish of one meal with the grams eaten of it; a meal can hold several dishes
+// ("Cơm, Chuối"), each with its own grams or an even share of the meal's amount;
+// older records have one `foodItem`.
+const foodPortions = (activity) => {
+  const details = activity.details;
+  const hasList = Array.isArray(details.foodItems) && details.foodItems.length > 0;
+  const names = (hasList ? details.foodItems : [details.foodItem]).map(cleanFoodName);
+  const own = names.map((_, index) => (hasList && Array.isArray(details.foodGrams) ? Number(details.foodGrams[index]) || 0 : 0));
+  const known = own.reduce((sum, grams) => sum + grams, 0);
+  const unknown = names.filter((name, index) => name && own[index] === 0).length;
+  const share = unknown > 0 ? Math.max(0, (Number(details.amount) || 0) - known) / unknown : 0;
+  return names
+    .map((name, index) => ({ name, grams: own[index] > 0 ? own[index] : share }))
+    .filter((portion) => portion.name);
+};
+const foodNames = (activity) => foodPortions(activity).map((portion) => portion.name);
 const isMilk = (a) => a.type === 'feeding' && a.details.foodType !== 'solid';
 const isSolid = (a) => a.type === 'feeding' && a.details.foodType === 'solid';
 
@@ -132,21 +148,25 @@ function milkByType(dayActivities) {
 
 /** Each food eaten that day with meals, grams and the baby's reaction; plus whether it is new this week. */
 function solidFoods(dayActivities, earlierActivities) {
-  const seenBefore = new Set(earlierActivities.filter(isSolid).map((a) => foodName(a).toLocaleLowerCase()).filter(Boolean));
+  const seenBefore = new Set(earlierActivities.filter(isSolid).flatMap(foodNames).map((name) => name.toLocaleLowerCase()));
   const byName = new Map();
   for (const activity of dayActivities.filter(isSolid)) {
-    const name = foodName(activity) || '?';
-    const entry = byName.get(name.toLocaleLowerCase()) || { name, meals: 0, grams: 0, reaction: 'normal' };
-    entry.meals += 1;
-    entry.grams += Number(activity.details.amount) || 0;
+    const portions = foodPortions(activity);
+    if (portions.length === 0) portions.push({ name: '?', grams: Number(activity.details.amount) || 0 });
     const reaction = activity.details.isAllergic ? 'allergic' : activity.details.foodPreference || 'normal';
-    if (REACTION_ORDER.indexOf(reaction) !== -1 && REACTION_ORDER.indexOf(reaction) < REACTION_ORDER.indexOf(entry.reaction)) {
-      entry.reaction = reaction;
+    for (const { name, grams } of portions) {
+      const entry = byName.get(name.toLocaleLowerCase()) || { name, meals: 0, grams: 0, reaction: 'normal' };
+      entry.meals += 1;
+      entry.grams += grams;
+      if (REACTION_ORDER.indexOf(reaction) !== -1 && REACTION_ORDER.indexOf(reaction) < REACTION_ORDER.indexOf(entry.reaction)) {
+        entry.reaction = reaction;
+      }
+      byName.set(name.toLocaleLowerCase(), entry);
     }
-    byName.set(name.toLocaleLowerCase(), entry);
   }
   return [...byName.values()].slice(0, MAX_FOODS).map((entry) => ({
     ...entry,
+    grams: Math.round(entry.grams),
     newThisWeek: entry.name !== '?' && !seenBefore.has(entry.name.toLocaleLowerCase())
   }));
 }
@@ -155,11 +175,11 @@ function solidFoods(dayActivities, earlierActivities) {
 function weekFoods(weekActivities, dayOf) {
   const byName = new Map();
   for (const activity of weekActivities.filter(isSolid)) {
-    const name = foodName(activity);
-    if (!name) continue;
-    const entry = byName.get(name.toLocaleLowerCase()) || { name, days: new Set() };
-    entry.days.add(dayOf(activity.timestamp));
-    byName.set(name.toLocaleLowerCase(), entry);
+    for (const name of foodNames(activity)) {
+      const entry = byName.get(name.toLocaleLowerCase()) || { name, days: new Set() };
+      entry.days.add(dayOf(activity.timestamp));
+      byName.set(name.toLocaleLowerCase(), entry);
+    }
   }
   return [...byName.values()]
     .map(({ name, days }) => ({ name, days: days.size }))

@@ -210,7 +210,12 @@
       "normal": "Normal",
       "dislike": "Disliked",
       "allergic": "Allergy"
-    }
+    },
+    "pickSeveral": "pick several",
+    "addAnotherFood": "Add another food",
+    "gramsPerFood": "Amount of each food",
+    "gramsOf": "Amount of {{food}} (g)",
+    "totalGrams": "Total {{amount}}g"
   },
   "sleep": {
     "startTime": "Start time",
@@ -251,7 +256,8 @@
     "triedCount": "Foods tried",
     "lovedCount": "Loved",
     "averageAmount": "avg {{amount}}g",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "eatenWith": "Eaten with: {{foods}}"
   },
   "stats": {
     "loading": "Loading stats...",

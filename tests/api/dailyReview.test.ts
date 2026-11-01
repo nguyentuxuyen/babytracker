@@ -155,6 +155,33 @@ describe('morning review from the reminder cron', () => {
         ]);
     });
 
+    it('counts every dish of a meal with several foods', async () => {
+        logYesterday();
+        addActivity('feeding', jst(20, 17), { foodType: 'solid', amount: 40, foodItems: ['Cháo bí', 'Chuối'], foodPreference: 'dislike' });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.solidFoods).toEqual([
+            { name: 'cháo bí', meals: 2, grams: 80, reaction: 'dislike', newThisWeek: true },
+            { name: 'Chuối', meals: 1, grams: 20, reaction: 'dislike', newThisWeek: true }
+        ]);
+        expect(reviewDoc()?.facts.weekFoods).toEqual(expect.arrayContaining([{ name: 'Chuối', days: 1 }]));
+    });
+
+    it('uses the grams weighed for each dish', async () => {
+        logYesterday();
+        addActivity('feeding', jst(20, 17), { foodType: 'solid', foodItems: ['Cơm', 'Chuối'], foodGrams: [50, 15] });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.solidFoods).toEqual(expect.arrayContaining([
+            { name: 'Cơm', meals: 1, grams: 50, reaction: 'normal', newThisWeek: true },
+            { name: 'Chuối', meals: 1, grams: 15, reaction: 'normal', newThisWeek: true }
+        ]));
+    });
+
     it('tells the AI which formula the baby drinks', async () => {
         logYesterday();
         db.docs.set(`users/${UID}/settings/feeding`, { defaultMilkType: 'formula', milkProduct: '  Meiji   Hohoemi ' });

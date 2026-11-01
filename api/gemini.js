@@ -271,6 +271,7 @@ so a low ml total with breast feeds may just be unmeasured.
 "milkProduct" is the formula the baby drinks (brand and product as the parents wrote it), or null.
 "solidFoods" lists each food eaten yesterday (as the parents named it) with meals, grams,
 the baby's reaction ("enthusiastic", "normal", "dislike", "allergic") and "newThisWeek".
+A meal can hold several dishes; each has its own grams when the parents weighed it, otherwise an even share of the meal.
 "weekFoods" lists every food eaten in the last seven days with the number of days it was eaten.
 
 Answer in ${languageName} with JSON only:
