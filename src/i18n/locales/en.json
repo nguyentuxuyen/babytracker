@@ -156,6 +156,7 @@
       "sleepTimerStarted": "Sleep timer started. ⏱️",
       "sleepTimerStartFailed": "Could not start the sleep timer.",
       "sleepTimerStopFailed": "Could not stop the sleep timer.",
+      "sleepAlreadyStopped": "This sleep was already stopped on another device, so it can't be stopped again. The first stop time is kept.",
       "sleepSaved": "Sleep saved: {{count}} min 😴",
       "sleepSavedOffline": "Sleep saved offline: {{count}} min. It will sync when you are back online.",
       "updated": "Activity updated.",
