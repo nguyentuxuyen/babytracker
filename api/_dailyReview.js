@@ -114,7 +114,14 @@ const MAX_FOODS = 30;
 // Worst reaction first, so a food the baby reacted to once is reported that way.
 const REACTION_ORDER = ['allergic', 'dislike', 'enthusiastic', 'normal'];
 
-const foodName = (activity) => String(activity.details.foodItem || '').replace(/\s+/g, ' ').trim().slice(0, MAX_FOOD_NAME);
+const cleanFoodName = (value) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, MAX_FOOD_NAME);
+// Every dish of one meal; a meal can hold several ("Cháo, Bí đỏ"), older records one `foodItem`.
+const foodNames = (activity) => {
+  const list = Array.isArray(activity.details.foodItems) && activity.details.foodItems.length > 0
+    ? activity.details.foodItems
+    : [activity.details.foodItem];
+  return list.map(cleanFoodName).filter(Boolean);
+};
 const isMilk = (a) => a.type === 'feeding' && a.details.foodType !== 'solid';
 const isSolid = (a) => a.type === 'feeding' && a.details.foodType === 'solid';
 
@@ -132,21 +139,27 @@ function milkByType(dayActivities) {
 
 /** Each food eaten that day with meals, grams and the baby's reaction; plus whether it is new this week. */
 function solidFoods(dayActivities, earlierActivities) {
-  const seenBefore = new Set(earlierActivities.filter(isSolid).map((a) => foodName(a).toLocaleLowerCase()).filter(Boolean));
+  const seenBefore = new Set(earlierActivities.filter(isSolid).flatMap(foodNames).map((name) => name.toLocaleLowerCase()));
   const byName = new Map();
   for (const activity of dayActivities.filter(isSolid)) {
-    const name = foodName(activity) || '?';
-    const entry = byName.get(name.toLocaleLowerCase()) || { name, meals: 0, grams: 0, reaction: 'normal' };
-    entry.meals += 1;
-    entry.grams += Number(activity.details.amount) || 0;
+    const names = foodNames(activity);
+    if (names.length === 0) names.push('?');
+    // The meal's grams are for all its dishes together; share them out evenly.
+    const grams = (Number(activity.details.amount) || 0) / names.length;
     const reaction = activity.details.isAllergic ? 'allergic' : activity.details.foodPreference || 'normal';
-    if (REACTION_ORDER.indexOf(reaction) !== -1 && REACTION_ORDER.indexOf(reaction) < REACTION_ORDER.indexOf(entry.reaction)) {
-      entry.reaction = reaction;
+    for (const name of names) {
+      const entry = byName.get(name.toLocaleLowerCase()) || { name, meals: 0, grams: 0, reaction: 'normal' };
+      entry.meals += 1;
+      entry.grams += grams;
+      if (REACTION_ORDER.indexOf(reaction) !== -1 && REACTION_ORDER.indexOf(reaction) < REACTION_ORDER.indexOf(entry.reaction)) {
+        entry.reaction = reaction;
+      }
+      byName.set(name.toLocaleLowerCase(), entry);
     }
-    byName.set(name.toLocaleLowerCase(), entry);
   }
   return [...byName.values()].slice(0, MAX_FOODS).map((entry) => ({
     ...entry,
+    grams: Math.round(entry.grams),
     newThisWeek: entry.name !== '?' && !seenBefore.has(entry.name.toLocaleLowerCase())
   }));
 }
@@ -155,11 +168,11 @@ function solidFoods(dayActivities, earlierActivities) {
 function weekFoods(weekActivities, dayOf) {
   const byName = new Map();
   for (const activity of weekActivities.filter(isSolid)) {
-    const name = foodName(activity);
-    if (!name) continue;
-    const entry = byName.get(name.toLocaleLowerCase()) || { name, days: new Set() };
-    entry.days.add(dayOf(activity.timestamp));
-    byName.set(name.toLocaleLowerCase(), entry);
+    for (const name of foodNames(activity)) {
+      const entry = byName.get(name.toLocaleLowerCase()) || { name, days: new Set() };
+      entry.days.add(dayOf(activity.timestamp));
+      byName.set(name.toLocaleLowerCase(), entry);
+    }
   }
   return [...byName.values()]
     .map(({ name, days }) => ({ name, days: days.size }))

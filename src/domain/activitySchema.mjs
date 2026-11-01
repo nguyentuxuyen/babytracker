@@ -49,6 +49,8 @@ const STOOL_COLOR_ALIASES = { yellow: 'vàng', brown: 'nâu', gray: 'xám', grey
 
 const MAX_NOTES_LENGTH = 2000;
 const MAX_FOOD_NAME_LENGTH = 100;
+// One solid-food meal can hold several dishes ("cháo + bí đỏ + chuối").
+const MAX_FOODS_PER_MEAL = 10;
 
 // Upper bounds that catch typos and garbage from the AI parser, not medical limits.
 const LIMITS = {
@@ -117,11 +119,33 @@ const notesOf = (details) => {
     return toText(notes, MAX_NOTES_LENGTH);
 };
 
+/**
+ * The dishes of one solid-food meal: `foodItems` when present, else the single
+ * older `foodItem`. Trimmed, without duplicates (case-insensitive), never empty names.
+ */
+const foodNamesOf = (details) => {
+    const source = details && typeof details === 'object' ? details : {};
+    const list = Array.isArray(source.foodItems) && source.foodItems.length > 0
+        ? source.foodItems
+        : [source.foodItem];
+    const seen = new Set();
+    const names = [];
+    for (const item of list) {
+        const name = toText(item, MAX_FOOD_NAME_LENGTH).replace(/\s+/g, ' ');
+        const key = name.toLocaleLowerCase();
+        if (!name || seen.has(key)) continue;
+        seen.add(key);
+        names.push(name);
+        if (names.length >= MAX_FOODS_PER_MEAL) break;
+    }
+    return names;
+};
+
 const toBoolean = (value) => value === true || value === 'true' || value === 1;
 
 const resolveFoodType = (details) => {
     if (details.foodType === 'solid' || details.foodType === 'milk') return details.foodType;
-    if (details.foodItem || details.isAllergic === true) return 'solid';
+    if (details.foodItem || (Array.isArray(details.foodItems) && details.foodItems.length > 0) || details.isAllergic === true) return 'solid';
     if (details.foodPreference && details.foodPreference !== 'normal') return 'solid';
     return 'milk';
 };
@@ -164,7 +188,10 @@ const normalizeDetails = (type, rawDetails) => {
             const result = { foodType, amount: amount !== undefined && amount > 0 ? round1(amount) : 0, notes };
             if (foodType === 'solid') {
                 const foodPreference = FOOD_PREFERENCES.includes(details.foodPreference) ? details.foodPreference : 'normal';
-                result.foodItem = toText(details.foodItem, MAX_FOOD_NAME_LENGTH);
+                const foodItems = foodNamesOf(details);
+                // `foodItem` stays as the readable "Cháo, Bí đỏ" for older readers.
+                result.foodItem = foodItems.join(', ');
+                result.foodItems = foodItems;
                 result.foodPreference = foodPreference;
                 result.isAllergic = toBoolean(details.isAllergic) || foodPreference === 'allergic';
             } else if (MILK_TYPES.includes(details.milkType)) {
@@ -270,6 +297,8 @@ export {
     ACTIVITY_TYPES,
     MILK_TYPES,
     LIMITS,
+    MAX_FOODS_PER_MEAL,
+    foodNamesOf,
     ActivityValidationError,
     normalizeActivityType,
     toDate,

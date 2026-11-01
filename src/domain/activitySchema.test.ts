@@ -1,4 +1,4 @@
-import { buildActivityDoc, normalizeActivityRecord, ActivityValidationError } from './activitySchema.mjs';
+import { buildActivityDoc, normalizeActivityRecord, ActivityValidationError, foodNamesOf } from './activitySchema.mjs';
 
 const at = new Date(2026, 9, 9, 8, 30);
 
@@ -26,7 +26,21 @@ describe('buildActivityDoc', () => {
       details: { foodType: 'solid', amount: 30, foodItem: 'Cháo', foodPreference: 'allergic' }
     });
 
-    expect(built.details).toEqual({ foodType: 'solid', amount: 30, notes: '', foodItem: 'Cháo', foodPreference: 'allergic', isAllergic: true });
+    expect(built.details).toEqual({ foodType: 'solid', amount: 30, notes: '', foodItem: 'Cháo', foodItems: ['Cháo'], foodPreference: 'allergic', isAllergic: true });
+  });
+
+  it('keeps every dish of a meal with several foods', () => {
+    const built = buildActivityDoc({
+      babyId: 'u1', type: 'feeding', timestamp: at,
+      details: { foodType: 'solid', amount: 50, foodItems: [' Cháo  bí ', 'Chuối', 'chuối', '', 'Sữa chua'] }
+    });
+
+    expect(built.details).toMatchObject({ foodItem: 'Cháo bí, Chuối, Sữa chua', foodItems: ['Cháo bí', 'Chuối', 'Sữa chua'] });
+  });
+
+  it('treats a meal with only foodItems as solid food', () => {
+    const built = buildActivityDoc({ babyId: 'u1', type: 'feeding', timestamp: at, details: { foodItems: ['Bơ'] } });
+    expect(built.details).toMatchObject({ foodType: 'solid', foodItems: ['Bơ'] });
   });
 
   it('keeps a known milk kind on milk feeds only', () => {
@@ -53,6 +67,14 @@ describe('buildActivityDoc', () => {
   it('only keeps stool details when there was stool', () => {
     expect(buildActivityDoc({ babyId: 'u1', type: 'diaper', timestamp: at, details: { isUrine: true, isStool: false, stoolColor: ['vàng'] } }).details)
       .toEqual({ isUrine: true, isStool: false, stoolColor: [], notes: '' });
+  });
+});
+
+describe('foodNamesOf', () => {
+  it('reads older single-food records', () => {
+    expect(foodNamesOf({ foodItem: 'Cà rốt' })).toEqual(['Cà rốt']);
+    expect(foodNamesOf({ foodItem: '' })).toEqual([]);
+    expect(foodNamesOf(undefined)).toEqual([]);
   });
 });
 

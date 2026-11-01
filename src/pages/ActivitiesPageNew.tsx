@@ -27,6 +27,7 @@ import { calculateStatsForDate } from '../utils/dailyStats';
 import { getWakeWindowStatus } from '../utils/sleepStats';
 import { DEFAULT_MILK_TYPE_EVENT, loadCachedDefaultMilkType } from '../utils/feedingSettings';
 import type { MilkType } from '../domain/activitySchema.mjs';
+import { MAX_FOODS_PER_MEAL } from '../domain/activitySchema.mjs';
 
 const isSameLocalDay = (left: Date, right: Date) => (
     left.getFullYear() === right.getFullYear()
@@ -50,13 +51,16 @@ const WakeWindowNotice: React.FC<{ noticeKey: string; text: string }> = ({ notic
 
 const RECENT_FOOD_CHIP_COUNT = 8;
 
-const normalizeFoodName = (value: string) => value.trim();
+const normalizeFoodName = (value: string) => value.replace(/\s+/g, ' ').trim();
+
+// "cháo, bí đỏ + chuối" typed in one go becomes three dishes.
+const splitFoodNames = (value: string) => value.split(/[,+、，]/).map(normalizeFoodName).filter(Boolean);
 
 const resolveFeedingFoodType = (details?: Record<string, any>, fallback: 'milk' | 'solid' = 'milk'): 'milk' | 'solid' => {
     if (!details) return fallback;
     if (details.foodType === 'solid') return 'solid';
     if (details.foodType === 'milk') return 'milk';
-    if (details.foodItem || details.foodPreference || details.isAllergic) return 'solid';
+    if (details.foodItem || (Array.isArray(details.foodItems) && details.foodItems.length > 0) || details.foodPreference || details.isAllergic) return 'solid';
     return fallback;
 };
 
@@ -136,6 +140,8 @@ const ActivitiesPage: React.FC = () => {
     // Food items state
     const [foodItems, setFoodItems] = useState<string[]>([]);
     const [foodMenuOpen, setFoodMenuOpen] = useState(false);
+    // Text typed in the food box that is not yet one of the chosen dishes.
+    const [foodInput, setFoodInput] = useState('');
     const [showHomeDatePicker, setShowHomeDatePicker] = useState(false);
     const hasLoadedInitialDate = useRef(false);
     const selectedDateTime = selectedDate.getTime();
@@ -245,7 +251,8 @@ const ActivitiesPage: React.FC = () => {
         stoolConsistency?: 'lỏng' | 'bình thường' | 'khô';
         timestamp?: string;
         foodType?: 'milk' | 'solid';
-        foodItem?: string;
+        /** The dishes of this solid-food meal; several can be picked. */
+        foodItems?: string[];
         isAllergic?: boolean;
         foodPreference?: 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
     }>({
@@ -263,7 +270,7 @@ const ActivitiesPage: React.FC = () => {
         stoolConsistency: 'bình thường',
         timestamp: undefined,
         foodType: 'milk',
-        foodItem: '',
+        foodItems: [],
         isAllergic: false,
         foodPreference: 'normal'
     });
@@ -476,6 +483,31 @@ const ActivitiesPage: React.FC = () => {
         }
     };
 
+    // One solid-food meal can hold several dishes: chips toggle them, the text box adds new ones.
+    const toggleFood = (food: string) => {
+        setFormData(prev => {
+            const current = prev.foodItems || [];
+            return {
+                ...prev,
+                foodItems: current.includes(food)
+                    ? current.filter((item) => item !== food)
+                    : mergeFoodItems([...current, food]).slice(0, MAX_FOODS_PER_MEAL)
+            };
+        });
+        setFoodMenuOpen(false);
+    };
+
+    const addFoods = (text: string) => {
+        const names = splitFoodNames(text);
+        if (names.length === 0) return;
+        // Reuse the menu's spelling when the dish is already known.
+        const known = names.map((name) => foodItems.find((item) => item.toLocaleLowerCase() === name.toLocaleLowerCase()) || name);
+        setFormData(prev => ({
+            ...prev,
+            foodItems: mergeFoodItems([...(prev.foodItems || []), ...known]).slice(0, MAX_FOODS_PER_MEAL)
+        }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -519,30 +551,34 @@ const ActivitiesPage: React.FC = () => {
             // Create activity details based on type
             let details: any = {};
             switch (formData.type) {
-                case 'feeding':
+                case 'feeding': {
+                    // Text still in the food box counts too, so typing one dish and tapping Save works.
+                    const chosenFoods = isSolid
+                        ? mergeFoodItems([...(formData.foodItems || []), ...splitFoodNames(foodInput)]).slice(0, MAX_FOODS_PER_MEAL)
+                        : [];
                     details = {
                         time: timestamp,
                         amount: formData.amount ? Number(formData.amount) : 0,
                         notes: formData.notes || '',
                         foodType: effectiveFoodType,
                         ...(!isSolid && defaultMilkType ? { milkType: defaultMilkType } : {}),
-                        foodItem: isSolid ? formData.foodItem || '' : '',
+                        foodItems: chosenFoods,
                         isAllergic: isSolid && !!formData.isAllergic,
                         foodPreference: isSolid ? formData.foodPreference || 'normal' : 'normal'
                     };
 
-                    // Auto-save new food item to menu
-                    const normalizedFoodItem = normalizeFoodName(formData.foodItem || '');
-                    if (formData.foodType === 'solid' && normalizedFoodItem) {
-                        // Don't await this to keep UI responsive
-                        firestore.addFoodItem(currentUser.uid, normalizedFoodItem).then(success => {
-                            if (success) {
-                                // foodItems is most-recent first.
-                                setFoodItems(prev => mergeFoodItems([normalizedFoodItem, ...prev]));
-                            }
-                        });
+                    // Auto-save the dishes to the menu, one after another (each write reads the menu first).
+                    // Not awaited, to keep the UI responsive.
+                    if (chosenFoods.length > 0) {
+                        const uid = currentUser.uid;
+                        void chosenFoods.reduce<Promise<void>>((chain, food) => chain.then(async () => {
+                            const success = await firestore.addFoodItem(uid, food);
+                            // foodItems is most-recent first.
+                            if (success) setFoodItems(prev => mergeFoodItems([food, ...prev]));
+                        }), Promise.resolve());
                     }
                     break;
+                }
                 case 'sleep':
                     details = {
                         time: timestamp,
@@ -747,10 +783,11 @@ const ActivitiesPage: React.FC = () => {
                 stoolConsistency: 'bình thường',
                 timestamp: undefined,
                 foodType: 'milk',
-                foodItem: '',
+                foodItems: [],
                 isAllergic: false,
                 foodPreference: 'normal'
             });
+            setFoodInput('');
             
             // Reset bulk mode states
             if (isBulkMode) {
@@ -983,6 +1020,7 @@ const ActivitiesPage: React.FC = () => {
                                         // Regular activity handling
                                         setEditingActivity(null);
                                         setHideActivityType(true);
+                                        setFoodInput('');
                                         const baseForm = {
                                             type: action.type as any,
                                             time: new Date().toTimeString().slice(0, 5),
@@ -1453,54 +1491,55 @@ const ActivitiesPage: React.FC = () => {
                                             </Box>
                                         ) : (
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                {foodItems.length > 0 && (
+                                                {(foodItems.length > 0 || (formData.foodItems || []).length > 0) && (
                                                     <Box>
                                                         <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7f8a', mb: 0.75 }}>
-                                                            {t('feeding.recentFoods')}
+                                                            {t('feeding.recentFoods')} · {t('feeding.pickSeveral')}
                                                         </Typography>
-                                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                                                            {foodItems.slice(0, RECENT_FOOD_CHIP_COUNT).map((item) => {
-                                                                const selected = formData.foodItem === item;
-                                                                return (
-                                                                    <Chip
-                                                                        key={item}
-                                                                        label={item}
-                                                                        onClick={() => {
-                                                                            setFormData(prev => ({ ...prev, foodItem: item }));
-                                                                            setFoodMenuOpen(false);
-                                                                        }}
-                                                                        sx={{
-                                                                            maxWidth: '100%',
-                                                                            fontWeight: 600,
-                                                                            color: selected ? '#ffffff' : '#334155',
-                                                                            bgcolor: selected ? ACTIVITY_COLORS.solid : '#f1f5f9',
-                                                                            '&:hover': { bgcolor: selected ? ACTIVITY_COLORS.solid : '#e2e8f0' }
-                                                                        }}
-                                                                    />
-                                                                );
-                                                            })}
-                                                        </Box>
+                                                        <ChoiceChips
+                                                            color={ACTIVITY_COLORS.solid}
+                                                            selected={formData.foodItems || []}
+                                                            onToggle={toggleFood}
+                                                            // Chosen dishes stay visible even when they are not among the recent ones.
+                                                            options={mergeFoodItems([
+                                                                ...(formData.foodItems || []).filter((item) => !foodItems.slice(0, RECENT_FOOD_CHIP_COUNT).includes(item)),
+                                                                ...foodItems.slice(0, RECENT_FOOD_CHIP_COUNT)
+                                                            ]).map((item) => ({ value: item, label: item }))}
+                                                        />
                                                     </Box>
                                                 )}
-                                                <Autocomplete
+                                                <Autocomplete<string, false, false, true>
                                                     freeSolo
                                                     disablePortal={false}
                                                     selectOnFocus
-                                                    clearOnBlur
                                                     handleHomeEndKeys
-                                                    options={foodItems}
+                                                    options={foodItems.filter((item) => !(formData.foodItems || []).includes(item))}
                                                     filterOptions={(options, state) => filterFoodItems(options, state.inputValue)}
-                                                    value={formData.foodItem || ''}
+                                                    value={null}
+                                                    inputValue={foodInput}
                                                     open={foodMenuOpen}
                                                     onOpen={() => setFoodMenuOpen(true)}
                                                     onClose={() => setFoodMenuOpen(false)}
                                                     onChange={(_, newValue) => {
-                                                        setFormData(prev => ({ ...prev, foodItem: newValue || '' }));
+                                                        if (newValue) addFoods(newValue);
+                                                        setFoodInput('');
                                                     }}
                                                     onInputChange={(_, newInputValue, reason) => {
-                                                        setFormData(prev => ({ ...prev, foodItem: newInputValue }));
+                                                        // 'reset' is MUI echoing the picked option; onChange already handled it.
+                                                        if (reason === 'reset') return;
+                                                        setFoodInput(newInputValue);
                                                         // Only typing opens the list; picking a chip must not.
                                                         if (reason === 'input') setFoodMenuOpen(true);
+                                                    }}
+                                                    onKeyDown={(event) => {
+                                                        // Enter adds the dish instead of saving the whole form.
+                                                        if (event.key === 'Enter' && foodInput.trim()) event.preventDefault();
+                                                    }}
+                                                    onBlur={() => {
+                                                        if (foodInput.trim()) {
+                                                            addFoods(foodInput);
+                                                            setFoodInput('');
+                                                        }
                                                     }}
                                                     ListboxProps={{
                                                         sx: {
@@ -1516,7 +1555,7 @@ const ActivitiesPage: React.FC = () => {
                                                     renderInput={(params) => (
                                                         <TextField
                                                             {...params}
-                                                            label={t('feeding.foodName')}
+                                                            label={(formData.foodItems || []).length > 0 ? t('feeding.addAnotherFood') : t('feeding.foodName')}
                                                             placeholder={t('feeding.foodNamePlaceholder')}
                                                             onFocus={() => {
                                                                 // Scroll the Autocomplete element into view, aligning it to the top or center of viewport

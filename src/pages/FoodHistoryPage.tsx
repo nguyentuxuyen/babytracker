@@ -8,6 +8,7 @@ import { ChoiceChips, SegmentedControl, fieldSx } from '../components/common/For
 import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { Activity } from '../types';
+import { foodNamesOf } from '../domain/activitySchema.mjs';
 
 type Reaction = 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
 type ReactionFilter = Reaction | 'all';
@@ -16,6 +17,8 @@ type ViewMode = 'food' | 'date';
 type Meal = {
     id: string;
     date: Date;
+    /** Every dish of the meal; one meal can hold several. */
+    names: string[];
     name: string;
     amount: number;
     reaction: Reaction;
@@ -57,10 +60,12 @@ const toMeal = (activity: Activity): Meal | null => {
     const reaction: Reaction = details.isAllergic || preference === 'allergic'
         ? 'allergic'
         : (['enthusiastic', 'dislike'].includes(preference) ? preference as Reaction : 'normal');
+    const names = foodNamesOf(details);
     return {
         id: activity.id,
         date: new Date(activity.timestamp),
-        name: String(details.foodItem || '').trim(),
+        names,
+        name: names.join(', '),
         amount: Number(details.amount) || 0,
         reaction,
         notes: details.notes ? String(details.notes) : undefined
@@ -104,21 +109,27 @@ const FoodHistoryPage: React.FC = () => {
     }, [currentUser]);
 
     const foods = useMemo<FoodSummary[]>(() => {
-        const groups = new Map<string, Meal[]>();
+        // A meal with several dishes counts for each of them.
+        const groups = new Map<string, { name: string; meals: Meal[] }>();
         for (const meal of meals || []) {
-            const key = searchKey(meal.name) || '?';
-            const group = groups.get(key);
-            if (group) group.push(meal); else groups.set(key, [meal]);
+            const names = meal.names.length > 0 ? meal.names : [''];
+            for (const name of names) {
+                const key = searchKey(name) || '?';
+                const group = groups.get(key);
+                if (group) group.meals.push(meal); else groups.set(key, { name, meals: [meal] });
+            }
         }
-        return Array.from(groups.entries()).map(([key, group]) => {
+        return Array.from(groups.entries()).map(([key, { name, meals: group }]) => {
             const withAmount = group.filter((meal) => meal.amount > 0);
             const everAllergic = group.some((meal) => meal.reaction === 'allergic');
+            // A shared meal's grams are split evenly between its dishes.
+            const shareOf = (meal: Meal) => meal.amount / Math.max(1, meal.names.length);
             return {
                 key,
-                name: group[0].name || t('foodHistory.dish'),
+                name: name || t('foodHistory.dish'),
                 meals: group,
                 lastDate: group[0].date,
-                averageAmount: withAmount.length ? Math.round(withAmount.reduce((sum, meal) => sum + meal.amount, 0) / withAmount.length) : 0,
+                averageAmount: withAmount.length ? Math.round(withAmount.reduce((sum, meal) => sum + shareOf(meal), 0) / withAmount.length) : 0,
                 everAllergic,
                 // An allergy outweighs any later reaction; otherwise show the latest one.
                 reaction: everAllergic ? 'allergic' : group[0].reaction
@@ -132,7 +143,7 @@ const FoodHistoryPage: React.FC = () => {
         && (reactionFilter === 'all' || food.reaction === reactionFilter)
     )), [foods, query, reactionFilter]);
     const visibleMeals = useMemo(() => (meals || []).filter((meal) => (
-        (!query || searchKey(meal.name).includes(query))
+        (!query || meal.names.some((name) => searchKey(name).includes(query)))
         && (reactionFilter === 'all' || meal.reaction === reactionFilter)
     )), [meals, query, reactionFilter]);
 
@@ -300,6 +311,11 @@ const FoodHistoryPage: React.FC = () => {
                                                         {meal.amount > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#101c22' }}>{meal.amount}g</Typography>}
                                                         <ReactionBadge reaction={meal.reaction} />
                                                     </Box>
+                                                    {meal.names.length > 1 && (
+                                                        <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25 }}>
+                                                            {t('foodHistory.eatenWith', { foods: meal.names.filter((name) => searchKey(name) !== food.key).join(', ') })}
+                                                        </Typography>
+                                                    )}
                                                     {meal.notes && <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25 }}>{meal.notes}</Typography>}
                                                 </Box>
                                             ))}
@@ -324,7 +340,7 @@ const FoodHistoryPage: React.FC = () => {
                                     <Box key={meal.id} sx={{ py: 1.25, borderTop: index === 0 ? 'none' : '1px solid #f1f5f9' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                                             <Typography sx={{ width: 44, flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>{timeLabel(meal.date)}</Typography>
-                                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: '#101c22' }} noWrap>{meal.name || t('foodHistory.dish')}</Typography>
+                                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: '#101c22', overflowWrap: 'anywhere' }}>{meal.name || t('foodHistory.dish')}</Typography>
                                             {meal.amount > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>{meal.amount}g</Typography>}
                                             <ReactionBadge reaction={meal.reaction} />
                                         </Box>
