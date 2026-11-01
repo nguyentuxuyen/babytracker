@@ -201,7 +201,10 @@
       "allergic": "アレルギー"
     },
     "pickSeveral": "複数選べます",
-    "addAnotherFood": "別の食品を追加"
+    "addAnotherFood": "別の食品を追加",
+    "gramsPerFood": "食品ごとの量",
+    "gramsOf": "{{food}}の量 (g)",
+    "totalGrams": "合計 {{amount}}g"
   },
   "sleep": {
     "startTime": "開始時刻",

@@ -115,13 +115,22 @@ const MAX_FOODS = 30;
 const REACTION_ORDER = ['allergic', 'dislike', 'enthusiastic', 'normal'];
 
 const cleanFoodName = (value) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, MAX_FOOD_NAME);
-// Every dish of one meal; a meal can hold several ("Cháo, Bí đỏ"), older records one `foodItem`.
-const foodNames = (activity) => {
-  const list = Array.isArray(activity.details.foodItems) && activity.details.foodItems.length > 0
-    ? activity.details.foodItems
-    : [activity.details.foodItem];
-  return list.map(cleanFoodName).filter(Boolean);
+// Every dish of one meal with the grams eaten of it; a meal can hold several dishes
+// ("Cơm, Chuối"), each with its own grams or an even share of the meal's amount;
+// older records have one `foodItem`.
+const foodPortions = (activity) => {
+  const details = activity.details;
+  const hasList = Array.isArray(details.foodItems) && details.foodItems.length > 0;
+  const names = (hasList ? details.foodItems : [details.foodItem]).map(cleanFoodName);
+  const own = names.map((_, index) => (hasList && Array.isArray(details.foodGrams) ? Number(details.foodGrams[index]) || 0 : 0));
+  const known = own.reduce((sum, grams) => sum + grams, 0);
+  const unknown = names.filter((name, index) => name && own[index] === 0).length;
+  const share = unknown > 0 ? Math.max(0, (Number(details.amount) || 0) - known) / unknown : 0;
+  return names
+    .map((name, index) => ({ name, grams: own[index] > 0 ? own[index] : share }))
+    .filter((portion) => portion.name);
 };
+const foodNames = (activity) => foodPortions(activity).map((portion) => portion.name);
 const isMilk = (a) => a.type === 'feeding' && a.details.foodType !== 'solid';
 const isSolid = (a) => a.type === 'feeding' && a.details.foodType === 'solid';
 
@@ -142,12 +151,10 @@ function solidFoods(dayActivities, earlierActivities) {
   const seenBefore = new Set(earlierActivities.filter(isSolid).flatMap(foodNames).map((name) => name.toLocaleLowerCase()));
   const byName = new Map();
   for (const activity of dayActivities.filter(isSolid)) {
-    const names = foodNames(activity);
-    if (names.length === 0) names.push('?');
-    // The meal's grams are for all its dishes together; share them out evenly.
-    const grams = (Number(activity.details.amount) || 0) / names.length;
+    const portions = foodPortions(activity);
+    if (portions.length === 0) portions.push({ name: '?', grams: Number(activity.details.amount) || 0 });
     const reaction = activity.details.isAllergic ? 'allergic' : activity.details.foodPreference || 'normal';
-    for (const name of names) {
+    for (const { name, grams } of portions) {
       const entry = byName.get(name.toLocaleLowerCase()) || { name, meals: 0, grams: 0, reaction: 'normal' };
       entry.meals += 1;
       entry.grams += grams;

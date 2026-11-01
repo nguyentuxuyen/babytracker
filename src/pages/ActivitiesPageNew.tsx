@@ -253,6 +253,8 @@ const ActivitiesPage: React.FC = () => {
         foodType?: 'milk' | 'solid';
         /** The dishes of this solid-food meal; several can be picked. */
         foodItems?: string[];
+        /** Grams typed for each dish (by name) when a meal has several dishes. */
+        foodGrams?: Record<string, string>;
         isAllergic?: boolean;
         foodPreference?: 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
     }>({
@@ -497,6 +499,9 @@ const ActivitiesPage: React.FC = () => {
         setFoodMenuOpen(false);
     };
 
+    const mealTotalGrams = Math.round((formData.foodItems || [])
+        .reduce((sum, food) => sum + (Number(String(formData.foodGrams?.[food] ?? '').replace(',', '.')) || 0), 0) * 10) / 10;
+
     const addFoods = (text: string) => {
         const names = splitFoodNames(text);
         if (names.length === 0) return;
@@ -556,13 +561,21 @@ const ActivitiesPage: React.FC = () => {
                     const chosenFoods = isSolid
                         ? mergeFoodItems([...(formData.foodItems || []), ...splitFoodNames(foodInput)]).slice(0, MAX_FOODS_PER_MEAL)
                         : [];
+                    // Several dishes are weighed one by one; the meal's amount is their total.
+                    const perFoodGrams = chosenFoods.length > 1
+                        ? chosenFoods.map((food) => Number(String(formData.foodGrams?.[food] ?? '').replace(',', '.')) || 0)
+                        : [];
+                    const mealAmount = perFoodGrams.length > 0
+                        ? perFoodGrams.reduce((sum, grams) => sum + grams, 0)
+                        : (formData.amount ? Number(formData.amount) : 0);
                     details = {
                         time: timestamp,
-                        amount: formData.amount ? Number(formData.amount) : 0,
+                        amount: isSolid ? mealAmount : (formData.amount ? Number(formData.amount) : 0),
                         notes: formData.notes || '',
                         foodType: effectiveFoodType,
                         ...(!isSolid && defaultMilkType ? { milkType: defaultMilkType } : {}),
                         foodItems: chosenFoods,
+                        ...(perFoodGrams.some((grams) => grams > 0) ? { foodGrams: perFoodGrams } : {}),
                         isAllergic: isSolid && !!formData.isAllergic,
                         foodPreference: isSolid ? formData.foodPreference || 'normal' : 'normal'
                     };
@@ -784,6 +797,7 @@ const ActivitiesPage: React.FC = () => {
                 timestamp: undefined,
                 foodType: 'milk',
                 foodItems: [],
+                foodGrams: {},
                 isAllergic: false,
                 foodPreference: 'normal'
             });
@@ -1570,16 +1584,50 @@ const ActivitiesPage: React.FC = () => {
                                                         />
                                                     )}
                                                 />
-                                                <TextField
-                                                    label={t('feeding.amountG')}
-                                                    type="number"
-                                                    inputMode="decimal"
-                                                    inputProps={{ inputMode: 'decimal', pattern: '[0-9]*' }}
-                                                    value={formData.amount}
-                                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                                    fullWidth
-                                                    variant="filled" sx={fieldSx}
-                                                />
+                                                {(formData.foodItems || []).length > 1 ? (
+                                                    // Several dishes: grams for each one (rice and fruit are weighed apart).
+                                                    <Box>
+                                                        <SectionLabel>{t('feeding.gramsPerFood')}</SectionLabel>
+                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                                            {(formData.foodItems || []).map((food) => (
+                                                                <Box key={food} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                                    <Typography sx={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: '#101c22', overflowWrap: 'anywhere' }}>{food}</Typography>
+                                                                    <TextField
+                                                                        hiddenLabel
+                                                                        type="number"
+                                                                        inputMode="decimal"
+                                                                        placeholder="0"
+                                                                        inputProps={{ inputMode: 'decimal', pattern: '[0-9]*', 'aria-label': t('feeding.gramsOf', { food }) }}
+                                                                        InputProps={{ endAdornment: <InputAdornment position="end">g</InputAdornment> }}
+                                                                        value={formData.foodGrams?.[food] ?? ''}
+                                                                        onChange={(e) => {
+                                                                            const value = e.target.value;
+                                                                            setFormData(prev => ({ ...prev, foodGrams: { ...(prev.foodGrams || {}), [food]: value } }));
+                                                                        }}
+                                                                        variant="filled"
+                                                                        sx={{ ...fieldSx, width: 120, flexShrink: 0 }}
+                                                                    />
+                                                                </Box>
+                                                            ))}
+                                                        </Box>
+                                                        {mealTotalGrams > 0 && (
+                                                            <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mt: 1, textAlign: 'right' }}>
+                                                                {t('feeding.totalGrams', { amount: mealTotalGrams })}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                ) : (
+                                                    <TextField
+                                                        label={t('feeding.amountG')}
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        inputProps={{ inputMode: 'decimal', pattern: '[0-9]*' }}
+                                                        value={formData.amount}
+                                                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                                        fullWidth
+                                                        variant="filled" sx={fieldSx}
+                                                    />
+                                                )}
                                                 <Box>
                                                     <SectionLabel>{t('feeding.reaction.label')}</SectionLabel>
                                                     <ChoiceChips

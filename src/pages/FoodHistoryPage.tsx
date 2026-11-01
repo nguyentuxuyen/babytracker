@@ -8,7 +8,7 @@ import { ChoiceChips, SegmentedControl, fieldSx } from '../components/common/For
 import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { Activity } from '../types';
-import { foodNamesOf } from '../domain/activitySchema.mjs';
+import { foodGramsOf } from '../domain/activitySchema.mjs';
 
 type Reaction = 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
 type ReactionFilter = Reaction | 'all';
@@ -19,6 +19,8 @@ type Meal = {
     date: Date;
     /** Every dish of the meal; one meal can hold several. */
     names: string[];
+    /** Grams of each dish (own when weighed, else a share of the meal), same order as names. */
+    grams: number[];
     name: string;
     amount: number;
     reaction: Reaction;
@@ -60,16 +62,25 @@ const toMeal = (activity: Activity): Meal | null => {
     const reaction: Reaction = details.isAllergic || preference === 'allergic'
         ? 'allergic'
         : (['enthusiastic', 'dislike'].includes(preference) ? preference as Reaction : 'normal');
-    const names = foodNamesOf(details);
+    const portions = foodGramsOf(details);
+    const names = portions.map((portion) => portion.name);
     return {
         id: activity.id,
         date: new Date(activity.timestamp),
         names,
-        name: names.join(', '),
+        grams: portions.map((portion) => portion.grams),
+        // "Cơm 50g, Chuối 20g" when the dishes were weighed one by one.
+        name: portions.map((portion) => (portion.estimated || names.length === 1 || !portion.grams ? portion.name : `${portion.name} ${portion.grams}g`)).join(', '),
         amount: Number(details.amount) || 0,
         reaction,
         notes: details.notes ? String(details.notes) : undefined
     };
+};
+
+// Grams of one dish (by search key) in a meal; a meal without a name counts whole.
+const dishGrams = (meal: Meal, key: string) => {
+    if (meal.names.length === 0) return meal.amount;
+    return meal.grams[meal.names.findIndex((item) => (searchKey(item) || '?') === key)] || 0;
 };
 
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -120,10 +131,10 @@ const FoodHistoryPage: React.FC = () => {
             }
         }
         return Array.from(groups.entries()).map(([key, { name, meals: group }]) => {
-            const withAmount = group.filter((meal) => meal.amount > 0);
             const everAllergic = group.some((meal) => meal.reaction === 'allergic');
-            // A shared meal's grams are split evenly between its dishes.
-            const shareOf = (meal: Meal) => meal.amount / Math.max(1, meal.names.length);
+            // Grams of this dish in a meal: its own when weighed, else a share of the meal.
+            const shareOf = (meal: Meal) => dishGrams(meal, key);
+            const withAmount = group.filter((meal) => shareOf(meal) > 0);
             return {
                 key,
                 name: name || t('foodHistory.dish'),
@@ -308,7 +319,10 @@ const FoodHistoryPage: React.FC = () => {
                                                         <Typography sx={{ fontSize: 13, color: '#475569', flex: 1 }}>
                                                             {dayLabel(startOfDay(meal.date))} · {timeLabel(meal.date)}
                                                         </Typography>
-                                                        {meal.amount > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#101c22' }}>{meal.amount}g</Typography>}
+                                                        {(() => {
+                                                            const grams = dishGrams(meal, food.key);
+                                                            return grams > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#101c22' }}>{Math.round(grams)}g</Typography>;
+                                                        })()}
                                                         <ReactionBadge reaction={meal.reaction} />
                                                     </Box>
                                                     {meal.names.length > 1 && (

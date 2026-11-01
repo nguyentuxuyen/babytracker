@@ -201,7 +201,10 @@
       "allergic": "Dị ứng"
     },
     "pickSeveral": "chọn được nhiều món",
-    "addAnotherFood": "Thêm món khác"
+    "addAnotherFood": "Thêm món khác",
+    "gramsPerFood": "Lượng từng món",
+    "gramsOf": "Lượng {{food}} (g)",
+    "totalGrams": "Tổng {{amount}}g"
   },
   "sleep": {
     "startTime": "Giờ bắt đầu",

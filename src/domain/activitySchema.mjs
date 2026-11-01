@@ -120,26 +120,54 @@ const notesOf = (details) => {
 };
 
 /**
- * The dishes of one solid-food meal: `foodItems` when present, else the single
- * older `foodItem`. Trimmed, without duplicates (case-insensitive), never empty names.
+ * The dishes of one solid-food meal with their own grams: `foodItems` (and the
+ * parallel `foodGrams`) when present, else the single older `foodItem`.
+ * Names trimmed, without duplicates (case-insensitive, their grams added up),
+ * never empty. `grams` is null when that dish's grams were not given.
  */
-const foodNamesOf = (details) => {
+const foodPortionsOf = (details) => {
     const source = details && typeof details === 'object' ? details : {};
-    const list = Array.isArray(source.foodItems) && source.foodItems.length > 0
-        ? source.foodItems
-        : [source.foodItem];
-    const seen = new Set();
-    const names = [];
-    for (const item of list) {
+    const hasList = Array.isArray(source.foodItems) && source.foodItems.length > 0;
+    const list = hasList ? source.foodItems : [source.foodItem];
+    const gramsList = hasList && Array.isArray(source.foodGrams) ? source.foodGrams : [];
+    const byKey = new Map();
+    const portions = [];
+    list.forEach((item, index) => {
         const name = toText(item, MAX_FOOD_NAME_LENGTH).replace(/\s+/g, ' ');
+        if (!name) return;
+        const parsed = toNumber(gramsList[index]);
+        const grams = parsed !== undefined && parsed > 0 ? round1(parsed) : null;
         const key = name.toLocaleLowerCase();
-        if (!name || seen.has(key)) continue;
-        seen.add(key);
-        names.push(name);
-        if (names.length >= MAX_FOODS_PER_MEAL) break;
-    }
-    return names;
+        const existing = byKey.get(key);
+        if (existing) {
+            if (grams !== null) existing.grams = round1((existing.grams || 0) + grams);
+            return;
+        }
+        if (portions.length >= MAX_FOODS_PER_MEAL) return;
+        const portion = { name, grams };
+        byKey.set(key, portion);
+        portions.push(portion);
+    });
+    return portions;
 };
+
+/**
+ * Grams eaten of each dish: its own grams when weighed, otherwise an even share
+ * of what the meal's amount leaves over (`estimated: true`).
+ */
+const foodGramsOf = (details) => {
+    const portions = foodPortionsOf(details);
+    const amount = toNumber(details && details.amount) || 0;
+    const known = portions.reduce((sum, portion) => sum + (portion.grams || 0), 0);
+    const unknown = portions.filter((portion) => portion.grams === null).length;
+    const share = unknown > 0 ? Math.max(0, amount - known) / unknown : 0;
+    return portions.map((portion) => (portion.grams !== null
+        ? { name: portion.name, grams: portion.grams, estimated: false }
+        : { name: portion.name, grams: round1(share), estimated: portions.length > 1 }));
+};
+
+/** The dish names of one solid-food meal (see foodPortionsOf). */
+const foodNamesOf = (details) => foodPortionsOf(details).map((portion) => portion.name);
 
 const toBoolean = (value) => value === true || value === 'true' || value === 1;
 
@@ -188,10 +216,17 @@ const normalizeDetails = (type, rawDetails) => {
             const result = { foodType, amount: amount !== undefined && amount > 0 ? round1(amount) : 0, notes };
             if (foodType === 'solid') {
                 const foodPreference = FOOD_PREFERENCES.includes(details.foodPreference) ? details.foodPreference : 'normal';
-                const foodItems = foodNamesOf(details);
+                const portions = foodPortionsOf(details);
+                const foodItems = portions.map((portion) => portion.name);
                 // `foodItem` stays as the readable "Cháo, Bí đỏ" for older readers.
                 result.foodItem = foodItems.join(', ');
                 result.foodItems = foodItems;
+                // Grams per dish (0 = not given), kept only when a meal has several dishes
+                // and some were weighed; the meal's amount is then their total.
+                if (portions.length > 1 && portions.some((portion) => portion.grams !== null)) {
+                    result.foodGrams = portions.map((portion) => portion.grams || 0);
+                    result.amount = round1(result.foodGrams.reduce((sum, grams) => sum + grams, 0));
+                }
                 result.foodPreference = foodPreference;
                 result.isAllergic = toBoolean(details.isAllergic) || foodPreference === 'allergic';
             } else if (MILK_TYPES.includes(details.milkType)) {
@@ -299,6 +334,8 @@ export {
     LIMITS,
     MAX_FOODS_PER_MEAL,
     foodNamesOf,
+    foodPortionsOf,
+    foodGramsOf,
     ActivityValidationError,
     normalizeActivityType,
     toDate,

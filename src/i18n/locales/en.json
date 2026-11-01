@@ -212,7 +212,10 @@
       "allergic": "Allergy"
     },
     "pickSeveral": "pick several",
-    "addAnotherFood": "Add another food"
+    "addAnotherFood": "Add another food",
+    "gramsPerFood": "Amount of each food",
+    "gramsOf": "Amount of {{food}} (g)",
+    "totalGrams": "Total {{amount}}g"
   },
   "sleep": {
     "startTime": "Start time",

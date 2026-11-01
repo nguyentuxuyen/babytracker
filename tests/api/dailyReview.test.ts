@@ -169,6 +169,19 @@ describe('morning review from the reminder cron', () => {
         expect(reviewDoc()?.facts.weekFoods).toEqual(expect.arrayContaining([{ name: 'Chuối', days: 1 }]));
     });
 
+    it('uses the grams weighed for each dish', async () => {
+        logYesterday();
+        addActivity('feeding', jst(20, 17), { foodType: 'solid', foodItems: ['Cơm', 'Chuối'], foodGrams: [50, 15] });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.solidFoods).toEqual(expect.arrayContaining([
+            { name: 'Cơm', meals: 1, grams: 50, reaction: 'normal', newThisWeek: true },
+            { name: 'Chuối', meals: 1, grams: 15, reaction: 'normal', newThisWeek: true }
+        ]));
+    });
+
     it('tells the AI which formula the baby drinks', async () => {
         logYesterday();
         db.docs.set(`users/${UID}/settings/feeding`, { defaultMilkType: 'formula', milkProduct: '  Meiji   Hohoemi ' });
