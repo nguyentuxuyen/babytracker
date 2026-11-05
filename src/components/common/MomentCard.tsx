@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Moment } from '../../firebase/moments';
+import DrivePhoto from './DrivePhoto';
 import { formatMomentDate } from './MomentViewer';
 
 export const MOMENT_ACCENT = '#ec4899';
@@ -51,7 +52,7 @@ const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
                 fontSize: 28
             }}>
                 {cover
-                    ? <Box component="img" src={cover.url} alt="" loading="lazy" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ? <DrivePhoto photo={cover} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     : <span aria-hidden>✨</span>}
                 {moment.photos.length > 1 && (
                     <Box sx={{ position: 'absolute', right: 4, bottom: 4, px: 0.75, borderRadius: '8px', bgcolor: 'rgba(15,23,42,0.65)', color: '#fff', fontSize: 11, fontWeight: 700, lineHeight: '18px' }}>

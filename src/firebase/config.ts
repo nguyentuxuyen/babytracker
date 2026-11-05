@@ -6,7 +6,6 @@ import {
     connectFirestoreEmulator
 } from 'firebase/firestore';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
-import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBtrEK-H3WIeq4xsasZGEoNmTfNvNu0-gk",
@@ -30,14 +29,10 @@ export const db = initializeFirestore(firebaseApp, {
 // Initialize Authentication
 export const auth = getAuth(firebaseApp);
 
-// Cloud Storage for moment photos (needs the Blaze plan and Storage enabled in the console).
-export const storage = getStorage(firebaseApp);
-
 // Local end-to-end testing against the Firebase emulators (never set on Vercel).
 if (import.meta.env.VITE_FIREBASE_EMULATORS === 'true') {
     connectFirestoreEmulator(db, '127.0.0.1', 8085);
     connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-    connectStorageEmulator(storage, '127.0.0.1', 9199);
 }
 
 export { firebaseApp };

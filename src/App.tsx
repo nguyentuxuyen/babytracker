@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BabyProvider, useBaby } from './contexts/BabyContext';
 import { DateProvider } from './contexts/DateContext';
 import AppRouter from './routes/AppRouter';
+import DriveConnectNotice from './components/common/DriveConnectNotice';
 import BabyInfoPage from './pages/BabyInfoPageNew';
 import TranslationsPage from './pages/TranslationsPage';
 import { loadTranslationOverrides } from './i18n/overrides';
@@ -906,6 +907,7 @@ const MainApp: React.FC = () => {
             <Box sx={{ flex: 1 }}>
                 <AppRouter />
             </Box>
+            <DriveConnectNotice />
         </Box>
         </SettingsProvider>
     );

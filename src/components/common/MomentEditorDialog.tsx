@@ -13,6 +13,9 @@ import {
     toLocalDateKey,
     toMomentError
 } from '../../firebase/moments';
+import { connectDrive } from '../../firebase/googleDrive';
+import { useDriveStatus } from '../../hooks/useDriveStatus';
+import DrivePhoto from './DrivePhoto';
 
 export const SlideUp = React.forwardRef(function SlideUp(
     props: TransitionProps & { children: React.ReactElement },
@@ -29,7 +32,8 @@ export const bottomSheetProps = {
 } as const;
 
 export const momentErrorKey = (code: MomentErrorCode | 'too-many') => ({
-    'storage-disabled': 'moments.errors.storageDisabled',
+    'drive-not-connected': 'moments.errors.driveNotConnected',
+    'drive-not-configured': 'moments.errors.driveNotConfigured',
     'not-image': 'moments.errors.notImage',
     'too-large': 'moments.errors.tooLarge',
     failed: 'moments.errors.failed',
@@ -56,6 +60,10 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<MomentErrorCode | 'too-many' | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const { status: driveStatus } = useDriveStatus(open);
+    // Unknown (still loading or offline) counts as usable; the save reports a real problem.
+    const driveReady = !driveStatus || (driveStatus.configured && driveStatus.connected);
+    const [connecting, setConnecting] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -143,10 +151,31 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
                 />
 
                 <SectionLabel>{t('moments.photos', { count: photoCount, max: MAX_PHOTOS_PER_MOMENT })}</SectionLabel>
+                {!driveReady && driveStatus && (
+                    <Box sx={{ p: 1.5, mb: 1.5, borderRadius: '14px', bgcolor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                        <Typography sx={{ fontSize: 13, color: '#1e3a8a', mb: driveStatus.configured ? 1 : 0 }}>
+                            {driveStatus.configured ? t('moments.drive.needConnect') : t('moments.errors.driveNotConfigured')}
+                        </Typography>
+                        {driveStatus.configured && (
+                            <Button
+                                size="small"
+                                variant="contained"
+                                disabled={connecting || saving}
+                                onClick={() => {
+                                    setConnecting(true);
+                                    connectDrive().catch(() => { setConnecting(false); setError('failed'); });
+                                }}
+                                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' } }}
+                            >
+                                {t('moments.drive.connect')}
+                            </Button>
+                        )}
+                    </Box>
+                )}
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, mb: 2 }}>
                     {keptPhotos.map((photo) => (
                         <Box key={photo.id} sx={tileSx}>
-                            <Box component="img" src={photo.url} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <DrivePhoto photo={photo} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             <IconButton size="small" disabled={saving} sx={removeSx} aria-label={t('moments.removePhoto')}
                                 onClick={() => setKeptPhotos((current) => current.filter((item) => item.id !== photo.id))}>×</IconButton>
                         </Box>
@@ -158,7 +187,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
                                 onClick={() => setNewFiles((current) => current.filter((_, i) => i !== index))}>×</IconButton>
                         </Box>
                     ))}
-                    {photoCount < MAX_PHOTOS_PER_MOMENT && (
+                    {photoCount < MAX_PHOTOS_PER_MOMENT && driveReady && (
                         <Box
                             component="button"
                             type="button"

@@ -16,19 +16,28 @@ vi.mock('firebase/firestore', () => {
         query: vi.fn()
     };
 });
-vi.mock('firebase/storage', () => ({
-    ref: vi.fn((_storage: unknown, path: string) => ({ path })),
-    uploadBytesResumable: vi.fn(),
-    getDownloadURL: vi.fn(async (objectRef: { path: string }) => `https://files.test/${objectRef.path}`),
-    deleteObject: vi.fn(async () => undefined)
-}));
-vi.mock('./config', () => ({ db: {}, storage: {} }));
+vi.mock('./config', () => ({ db: {}, auth: {} }));
+vi.mock('./googleDrive', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./googleDrive')>();
+    let fileId = 0;
+    return {
+        ...actual,
+        createMomentFolder: vi.fn(async () => 'folder-1'),
+        renameDriveFile: vi.fn(async () => undefined),
+        trashDriveFile: vi.fn(async () => undefined),
+        uploadToDrive: vi.fn(async (_blob: unknown, _name: string, _parent: string, onProgress?: (f: number) => void) => {
+            onProgress?.(0.5);
+            fileId += 1;
+            return `file-${fileId}`;
+        })
+    };
+});
 vi.mock('../utils/imageCompress', () => ({
     compressImage: vi.fn(async () => ({ blob: { size: 300_000 }, width: 1600, height: 1200 }))
 }));
 
 import { deleteDoc, setDoc } from 'firebase/firestore';
-import { deleteObject, uploadBytesResumable } from 'firebase/storage';
+import { DriveError, createMomentFolder, renameDriveFile, trashDriveFile, uploadToDrive } from './googleDrive';
 import {
     Moment,
     deleteMoment,
@@ -40,23 +49,15 @@ import {
     toMomentError
 } from './moments';
 
-const photo = (id: string) => ({ id, storagePath: `users/u/moments/m1/${id}.jpg`, url: `https://x/${id}`, width: 1, height: 1, size: 1 });
-const moment = (id: string, date: string, createdAt = '2026-11-01T00:00:00Z', photos = [photo(`${id}-p`)]): Moment => ({
-    id, date, createdAt, title: id, note: '', photos, updatedAt: createdAt
+const photo = (id: string) => ({ id, driveFileId: `drive-${id}`, width: 1, height: 1, size: 1 });
+const moment = (id: string, date: string, createdAt = '2026-11-01T00:00:00Z', photos = [photo(`${id}-p`)], driveFolderId: string | null = null): Moment => ({
+    id, date, createdAt, title: id, note: '', photos, driveFolderId, updatedAt: createdAt
 });
 
-// Fake upload task that reports one progress event and then completes (or fails).
-const fakeTask = (failWith?: unknown) => ({
-    on: (_event: string, progress: (s: any) => void, error: (e: unknown) => void, done: () => void) => {
-        progress({ bytesTransferred: 1, totalBytes: 2 });
-        if (failWith) error(failWith); else done();
-    }
-});
 const image = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
 
 beforeEach(() => {
     vi.clearAllMocks();
-    (uploadBytesResumable as Mock).mockImplementation(() => fakeTask());
 });
 
 describe('moment helpers', () => {
@@ -81,62 +82,83 @@ describe('moment helpers', () => {
         expect(groupMomentsByMonth(sorted).map(([month, items]) => [month, items.length])).toEqual([['2026-11', 3], ['2026-10', 1]]);
     });
 
-    it('maps missing-bucket and permission errors to storage-disabled', () => {
-        expect(toMomentError({ code: 'storage/bucket-not-found' }).code).toBe('storage-disabled');
-        expect(toMomentError({ code: 'storage/unauthorized' }).code).toBe('storage-disabled');
-        expect(toMomentError({ code: 'storage/canceled' }).code).toBe('failed');
+    it('maps Drive connection errors', () => {
+        expect(toMomentError(new DriveError('not-connected')).code).toBe('drive-not-connected');
+        expect(toMomentError(new DriveError('not-configured')).code).toBe('drive-not-configured');
+        expect(toMomentError(new DriveError('failed')).code).toBe('failed');
+    });
+
+    it('reads the Drive folder and ignores photos without a Drive file', () => {
+        expect(normalizeMoment('a', { date: '2026-11-05', driveFolderId: 'f', photos: [{ id: 'old', url: 'https://x' }, photo('ok')] }))
+            .toMatchObject({ driveFolderId: 'f', photos: [{ id: 'ok', driveFileId: 'drive-ok' }] });
     });
 });
 
 describe('saveMoment', () => {
-    it('uploads new photos under the moment, then writes the document', async () => {
+    it('creates a Drive folder for the moment, uploads into it, then writes the document', async () => {
         const progress = vi.fn();
         const saved = await saveMoment('u', null, {
             title: '  Đi chơi Ueno ', date: '2026-11-05', note: 'vui', keptPhotos: [], newFiles: [image(), image('b.jpg')]
         }, progress);
 
-        expect(uploadBytesResumable).toHaveBeenCalledTimes(2);
-        const [firstRef, , metadata] = (uploadBytesResumable as Mock).mock.calls[0];
-        expect(firstRef.path).toMatch(new RegExp(`^users/u/moments/${saved.id}/[^/]+\\.jpg$`));
-        expect(metadata).toEqual({ contentType: 'image/jpeg' });
+        expect(createMomentFolder).toHaveBeenCalledWith('2026-11-05 Đi chơi Ueno');
+        expect(uploadToDrive).toHaveBeenCalledTimes(2);
+        expect((uploadToDrive as Mock).mock.calls[0][2]).toBe('folder-1');
+        expect((uploadToDrive as Mock).mock.calls[1][1]).toMatch(/-2\.jpg$/);
         expect(progress).toHaveBeenCalledWith(1, 2, 0.5);
-        expect(saved).toMatchObject({ title: 'Đi chơi Ueno', date: '2026-11-05', note: 'vui' });
-        expect(saved.photos).toHaveLength(2);
+        expect(saved).toMatchObject({ title: 'Đi chơi Ueno', date: '2026-11-05', note: 'vui', driveFolderId: 'folder-1' });
+        expect(saved.photos.map((p) => p.driveFileId)).toEqual([expect.stringMatching(/^file-/), expect.stringMatching(/^file-/)]);
         expect(setDoc).toHaveBeenCalledWith(
             expect.objectContaining({ path: `users/u/moments/${saved.id}` }),
             expect.not.objectContaining({ id: expect.anything() })
         );
     });
 
-    it('keeps chosen photos, deletes removed ones after saving', async () => {
-        const existing = moment('m1', '2026-11-05', '2026-11-05T08:00:00Z', [photo('keep'), photo('drop')]);
-        const saved = await saveMoment('u', existing, { title: 'x', date: '2026-11-05', note: '', keptPhotos: [photo('keep')], newFiles: [] });
-
-        expect(saved.photos.map((p) => p.id)).toEqual(['keep']);
-        expect(saved.createdAt).toBe('2026-11-05T08:00:00Z');
-        expect(deleteObject).toHaveBeenCalledTimes(1);
-        expect(deleteObject).toHaveBeenCalledWith({ path: 'users/u/moments/m1/drop.jpg' });
+    it('needs no Drive at all for a moment without photos', async () => {
+        const saved = await saveMoment('u', null, { title: 'Lần đầu lật', date: '2026-11-05', note: '', keptPhotos: [], newFiles: [] });
+        expect(createMomentFolder).not.toHaveBeenCalled();
+        expect(saved.driveFolderId).toBeNull();
     });
 
-    it('saves nothing when Storage is not enabled', async () => {
-        (uploadBytesResumable as Mock).mockImplementation(() => fakeTask({ code: 'storage/bucket-not-found' }));
+    it('keeps chosen photos, trashes removed ones and renames the folder', async () => {
+        const existing = moment('m1', '2026-11-05', '2026-11-05T08:00:00Z', [photo('keep'), photo('drop')], 'folder-9');
+        const saved = await saveMoment('u', existing, { title: 'x', date: '2026-11-05', note: '', keptPhotos: [photo('keep')], newFiles: [image()] });
+
+        expect(createMomentFolder).not.toHaveBeenCalled();
+        expect(renameDriveFile).toHaveBeenCalledWith('folder-9', '2026-11-05 x');
+        expect((uploadToDrive as Mock).mock.calls[0][2]).toBe('folder-9');
+        expect(saved.photos.map((p) => p.id)[0]).toBe('keep');
+        expect(saved.createdAt).toBe('2026-11-05T08:00:00Z');
+        expect(trashDriveFile).toHaveBeenCalledTimes(1);
+        expect(trashDriveFile).toHaveBeenCalledWith('drive-drop');
+    });
+
+    it('saves nothing when Google Drive is not connected', async () => {
+        (createMomentFolder as Mock).mockRejectedValueOnce(new DriveError('not-connected'));
         await expect(saveMoment('u', null, { title: 'x', date: '2026-11-05', note: '', keptPhotos: [], newFiles: [image()] }))
-            .rejects.toMatchObject({ code: 'storage-disabled' });
+            .rejects.toMatchObject({ code: 'drive-not-connected' });
         expect(setDoc).not.toHaveBeenCalled();
     });
 
     it('rejects files that are not images', async () => {
         await expect(saveMoment('u', null, { title: 'x', date: '2026-11-05', note: '', keptPhotos: [], newFiles: [new File(['x'], 'a.pdf', { type: 'application/pdf' })] }))
             .rejects.toMatchObject({ code: 'not-image' });
-        expect(uploadBytesResumable).not.toHaveBeenCalled();
+        expect(uploadToDrive).not.toHaveBeenCalled();
     });
 });
 
 describe('deleteMoment', () => {
-    it('removes the document and every photo file, ignoring files already gone', async () => {
-        (deleteObject as Mock).mockRejectedValueOnce({ code: 'storage/object-not-found' });
-        await deleteMoment('u', moment('m1', '2026-11-05', '2026-11-05T08:00:00Z', [photo('a'), photo('b')]));
+    it('removes the document and moves the moment folder to the Drive trash', async () => {
+        await deleteMoment('u', moment('m1', '2026-11-05', '2026-11-05T08:00:00Z', [photo('a'), photo('b')], 'folder-9'));
         expect(deleteDoc).toHaveBeenCalledWith({ id: 'm1', path: 'users/u/moments/m1' });
-        expect(deleteObject).toHaveBeenCalledTimes(2);
+        expect(trashDriveFile).toHaveBeenCalledTimes(1);
+        expect(trashDriveFile).toHaveBeenCalledWith('folder-9');
+    });
+
+    it('still deletes the document when the trash call fails', async () => {
+        (trashDriveFile as Mock).mockRejectedValueOnce(new Error('offline'));
+        await deleteMoment('u', moment('m1', '2026-11-05', '2026-11-05T08:00:00Z', [photo('a')]));
+        expect(deleteDoc).toHaveBeenCalled();
+        expect(trashDriveFile).toHaveBeenCalledWith('drive-a');
     });
 });
