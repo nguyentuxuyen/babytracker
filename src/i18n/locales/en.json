@@ -120,6 +120,7 @@
     },
     "quick": {
       "milk": "Milk",
+      "solid": "Solids",
       "diaper": "Diaper",
       "sleep": "Sleep",
       "bath": "Bath",
@@ -238,6 +239,7 @@
     "edit": "Edit record",
     "delete": "Delete record",
     "confirmDelete": "Delete this record?",
+    "deleteShort": "Delete",
     "deleteFailed": "Could not delete the record.",
     "updateFailed": "Offline records cannot be edited, or the update failed.",
     "loadFailed": "Could not load activities.",
@@ -698,6 +700,7 @@
     "emptyHint": "Keep days out and your baby's firsts, with photos.",
     "quickTitle": "Moment",
     "quickHint": "Days out, firsts… saved with photos",
+    "quickHintShort": "Save with photos",
     "quickLast": "Latest: {{title}} ({{date}})",
     "seeAll": "See all",
     "errors": {

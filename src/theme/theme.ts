@@ -21,7 +21,7 @@ const colors = {
   // Text colors
   textLight: '#101c22',
   textDark: '#f6f7f8',
-  textSubtleLight: '#6b7f8a',
+  textSubtleLight: '#5b6b75',
   textSubtleDark: '#a0b0b9',
   
   // Border colors

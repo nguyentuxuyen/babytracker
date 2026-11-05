@@ -11,6 +11,7 @@ import { useBaby } from '../contexts/BabyContext';
 import GrowthChart from '../components/common/GrowthChart';
 import { calculateSleepAnalytics } from '../utils/sleepStats';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts';
+import PageHeader from '../components/common/PageHeader';
 
 interface FilterType {
     period: 'day' | 'week' | 'month' | 'range';
@@ -543,7 +544,7 @@ const StatsPage: React.FC = () => {
 
     if (loading) {
         return (
-            <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+            <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Box sx={{ textAlign: 'center' }}>
                     <ShowChartIcon sx={{ fontSize: 48, mb: 2, color: '#13a4ec' }} />
                     <Typography color="text.primary" fontSize={16}>{t('stats.loading')}</Typography>
@@ -556,11 +557,11 @@ const StatsPage: React.FC = () => {
         <Box sx={{
             minHeight: '100vh',
             bgcolor: '#f6f7f8',
-            p: 0,
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            p: 0
         }}>
             {/* Main Content */}
             <Box sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+                <PageHeader title={t('nav.stats')} />
                 {/* Period Selector Tabs */}
                     <Box sx={{ mb: 1.5 }}>
                         <Box sx={{
@@ -592,7 +593,7 @@ const StatsPage: React.FC = () => {
                                     cursor: 'pointer',
                                     transition: 'all 0.2s',
                                     bgcolor: filter.period === period.key ? '#13a4ec' : 'transparent',
-                                    color: filter.period === period.key ? '#ffffff' : '#6b7f8a',
+                                    color: filter.period === period.key ? '#ffffff' : '#5b6b75',
                                     '&:hover': {
                                         bgcolor: filter.period === period.key ? '#13a4ec' : 'rgba(19, 164, 236, 0.1)'
                                     }
@@ -623,7 +624,7 @@ const StatsPage: React.FC = () => {
                             {/* Start Date */}
                             <Grid item xs={12} sm={6}>
                                 <Box>
-                                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
+                                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#5b6b75', mb: 1 }}>
                                         {t('stats.startDate')}
                                     </Typography>
                                     <input
@@ -652,7 +653,6 @@ const StatsPage: React.FC = () => {
                                             border: '1px solid #e5e7eb',
                                             borderRadius: '12px',
                                             color: '#101c22',
-                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                             cursor: 'pointer'
                                         }}
                                     />
@@ -662,7 +662,7 @@ const StatsPage: React.FC = () => {
                             {/* End Date */}
                             <Grid item xs={12} sm={6}>
                                 <Box>
-                                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#6b7f8a', mb: 1 }}>
+                                    <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#5b6b75', mb: 1 }}>
                                         {t('stats.endDate')}
                                     </Typography>
                                     <input
@@ -684,7 +684,6 @@ const StatsPage: React.FC = () => {
                                             border: '1px solid #e5e7eb',
                                             borderRadius: '12px',
                                             color: '#101c22',
-                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                                             cursor: 'pointer'
                                         }}
                                     />
@@ -694,8 +693,8 @@ const StatsPage: React.FC = () => {
                         
                         {/* Info text */}
                         <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <InfoIcon sx={{ fontSize: 16, color: '#6b7f8a', flexShrink: 0 }} />
-                            <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
+                            <InfoIcon sx={{ fontSize: 16, color: '#5b6b75', flexShrink: 0 }} />
+                            <Typography sx={{ fontSize: '13px', color: '#5b6b75' }}>
                                 {baby?.birthDate 
                                     ? t('stats.rangeHintFromBirth', { date: new Date(baby.birthDate).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }) })
                                     : t('stats.rangeHint')
@@ -745,7 +744,7 @@ const StatsPage: React.FC = () => {
                             <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#101c22', mb: 0.5 }}>
                                 {t('activities.heading')}
                             </Typography>
-                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                            <Typography sx={{ fontSize: '14px', color: '#5b6b75', mb: 3 }}>
                                 {getPeriodLabel()}
                             </Typography>
 
@@ -756,12 +755,12 @@ const StatsPage: React.FC = () => {
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                         <XAxis 
                                             dataKey="label" 
-                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#5b6b75' }}
                                             axisLine={false}
                                             tickLine={false}
                                         />
                                         <YAxis 
-                                            tick={{ fontSize: 12, fill: '#6b7f8a' }}
+                                            tick={{ fontSize: 12, fill: '#5b6b75' }}
                                             axisLine={false}
                                             tickLine={false}
                                             width={35}
@@ -892,16 +891,16 @@ const StatsPage: React.FC = () => {
                                     <Typography sx={{ fontSize: '24px', fontWeight: 700, color: '#13a4ec' }}>
                                         {totalMilk} ml
                                     </Typography>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>{t('feeding.milk')}</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#5b6b75' }}>{t('feeding.milk')}</Typography>
                                 </Box>
                                 <Box>
                                     <Typography sx={{ fontSize: '24px', fontWeight: 700, color: ACTIVITY_COLORS.solid }}>
                                         {totalSolid} g
                                     </Typography>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>{t('feeding.solid')}</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#5b6b75' }}>{t('feeding.solid')}</Typography>
                                 </Box>
                             </Box>
-                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                            <Typography sx={{ fontSize: '14px', color: '#5b6b75', mb: 3 }}>
                                 {getPeriodLabel()}
                             </Typography>
 
@@ -921,12 +920,12 @@ const StatsPage: React.FC = () => {
                                         </defs>
                                         <XAxis 
                                             dataKey="label" 
-                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#5b6b75' }}
                                             axisLine={false}
                                             tickLine={false}
                                         />
                                         <YAxis 
-                                            tick={{ fontSize: 12, fill: '#6b7f8a' }}
+                                            tick={{ fontSize: 12, fill: '#5b6b75' }}
                                             axisLine={false}
                                             tickLine={false}
                                             width={35}
@@ -977,7 +976,7 @@ const StatsPage: React.FC = () => {
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 3, mb: 1, mt: 2 }}>
                                 <Box>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
+                                    <Typography sx={{ fontSize: '12px', color: '#5b6b75', mb: 0.5 }}>
                                         {t('stats.avgSleep')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
@@ -985,7 +984,7 @@ const StatsPage: React.FC = () => {
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
+                                    <Typography sx={{ fontSize: '12px', color: '#5b6b75', mb: 0.5 }}>
                                         {t('stats.longestStretch')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
@@ -993,7 +992,7 @@ const StatsPage: React.FC = () => {
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography sx={{ fontSize: '12px', color: '#6b7f8a', mb: 0.5 }}>
+                                    <Typography sx={{ fontSize: '12px', color: '#5b6b75', mb: 0.5 }}>
                                         {t('stats.nightWakings')}
                                     </Typography>
                                     <Typography sx={{ fontSize: '20px', fontWeight: 600, color: '#101c22' }}>
@@ -1001,7 +1000,7 @@ const StatsPage: React.FC = () => {
                                     </Typography>
                                 </Box>
                             </Box>
-                            <Typography sx={{ fontSize: '14px', color: '#6b7f8a', mb: 3 }}>
+                            <Typography sx={{ fontSize: '14px', color: '#5b6b75', mb: 3 }}>
                                 {getPeriodLabel()} - {t('stats.totalHours', { count: Math.floor(totalSleep / 60) })}
                             </Typography>
 
@@ -1017,7 +1016,7 @@ const StatsPage: React.FC = () => {
                                         </defs>
                                         <XAxis 
                                             dataKey="label" 
-                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#6b7f8a' }}
+                                            tick={{ fontSize: 12, fontWeight: 700, fill: '#5b6b75' }}
                                             axisLine={false}
                                             tickLine={false}
                                         />

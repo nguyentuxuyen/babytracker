@@ -12,7 +12,7 @@ export const fieldSx = {
         '&.Mui-focused': { bgcolor: '#ffffff', boxShadow: '0 0 0 2px #13a4ec inset' },
         '&.Mui-disabled': { bgcolor: '#f8fafc' }
     },
-    '& .MuiInputLabel-root': { color: '#6b7f8a' },
+    '& .MuiInputLabel-root': { color: '#5b6b75' },
     '& .MuiInputLabel-root.Mui-focused': { color: '#13a4ec' }
 } as const;
 

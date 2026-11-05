@@ -9,6 +9,7 @@ import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { Activity } from '../types';
 import { foodGramsOf } from '../domain/activitySchema.mjs';
+import PageHeader from '../components/common/PageHeader';
 
 type Reaction = 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
 type ReactionFilter = Reaction | 'all';
@@ -200,12 +201,11 @@ const FoodHistoryPage: React.FC = () => {
 
     return (
         <Box sx={{ px: 2, pt: 2, maxWidth: 720, mx: 'auto' }}>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: '#101c22' }}>{t('foodHistory.title')}</Typography>
-            {meals && meals.length > 0 && (
-                <Typography sx={{ fontSize: 14, color: '#6b7f8a', mt: 0.25 }}>
-                    {t('foodHistory.subtitle', { foods: foods.length, meals: meals.length })}
-                </Typography>
-            )}
+            <PageHeader
+                back
+                title={t('foodHistory.title')}
+                subtitle={meals && meals.length > 0 ? t('foodHistory.subtitle', { foods: foods.length, meals: meals.length }) : undefined}
+            />
 
             {meals && meals.length > 0 && (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1, mt: 2 }}>
@@ -303,7 +303,7 @@ const FoodHistoryPage: React.FC = () => {
                                                 <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#101c22', minWidth: 0 }} noWrap>{food.name}</Typography>
                                                 <ReactionBadge reaction={food.reaction} />
                                             </Box>
-                                            <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25 }} noWrap>
+                                            <Typography sx={{ fontSize: 13, color: '#5b6b75', mt: 0.25 }} noWrap>
                                                 {t('units.times', { count: food.meals.length })}
                                                 {food.averageAmount > 0 && ` · ${t('foodHistory.averageAmount', { amount: food.averageAmount })}`}
                                                 {` · ${lastEatenLabel(food.lastDate)}`}
@@ -326,11 +326,11 @@ const FoodHistoryPage: React.FC = () => {
                                                         <ReactionBadge reaction={meal.reaction} />
                                                     </Box>
                                                     {meal.names.length > 1 && (
-                                                        <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25 }}>
+                                                        <Typography sx={{ fontSize: 13, color: '#5b6b75', mt: 0.25 }}>
                                                             {t('foodHistory.eatenWith', { foods: meal.names.filter((name) => searchKey(name) !== food.key).join(', ') })}
                                                         </Typography>
                                                     )}
-                                                    {meal.notes && <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25 }}>{meal.notes}</Typography>}
+                                                    {meal.notes && <Typography sx={{ fontSize: 13, color: '#5b6b75', mt: 0.25 }}>{meal.notes}</Typography>}
                                                 </Box>
                                             ))}
                                         </Box>
@@ -347,7 +347,7 @@ const FoodHistoryPage: React.FC = () => {
                         <Box key={day.getTime()} sx={{ mb: 2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 0.75, px: 0.5 }}>
                                 <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#334155' }}>{dayLabel(day)}</Typography>
-                                {total > 0 && <Typography sx={{ fontSize: 13, color: '#6b7f8a' }}>{total}g</Typography>}
+                                {total > 0 && <Typography sx={{ fontSize: 13, color: '#5b6b75' }}>{total}g</Typography>}
                             </Box>
                             <Box sx={{ bgcolor: '#ffffff', borderRadius: '18px', border: '1px solid #e5e7eb', px: 1.5 }}>
                                 {dayMeals.map((meal, index) => (
@@ -358,7 +358,7 @@ const FoodHistoryPage: React.FC = () => {
                                             {meal.amount > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>{meal.amount}g</Typography>}
                                             <ReactionBadge reaction={meal.reaction} />
                                         </Box>
-                                        {meal.notes && <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25, pl: '54px' }}>{meal.notes}</Typography>}
+                                        {meal.notes && <Typography sx={{ fontSize: 13, color: '#5b6b75', mt: 0.25, pl: '54px' }}>{meal.notes}</Typography>}
                                     </Box>
                                 ))}
                             </Box>

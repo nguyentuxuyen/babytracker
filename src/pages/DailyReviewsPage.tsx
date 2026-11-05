@@ -6,6 +6,7 @@ import { DailyReview, fetchDailyReview, fetchDailyReviewHistory } from '../servi
 import { loadTargetSettings } from '../utils/dailyTargets';
 import DailyReviewDetails, { STATUS_STYLE } from '../components/common/DailyReviewDetails';
 import { formatReviewDay } from '../components/common/DailyReviewCard';
+import PageHeader from '../components/common/PageHeader';
 
 const isoDay = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -70,11 +71,12 @@ const DailyReviewsPage: React.FC = () => {
 
     return (
         <Box sx={{ px: 2, pt: 2, maxWidth: 720, mx: 'auto' }}>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: '#101c22', display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AutoAwesomeIcon sx={{ color: '#7c3aed' }} />
-                {t('dailyReview.historyTitle')}
-            </Typography>
-            <Typography sx={{ fontSize: 13, color: '#64748b', mb: 2 }}>{t('dailyReview.historyHint')}</Typography>
+            <PageHeader
+                back
+                icon={<AutoAwesomeIcon sx={{ color: '#7c3aed' }} />}
+                title={t('dailyReview.historyTitle')}
+                subtitle={t('dailyReview.historyHint')}
+            />
 
             {reviews && !hasYesterday && (
                 <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '16px', bgcolor: '#f5f3ff', border: '1px dashed #c4b5fd', display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -61,7 +61,7 @@ const RecentActivityList: React.FC<RecentActivityListProps> = ({ activities, lim
                                 </Box>
                                 <Box sx={{ minWidth: 0, flex: 1 }}>
                                     <Typography sx={{ fontSize: 15, fontWeight: 600, color: '#101c22' }} noWrap>{getActivityLabel(activity)}</Typography>
-                                    {details && <Typography sx={{ fontSize: 13, color: '#6b7f8a' }} noWrap>{details}</Typography>}
+                                    {details && <Typography sx={{ fontSize: 13, color: '#5b6b75' }} noWrap>{details}</Typography>}
                                 </Box>
                             </Box>
                         );

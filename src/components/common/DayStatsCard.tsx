@@ -39,7 +39,7 @@ const Tile: React.FC<{
                 </Box>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }} noWrap>{label}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 0.75, rowGap: 0.25, minWidth: 0 }}>
                 <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#101c22', lineHeight: 1.2 }} noWrap>{value}</Typography>
                 {change && (
                     <Typography component="span" sx={{ fontSize: 12, fontWeight: 700, color, bgcolor: '#ffffff', borderRadius: '999px', px: 0.75, flexShrink: 0 }}>
@@ -51,7 +51,7 @@ const Tile: React.FC<{
             {previous !== undefined && (
                 <Box sx={{ mt: 'auto', pt: 1 }}>
                     <Box sx={{ borderTop: `1px solid ${color}40`, pt: 0.75 }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{t('home.previousDay')}</Typography>
+                        <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#5b6b75' }}>{t('home.previousDay')}</Typography>
                         <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#334155' }} noWrap>{previous}</Typography>
                     </Box>
                 </Box>

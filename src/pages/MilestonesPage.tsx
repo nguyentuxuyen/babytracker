@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Checkbox, IconButton, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { useHistory } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBaby } from '../contexts/BabyContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import PageHeader from '../components/common/PageHeader';
 
 interface MilestoneItem {
     id: string;
@@ -225,7 +225,6 @@ const defaultMilestones: Milestone[] = [
 ];
 
 const MilestonesPage: React.FC = () => {
-    const history = useHistory();
     const { baby } = useBaby();
     const { currentUser, loading: authLoading } = useAuth();
     const { t } = useTranslation();
@@ -456,46 +455,16 @@ const MilestonesPage: React.FC = () => {
             bgcolor: '#f6f7f8',
             pb: '80px'
         }}>
-            {/* Header */}
-            <Box sx={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                bgcolor: '#ffffff',
-                borderBottom: '1px solid #e5e7eb',
-                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
-            }}>
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    px: 2,
-                    py: 1.5
-                }}>
-                    <IconButton
-                        onClick={() => history.push('/')}
-                        sx={{
-                            color: '#13a4ec',
-                            '&:hover': { bgcolor: '#f0f9ff' }
-                        }}
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                    </IconButton>
-                    <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontSize: '20px', fontWeight: 700, color: '#101c22' }}>
-                            {t('milestones.title')}
-                        </Typography>
-                        <Typography sx={{ fontSize: '13px', color: '#6b7f8a' }}>
-                            {baby?.name ? t('milestones.subtitleWithAge', { name: baby.name, count: currentAgeMonths }) : t('milestones.subtitle')}
-                        </Typography>
-                    </Box>
-                </Box>
+            <Box sx={{ px: 2, pt: 2 }}>
+                <PageHeader
+                    back
+                    title={t('milestones.title')}
+                    subtitle={baby?.name ? t('milestones.subtitleWithAge', { name: baby.name, count: currentAgeMonths }) : t('milestones.subtitle')}
+                />
             </Box>
 
             {/* Content */}
-            <Box sx={{ px: 2, pt: 2 }}>
+            <Box sx={{ px: 2 }}>
                 {milestonesData.map((category) => {
                     const isRelevant = currentAgeMonths === category.month;
                     const completionPercentage = getCompletionPercentage(category);
@@ -650,7 +619,7 @@ const MilestonesPage: React.FC = () => {
                                             <Typography
                                                 sx={{
                                                     fontSize: '13px',
-                                                    color: milestone.completed ? '#9ca3af' : '#6b7f8a',
+                                                    color: milestone.completed ? '#9ca3af' : '#5b6b75',
                                                     lineHeight: 1.5
                                                 }}
                                             >
@@ -727,7 +696,7 @@ const MilestonesPage: React.FC = () => {
                             setNewItemDescription('');
                         }}
                         sx={{ 
-                            color: '#6b7f8a',
+                            color: '#5b6b75',
                             textTransform: 'none',
                             fontWeight: 600
                         }}

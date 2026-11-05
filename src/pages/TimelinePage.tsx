@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { localeTag } from '../i18n';
-import { Alert, Box, Button, Card, Chip, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardActionArea, Chip, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, Stack, TextField, Typography } from '@mui/material';
 import { DeleteIcon, EditIcon } from '../components/common/icons';
 import DayStatsCard from '../components/common/DayStatsCard';
 import { formatGap, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel } from '../components/common/activityDisplay';
@@ -19,6 +19,17 @@ import { useSleepTimer } from '../hooks/useSleepTimer';
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { formatHoursMinutes } from '../i18n/format';
 import { MAX_FOODS_PER_MEAL, foodPortionsOf } from '../domain/activitySchema.mjs';
+import PageHeader from '../components/common/PageHeader';
+
+// A sleep is stored at its wake-up time; show "08:10–15:10" so it does not read as starting then.
+const sleepRangeOf = (activity: Activity): string[] => {
+    const minutes = Number((activity.details as any)?.duration);
+    if (activity.type !== 'sleep' || !(minutes > 0)) return [];
+    const end = new Date(activity.timestamp);
+    const start = new Date(end.getTime() - minutes * 60000);
+    const time = (date: Date) => date.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' });
+    return [`${time(start)}–${time(end)}`];
+};
 
 // "cơm, chuối + bơ" typed in one go becomes three dishes.
 const splitFoodNames = (value: string) => value.split(/[,+、，]/).map((name) => name.replace(/\s+/g, ' ').trim()).filter(Boolean);
@@ -260,9 +271,7 @@ const TimelinePage: React.FC = () => {
 
     return (
         <Box sx={{ px: 2, pt: 2, pb: 3, width: '100%', maxWidth: 720, mx: 'auto' }}>
-            <Typography sx={{ mb: 1.5, fontSize: 20, fontWeight: 700, color: '#101c22' }}>
-                {t('timeline.title')}
-            </Typography>
+            <PageHeader title={t('timeline.title')} />
             <RecentDaysStrip
                 selectedDate={selectedDate}
                 onSelect={setSelectedDate}
@@ -321,7 +330,7 @@ const TimelinePage: React.FC = () => {
                             <Typography sx={{ fontSize: { xs: 13, sm: 16 }, fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap' }}>{time}</Typography>
                             {groupIndex < timeGroups.length - 1 && (
                                 <Box sx={{ width: 2, flexGrow: 1, bgcolor: '#e5e7eb', mt: 1.5, mb: -1.5, position: 'relative' }}>
-                                    <Typography sx={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', px: 0.5, py: 0.25, borderRadius: 0.5, bgcolor: 'rgba(255,255,255,0.8)', color: '#a0aab4', fontSize: { xs: 9, sm: 11 }, whiteSpace: 'nowrap' }}>
+                                    <Typography sx={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', px: 0.5, py: 0.25, borderRadius: 0.5, bgcolor: 'rgba(255,255,255,0.8)', color: '#7d8b94', fontSize: { xs: 10, sm: 11 }, fontWeight: 600, whiteSpace: 'nowrap' }}>
                                         {(() => {
                                             const current = new Date(activitiesInGroup[0].timestamp).getTime();
                                             const next = new Date(timeGroups[groupIndex + 1][1][0].timestamp).getTime();
@@ -336,6 +345,7 @@ const TimelinePage: React.FC = () => {
                                 const color = getActivityColor(activity);
                                 return (
                                     <Card key={activity.id} sx={{ bgcolor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+                                        <CardActionArea onClick={() => openEdit(activity)} sx={{ borderRadius: '16px' }}>
                                         <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                                             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                                                 <Box sx={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color, bgcolor: `${color}18` }}>
@@ -344,17 +354,15 @@ const TimelinePage: React.FC = () => {
                                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                                                         <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{getActivityLabel(activity)}</Typography>
-                                                        <Box sx={{ display: 'flex' }}>
-                                                            <Tooltip title={t('timeline.edit')}><IconButton aria-label={t('timeline.edit')} onClick={() => openEdit(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                            <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} onClick={() => setConfirmingDelete(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
-                                                        </Box>
+                                                        <EditIcon aria-hidden sx={{ fontSize: 16, color: '#94a3b8', flexShrink: 0 }} />
                                                     </Box>
                                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                                                        {getActivityDetails(activity).map((detail) => <Typography key={detail} component="span" sx={{ px: 1, py: 0.35, borderRadius: 0.75, color, bgcolor: `${color}12`, fontSize: 12, fontWeight: 600 }}>{detail}</Typography>)}
+                                                        {[...sleepRangeOf(activity), ...getActivityDetails(activity)].map((detail) => <Typography key={detail} component="span" sx={{ px: 1, py: 0.35, borderRadius: 0.75, color, bgcolor: `${color}12`, fontSize: 12, fontWeight: 600 }}>{detail}</Typography>)}
                                                     </Box>
                                                 </Box>
                                             </Box>
                                         </CardContent>
+                                        </CardActionArea>
                                     </Card>
                                 );
                             })}
@@ -408,7 +416,7 @@ const TimelinePage: React.FC = () => {
                             />
                             {editFoods.length > 1 ? (
                                 <Box sx={{ mt: 2 }}>
-                                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mb: 1 }}>{t('feeding.gramsPerFood')}</Typography>
+                                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#5b6b75', mb: 1 }}>{t('feeding.gramsPerFood')}</Typography>
                                     <Stack spacing={1}>
                                         {editFoods.map((food) => (
                                             <Box key={food} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -430,7 +438,7 @@ const TimelinePage: React.FC = () => {
                                         ))}
                                     </Stack>
                                     {editTotalGrams > 0 && (
-                                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mt: 1, textAlign: 'right' }}>
+                                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#5b6b75', mt: 1, textAlign: 'right' }}>
                                             {t('feeding.totalGrams', { amount: editTotalGrams })}
                                         </Typography>
                                     )}
@@ -449,6 +457,14 @@ const TimelinePage: React.FC = () => {
                     <TextField label={t('common.notes')} value={editNotes} onChange={(event) => setEditNotes(event.target.value)} fullWidth multiline minRows={2} size="small" sx={{ mt: 2 }} />
                 </DialogContent>
                 <DialogActions>
+                    <Button
+                        color="error"
+                        startIcon={<DeleteIcon fontSize="small" />}
+                        onClick={() => { const activity = editingActivity; setEditingActivity(null); setConfirmingDelete(activity); }}
+                        sx={{ mr: 'auto' }}
+                    >
+                        {t('timeline.deleteShort')}
+                    </Button>
                     <Button onClick={() => setEditingActivity(null)}>{t('common.cancel')}</Button>
                     <Button variant="contained" onClick={() => void saveEdit()} disabled={savingEdit || (editingActivity?.type === 'diaper' && !editIsUrine && !editIsStool)}>
                         {savingEdit ? <CircularProgress size={16} color="inherit" /> : t('common.save')}

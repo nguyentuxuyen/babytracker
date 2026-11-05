@@ -8,7 +8,6 @@ import { BabyProvider, useBaby } from './contexts/BabyContext';
 import { DateProvider } from './contexts/DateContext';
 import AppRouter from './routes/AppRouter';
 import DriveConnectNotice from './components/common/DriveConnectNotice';
-import BabyInfoPage from './pages/BabyInfoPageNew';
 import TranslationsPage from './pages/TranslationsPage';
 import { loadTranslationOverrides } from './i18n/overrides';
 import { firestore } from './firebase/firestore';
@@ -164,7 +163,7 @@ const HeaderComponent: React.FC<{
                     <div style={{
                         fontSize: '12px',
                         fontWeight: '400',
-                        color: '#6b7f8a'
+                        color: '#5b6b75'
                     }}>
                         {(() => {
                             try {
@@ -499,7 +498,7 @@ const HeaderComponent: React.FC<{
             <Dialog open={showChangelog} onClose={handleCloseChangelog} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ pb: 1 }}>{t('changelog.title')}</DialogTitle>
                 <DialogContent dividers>
-                    <Typography variant="caption" sx={{ display: 'block', color: '#6b7f8a', mb: 2 }}>
+                    <Typography variant="caption" sx={{ display: 'block', color: '#5b6b75', mb: 2 }}>
                         {t('changelog.source', { source: changelogUsesFirebase ? 'Firebase' : t('changelog.local') })}
                     </Typography>
                     {changelogReleases.map((entry) => (
@@ -510,7 +509,7 @@ const HeaderComponent: React.FC<{
                                 </Typography>
                                 <Chip label={`v${entry.version}`} size="small" sx={{ bgcolor: '#f0fdf4', color: '#166534' }} />
                             </Box>
-                            <Typography variant="body2" sx={{ color: '#6b7f8a', mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: '#5b6b75', mb: 1 }}>
                                 {formatChangelogDate(entry.releasedAt)}
                             </Typography>
                             {entry.summary && (
@@ -542,7 +541,6 @@ const HeaderComponent: React.FC<{
 const MainApp: React.FC = () => {
     const { currentUser, logout, loading } = useAuth();
     const { baby } = useBaby();
-    const [showBabyInfo, setShowBabyInfo] = useState(false);
     const [showTranslations, setShowTranslations] = useState(false);
     const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
     const [pendingSyncCount, setPendingSyncCount] = useState(0);
@@ -858,9 +856,6 @@ const MainApp: React.FC = () => {
     }
 
     // Show baby info modal if requested
-    if (showBabyInfo) {
-        return <BabyInfoPage onBack={() => setShowBabyInfo(false)} />;
-    }
 
     if (showTranslations) {
         return <TranslationsPage onBack={() => setShowTranslations(false)} />;
@@ -893,7 +888,7 @@ const MainApp: React.FC = () => {
             <HeaderComponent
                 currentUser={currentUser}
                 logout={logout}
-                onShowBabyInfo={() => setShowBabyInfo(true)}
+                onShowBabyInfo={() => navigateTo('/baby-info')}
                 isOnline={isOnline}
                 pendingSyncCount={pendingSyncCount}
                 isSyncing={isSyncing}

@@ -68,11 +68,11 @@ const TranslationsPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <Box sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: '#ffffff', borderBottom: '1px solid #e5e7eb', px: 2, py: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                     <IconButton onClick={onBack} aria-label={t('common.back')}>
-                        <ArrowBackIosNewIcon sx={{ fontSize: 18, color: '#6b7f8a' }} />
+                        <ArrowBackIosNewIcon sx={{ fontSize: 18, color: '#5b6b75' }} />
                     </IconButton>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#101c22' }}>{t('translations.title')}</Typography>
-                        <Typography sx={{ fontSize: '12px', color: '#6b7f8a' }}>{t('translations.subtitle')}</Typography>
+                        <Typography sx={{ fontSize: '12px', color: '#5b6b75' }}>{t('translations.subtitle')}</Typography>
                     </Box>
                 </Box>
                 <ToggleButtonGroup
@@ -105,7 +105,7 @@ const TranslationsPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
             <Box sx={{ px: 2, pt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {keys.length === 0 && (
-                    <Typography sx={{ color: '#6b7f8a', textAlign: 'center', mt: 4 }}>{t('translations.noMatch')}</Typography>
+                    <Typography sx={{ color: '#5b6b75', textAlign: 'center', mt: 4 }}>{t('translations.noMatch')}</Typography>
                 )}
                 {keys.map((key) => {
                     const edited = isEdited(key);
