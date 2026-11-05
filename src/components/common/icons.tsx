@@ -6,6 +6,7 @@ import {
     Bell,
     BellOff,
     Calendar,
+    Camera,
     CalendarDays,
     ChartColumn,
     ChartLine,
@@ -78,6 +79,7 @@ export const BabyIcon = createIcon(Baby, 'BabyIcon');
 export const BathIcon = createIcon(Bath, 'BathIcon');
 export const MeasurementIcon = createIcon(Ruler, 'MeasurementIcon');
 export const MemoIcon = createIcon(NotebookPen, 'MemoIcon');
+export const PhotoCameraIcon = createIcon(Camera, 'PhotoCameraIcon');
 export const UrineIcon = createIcon(Droplet, 'UrineIcon');
 export const TimerIcon = createIcon(Timer, 'TimerIcon');
 

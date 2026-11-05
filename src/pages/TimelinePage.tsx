@@ -6,6 +6,10 @@ import { DeleteIcon, EditIcon } from '../components/common/icons';
 import DayStatsCard from '../components/common/DayStatsCard';
 import { formatGap, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel } from '../components/common/activityDisplay';
 import { useAuth } from '../hooks/useAuth';
+import { useMoments } from '../hooks/useMoments';
+import { toLocalDateKey } from '../firebase/moments';
+import MomentCard from '../components/common/MomentCard';
+import { useMomentSheets } from '../components/common/MomentSheets';
 import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
 import { firestore } from '../firebase/firestore';
@@ -58,6 +62,10 @@ const TimelinePage: React.FC = () => {
             && timestamp.getMonth() === selectedDate.getMonth()
             && timestamp.getDate() === selectedDate.getDate();
     }), [activities, selectedDate]);
+    const { moments } = useMoments(user?.uid);
+    const { openMoment, addMoment, sheets: momentSheets } = useMomentSheets(user?.uid, moments);
+    const selectedDayKey = toLocalDateKey(selectedDate);
+    const dayMoments = useMemo(() => moments.filter((moment) => moment.date === selectedDayKey), [moments, selectedDayKey]);
     const todayStats = useMemo(() => calculateStatsForDate(activities as any, selectedDate), [activities, selectedDate]);
     const previousDate = useMemo(() => {
         const date = new Date(selectedDate);
@@ -289,6 +297,18 @@ const TimelinePage: React.FC = () => {
                 />
             </Box>
 
+            <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {dayMoments.map((moment) => (
+                    <MomentCard key={moment.id} moment={moment} showDate={false} onClick={() => openMoment(moment)} />
+                ))}
+                <Button
+                    onClick={() => addMoment(selectedDate)}
+                    sx={{ alignSelf: 'flex-start', textTransform: 'none', fontWeight: 600, color: '#ec4899', borderRadius: '12px', px: 1.5 }}
+                >
+                    + {t('moments.addForDay')}
+                </Button>
+            </Box>
+
             {loading && <CircularProgress size={28} />}
             {error && <Alert severity="error">{error}</Alert>}
             {!loading && !error && selectedActivities.length === 0 && (
@@ -468,6 +488,7 @@ const TimelinePage: React.FC = () => {
                 sx={{ bottom: { xs: 'calc(96px + env(safe-area-inset-bottom))' } }}
                 action={<Button color="primary" size="small" onClick={undoDelete} sx={{ fontWeight: 700, color: '#7dd3fc' }}>{t('timeline.undo')}</Button>}
             />
+            {momentSheets}
         </Box>
     );
 };

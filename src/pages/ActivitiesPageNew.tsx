@@ -8,9 +8,13 @@ import { useBaby } from '../contexts/BabyContext';
 import { useDateContext } from '../contexts/DateContext';
 import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
+import { useMoments } from '../hooks/useMoments';
+import { useMomentSheets } from '../components/common/MomentSheets';
+import { MOMENT_ACCENT } from '../components/common/MomentCard';
+import { formatMomentDate } from '../components/common/MomentViewer';
 import { AssistantComposer } from '../components/common/AssistantComposer';
 import RecentDaysStrip from '../components/common/RecentDaysStrip';
-import { BabyIcon, BathIcon, CloseIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon, TimerIcon } from '../components/common/icons';
+import { BabyIcon, BathIcon, CloseIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, PhotoCameraIcon, SleepIcon, TimerIcon } from '../components/common/icons';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { filterFoodItems } from '../utils/foodSearch';
 import i18n from '../i18n';
@@ -131,6 +135,8 @@ const ActivitiesPage: React.FC = () => {
     const [showAiComposer, setShowAiComposer] = useState(false);
     const { user: currentUser } = useAuth();
     const { t } = useTranslation();
+    const { moments } = useMoments(currentUser?.uid);
+    const { addMoment, sheets: momentSheets } = useMomentSheets(currentUser?.uid, moments);
     
     const { ongoingSleep, elapsedSeconds: sleepElapsedTime, setOngoingSleep } = useSleepTimer(currentUser?.uid, baby?.id);
 
@@ -885,7 +891,14 @@ const ActivitiesPage: React.FC = () => {
                         onCommitted={refreshActivities}
                     />
                 </DialogContent>
-                <DialogActions>
+                <DialogActions sx={{ justifyContent: 'space-between' }}>
+                    <MuiButton
+                        startIcon={<PhotoCameraIcon />}
+                        onClick={() => { setShowAiComposer(false); addMoment(selectedDate); }}
+                        sx={{ color: MOMENT_ACCENT, textTransform: 'none', fontWeight: 700 }}
+                    >
+                        {t('moments.quickTitle')}
+                    </MuiButton>
                     <MuiButton onClick={() => setShowAiComposer(false)}>{t('common.close')}</MuiButton>
                 </DialogActions>
             </Dialog>
@@ -1114,6 +1127,54 @@ const ActivitiesPage: React.FC = () => {
                             </Grid>
                             );
                         })}
+                        <Grid item xs={12}>
+                            <Box
+                                component="button"
+                                type="button"
+                                onClick={() => addMoment(selectedDate)}
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
+                                    width: '100%',
+                                    p: 1.5,
+                                    minHeight: 64,
+                                    textAlign: 'left',
+                                    fontFamily: 'inherit',
+                                    bgcolor: '#fdf2f8',
+                                    borderRadius: '20px',
+                                    border: '1px solid #fbcfe8',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.15s, box-shadow 0.15s',
+                                    '&:hover': { boxShadow: '0 6px 16px rgba(15, 23, 42, 0.06)' },
+                                    '&:active': { transform: 'scale(0.98)' }
+                                }}
+                            >
+                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: MOMENT_ACCENT, bgcolor: `${MOMENT_ACCENT}1f` }}>
+                                    <PhotoCameraIcon sx={{ fontSize: 22 }} />
+                                </Box>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#101c22', lineHeight: 1.3 }} noWrap>
+                                        {t('moments.quickTitle')}
+                                    </Typography>
+                                    <Typography sx={{ fontSize: 12, color: '#6b7f8a', fontWeight: 500 }} noWrap>
+                                        {moments[0]
+                                            ? t('moments.quickLast', { title: moments[0].title || t('moments.untitled'), date: formatMomentDate(moments[0].date, { day: 'numeric', month: 'short' }) })
+                                            : t('moments.quickHint')}
+                                    </Typography>
+                                </Box>
+                                {moments.length > 0 && (
+                                    <Box
+                                        component="span"
+                                        role="link"
+                                        onClick={(event: React.MouseEvent) => { event.stopPropagation(); history.push('/moments'); }}
+                                        sx={{ fontSize: 13, fontWeight: 700, color: MOMENT_ACCENT, px: 1, py: 0.5 }}
+                                    >
+                                        {t('moments.seeAll')}
+                                    </Box>
+                                )}
+                            </Box>
+                        </Grid>
                     </Grid>
                 </Box>
 
@@ -1130,6 +1191,8 @@ const ActivitiesPage: React.FC = () => {
 
                 </Box>
             </Box>
+
+            {momentSheets}
 
             {/* Form Modal - Bottom Sheet Style */}
             {showForm && ReactDOM.createPortal(

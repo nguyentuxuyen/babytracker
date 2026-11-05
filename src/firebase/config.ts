@@ -30,7 +30,7 @@ export const db = initializeFirestore(firebaseApp, {
 // Initialize Authentication
 export const auth = getAuth(firebaseApp);
 
-// Cloud Storage for milestone photos (needs the Blaze plan and Storage enabled in the console).
+// Cloud Storage for moment photos (needs the Blaze plan and Storage enabled in the console).
 export const storage = getStorage(firebaseApp);
 
 // Local end-to-end testing against the Firebase emulators (never set on Vercel).

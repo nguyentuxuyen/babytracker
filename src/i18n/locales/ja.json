@@ -77,7 +77,8 @@
     "defaultMilkTypeNone": "未設定",
     "milkProduct": "ミルクの商品名",
     "milkProductPlaceholder": "商品名(例: 明治ほほえみ)",
-    "dailyReviews": "毎日の評価"
+    "dailyReviews": "毎日の評価",
+    "moments": "思い出"
   },
   "changelog": {
     "title": "更新内容",
@@ -433,27 +434,6 @@
       "17": "17か月: ことばが広がる（17〜18か月）",
       "18": "18か月: 細かな動きの発達（18〜19か月）",
       "19": "19か月（1歳半）: 自立と創造"
-    },
-    "photos": {
-      "open": "{{title}} の写真",
-      "count": "写真 {{count}} 枚",
-      "empty": "写真はまだありません",
-      "addFirst": "この目安の最初の写真を追加",
-      "limit": "一度に最大 {{count}} 枚まで",
-      "add": "写真を追加",
-      "delete": "削除",
-      "confirmDelete": "もう一度押すと削除",
-      "previous": "前の写真",
-      "next": "次の写真",
-      "photoAlt": "写真 {{index}}",
-      "uploading": "写真をアップロード中 {{done}}/{{total}}…",
-      "errors": {
-        "storageDisabled": "写真を保存できません。Firebase Storage が有効になっていないか、Storage のルールが未設定です。",
-        "notImage": "画像ファイルではないか、読み込めませんでした。",
-        "tooLarge": "圧縮後も画像が大きすぎます。",
-        "failed": "アップロードに失敗しました。もう一度お試しください。",
-        "tooMany": "一度に選べるのは {{count}} 枚までです。最初の {{count}} 枚を使います。"
-      }
     }
   },
   "wonderWeeks": {
@@ -653,5 +633,46 @@
     "reminders": "リマインダー",
     "reminderSwitch": "記録のリマインダー",
     "reminderInterval": "通知の間隔"
+  },
+  "moments": {
+    "label": "思い出",
+    "pageTitle": "思い出",
+    "summary": "思い出 {{count}} 件・写真 {{photos}} 枚",
+    "addTitle": "思い出を追加",
+    "addShort": "追加",
+    "editTitle": "思い出を編集",
+    "addForDay": "この日の思い出を追加",
+    "hint": "お出かけ、初めてできたこと、何気ない素敵な午後など。",
+    "name": "タイトル",
+    "namePlaceholder": "例: 上野公園におでかけ",
+    "date": "日付",
+    "photos": "写真 ({{count}}/{{max}})",
+    "addPhotos": "写真を追加",
+    "addPhotosShort": "写真",
+    "removePhoto": "この写真を外す",
+    "note": "メモ",
+    "notePlaceholder": "今日はどんな一日でしたか？あとで読み返せるように。",
+    "saving": "保存中…",
+    "uploading": "写真をアップロード中 {{done}}/{{total}}…",
+    "untitled": "無題の思い出",
+    "edit": "編集",
+    "delete": "削除",
+    "confirmDelete": "もう一度押すと削除",
+    "previous": "前の写真",
+    "next": "次の写真",
+    "photoAlt": "写真 {{index}}",
+    "emptyTitle": "思い出はまだありません",
+    "emptyHint": "お出かけや初めての出来事を写真と一緒に残しましょう。",
+    "quickTitle": "思い出",
+    "quickHint": "お出かけ・初めての出来事を写真付きで",
+    "quickLast": "最新: {{title}}（{{date}}）",
+    "seeAll": "すべて見る",
+    "errors": {
+      "storageDisabled": "写真を保存できません。Firebase Storage が有効になっていないか、Storage のルールが未設定です。",
+      "notImage": "画像ではないファイルか、読み込めないファイルがあります。",
+      "tooLarge": "圧縮後も画像が大きすぎます。",
+      "failed": "保存できませんでした。もう一度お試しください。",
+      "tooMany": "一度に選べるのは {{count}} 枚までです。最初の写真を使いました。"
+    }
   }
 }
