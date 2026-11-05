@@ -41,7 +41,8 @@
     "records": "Nhật ký",
     "add": "Thêm hoạt động",
     "stats": "Thống kê",
-    "food": "Ăn dặm"
+    "food": "Ăn dặm",
+    "moments": "Kỷ niệm"
   },
   "header": {
     "babyName": "Bé {{name}}",
@@ -78,7 +79,7 @@
     "milkProduct": "Tên sữa",
     "milkProductPlaceholder": "Tên sữa, ví dụ Meiji Hohoemi",
     "dailyReviews": "Đánh giá hằng ngày",
-    "moments": "Kỷ niệm"
+    "food": "Ăn dặm"
   },
   "changelog": {
     "title": "Nội dung cập nhật",

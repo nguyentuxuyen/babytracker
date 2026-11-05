@@ -19,6 +19,7 @@ import {
     Eye,
     EyeOff,
     History,
+    Images,
     House,
     Info,
     Languages,
@@ -80,6 +81,7 @@ export const BathIcon = createIcon(Bath, 'BathIcon');
 export const MeasurementIcon = createIcon(Ruler, 'MeasurementIcon');
 export const MemoIcon = createIcon(NotebookPen, 'MemoIcon');
 export const PhotoCameraIcon = createIcon(Camera, 'PhotoCameraIcon');
+export const MomentsIcon = createIcon(Images, 'MomentsIcon');
 export const UrineIcon = createIcon(Droplet, 'UrineIcon');
 export const TimerIcon = createIcon(Timer, 'TimerIcon');
 

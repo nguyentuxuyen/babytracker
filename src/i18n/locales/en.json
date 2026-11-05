@@ -44,7 +44,8 @@
     "records": "Log",
     "add": "Add record",
     "stats": "Stats",
-    "food": "Meals"
+    "food": "Meals",
+    "moments": "Memories"
   },
   "header": {
     "babyName": "{{name}}",
@@ -84,7 +85,7 @@
     "milkProduct": "Formula name",
     "milkProductPlaceholder": "Formula name, e.g. Meiji Hohoemi",
     "dailyReviews": "Daily reviews",
-    "moments": "Memories"
+    "food": "Meals"
   },
   "changelog": {
     "title": "What's new",

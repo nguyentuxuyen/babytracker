@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Button, CircularProgress, IconButton, Typography } from '@mui/material';
-import { useHistory } from 'react-router-dom';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { useMoments } from '../hooks/useMoments';
@@ -11,7 +10,6 @@ import { useMomentSheets } from '../components/common/MomentSheets';
 
 // "Kỷ niệm": every moment, newest first, grouped by month.
 const MomentsPage: React.FC = () => {
-    const history = useHistory();
     const { t } = useTranslation();
     const { user } = useAuth();
     const { moments, loading } = useMoments(user?.uid);
@@ -25,10 +23,7 @@ const MomentsPage: React.FC = () => {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f6f7f8' }}>
-            <Box sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 1 }}>
-                <IconButton onClick={() => history.push('/')} aria-label={t('common.back')} sx={{ color: '#13a4ec' }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </IconButton>
+            <Box sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 1, pl: 2, pr: 1, py: 1 }}>
                 <Box sx={{ flex: 1 }}>
                     <Typography sx={{ fontSize: 20, fontWeight: 700, color: '#101c22' }}>{t('moments.pageTitle')}</Typography>
                     <Typography sx={{ fontSize: 13, color: '#6b7f8a' }}>

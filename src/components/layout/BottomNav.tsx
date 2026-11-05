@@ -2,9 +2,9 @@ import React from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
-import { HomeIcon, ChartIcon as ShowChartIcon, FoodIcon as RestaurantIcon, HistoryIcon, AddIcon } from '../common/icons';
+import { HomeIcon, ChartIcon as ShowChartIcon, HistoryIcon, AddIcon, MomentsIcon } from '../common/icons';
 
-const ROUTES = ['/', '/timeline', '/?add=1', '/statistics', '/food-history'];
+const ROUTES = ['/', '/timeline', '/?add=1', '/statistics', '/moments'];
 
 const labelSx = {
     '& .MuiBottomNavigationAction-label': {
@@ -29,7 +29,7 @@ const BottomNav: React.FC = () => {
         if (path === '/' || path === '/activities') return 0;
         if (path === '/timeline') return 1;
         if (path === '/statistics') return 3;
-        if (path === '/food-history') return 4;
+        if (path === '/moments') return 4;
         return -1;
     };
 
@@ -95,7 +95,7 @@ const BottomNav: React.FC = () => {
                     }}
                 />
                 <BottomNavigationAction label={t('nav.stats')} icon={<ShowChartIcon />} sx={labelSx} />
-                <BottomNavigationAction label={t('nav.food')} icon={<RestaurantIcon />} sx={labelSx} />
+                <BottomNavigationAction label={t('nav.moments')} icon={<MomentsIcon />} sx={labelSx} />
             </BottomNavigation>
         </Paper>
     );

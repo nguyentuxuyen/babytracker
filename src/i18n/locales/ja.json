@@ -41,7 +41,8 @@
     "records": "記録",
     "add": "記録を追加",
     "stats": "分析",
-    "food": "食事"
+    "food": "食事",
+    "moments": "思い出"
   },
   "header": {
     "babyName": "{{name}}くん",
@@ -78,7 +79,7 @@
     "milkProduct": "ミルクの商品名",
     "milkProductPlaceholder": "商品名(例: 明治ほほえみ)",
     "dailyReviews": "毎日の評価",
-    "moments": "思い出"
+    "food": "食事の記録"
   },
   "changelog": {
     "title": "更新内容",

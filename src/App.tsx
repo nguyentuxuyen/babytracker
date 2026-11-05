@@ -22,11 +22,11 @@ import i18n from './i18n';
 import {
     AccountIcon as AccountCircleIcon,
     BabyIcon as ChildCareIcon,
+    FoodIcon,
     LogoutIcon,
     SettingsIcon
 } from './components/common/icons';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography, Chip } from '@mui/material';
 import packageJson from '../package.json';
 import { CHANGELOG_SEEN_STORAGE_KEY, fallbackChangelogReleases, formatChangelogDate } from './utils/changelog';
@@ -354,7 +354,7 @@ const HeaderComponent: React.FC<{
                                     </button>
                                     <button
                                         onClick={() => {
-                                            navigateTo('/moments');
+                                            navigateTo('/food-history');
                                             setShowMenu(false);
                                         }}
                                         style={{
@@ -375,8 +375,8 @@ const HeaderComponent: React.FC<{
                                         onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
                                         onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                     >
-                                        <PhotoLibraryIcon sx={{ fontSize: '20px', color: '#ec4899' }} />
-                                        {t('menu.moments')}
+                                        <FoodIcon sx={{ fontSize: '20px', color: '#f97316' }} />
+                                        {t('menu.food')}
                                     </button>
                                     <button
                                         onClick={() => {
