@@ -44,7 +44,8 @@
     "records": "Log",
     "add": "Add record",
     "stats": "Stats",
-    "food": "Meals"
+    "food": "Meals",
+    "moments": "Memories"
   },
   "header": {
     "babyName": "{{name}}",
@@ -83,7 +84,8 @@
     "defaultMilkTypeNone": "Not set",
     "milkProduct": "Formula name",
     "milkProductPlaceholder": "Formula name, e.g. Meiji Hohoemi",
-    "dailyReviews": "Daily reviews"
+    "dailyReviews": "Daily reviews",
+    "food": "Meals"
   },
   "changelog": {
     "title": "What's new",
@@ -650,5 +652,47 @@
     "reminders": "Reminders",
     "reminderSwitch": "Logging reminders",
     "reminderInterval": "Remind every"
+  },
+  "moments": {
+    "label": "Moment",
+    "pageTitle": "Memories",
+    "summary_one": "{{count}} moment, {{photos}} photos",
+    "summary_other": "{{count}} moments, {{photos}} photos",
+    "addTitle": "Add a moment",
+    "addShort": "Add",
+    "editTitle": "Edit moment",
+    "addForDay": "Add a moment for this day",
+    "hint": "A day out, a first, or just a lovely afternoon.",
+    "name": "Title",
+    "namePlaceholder": "e.g. Day out at Ueno Park",
+    "date": "Date",
+    "photos": "Photos ({{count}}/{{max}})",
+    "addPhotos": "Add photos",
+    "addPhotosShort": "Photos",
+    "removePhoto": "Remove this photo",
+    "note": "Note",
+    "notePlaceholder": "How was today? A few lines to read back later.",
+    "saving": "Saving…",
+    "uploading": "Uploading photo {{done}}/{{total}}…",
+    "untitled": "Untitled moment",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Tap again to delete",
+    "previous": "Previous photo",
+    "next": "Next photo",
+    "photoAlt": "Photo {{index}}",
+    "emptyTitle": "No moments yet",
+    "emptyHint": "Keep days out and your baby's firsts, with photos.",
+    "quickTitle": "Moment",
+    "quickHint": "Days out, firsts… saved with photos",
+    "quickLast": "Latest: {{title}} ({{date}})",
+    "seeAll": "See all",
+    "errors": {
+      "storageDisabled": "Photos can't be saved yet: Firebase Storage is not enabled or its security rules are not deployed.",
+      "notImage": "A file is not an image or could not be read.",
+      "tooLarge": "The photo is too large even after compression.",
+      "failed": "Could not save, please try again.",
+      "tooMany": "You can pick up to {{count}} photos at a time; the first ones were used."
+    }
   }
 }

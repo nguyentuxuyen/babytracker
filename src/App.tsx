@@ -22,6 +22,7 @@ import i18n from './i18n';
 import {
     AccountIcon as AccountCircleIcon,
     BabyIcon as ChildCareIcon,
+    FoodIcon,
     LogoutIcon,
     SettingsIcon
 } from './components/common/icons';
@@ -350,6 +351,32 @@ const HeaderComponent: React.FC<{
                                     >
                                         <ChildCareIcon sx={{ fontSize: '20px', color: '#13a4ec' }} />
                                         {t('menu.babyInfo')}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            navigateTo('/food-history');
+                                            setShowMenu(false);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            background: 'none',
+                                            border: 'none',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            color: '#101c22',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                        onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f6f7f8'}
+                                        onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                                    >
+                                        <FoodIcon sx={{ fontSize: '20px', color: '#f97316' }} />
+                                        {t('menu.food')}
                                     </button>
                                     <button
                                         onClick={() => {

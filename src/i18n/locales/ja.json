@@ -41,7 +41,8 @@
     "records": "記録",
     "add": "記録を追加",
     "stats": "分析",
-    "food": "食事"
+    "food": "食事",
+    "moments": "思い出"
   },
   "header": {
     "babyName": "{{name}}くん",
@@ -77,7 +78,8 @@
     "defaultMilkTypeNone": "未設定",
     "milkProduct": "ミルクの商品名",
     "milkProductPlaceholder": "商品名(例: 明治ほほえみ)",
-    "dailyReviews": "毎日の評価"
+    "dailyReviews": "毎日の評価",
+    "food": "食事の記録"
   },
   "changelog": {
     "title": "更新内容",
@@ -632,5 +634,46 @@
     "reminders": "リマインダー",
     "reminderSwitch": "記録のリマインダー",
     "reminderInterval": "通知の間隔"
+  },
+  "moments": {
+    "label": "思い出",
+    "pageTitle": "思い出",
+    "summary": "思い出 {{count}} 件・写真 {{photos}} 枚",
+    "addTitle": "思い出を追加",
+    "addShort": "追加",
+    "editTitle": "思い出を編集",
+    "addForDay": "この日の思い出を追加",
+    "hint": "お出かけ、初めてできたこと、何気ない素敵な午後など。",
+    "name": "タイトル",
+    "namePlaceholder": "例: 上野公園におでかけ",
+    "date": "日付",
+    "photos": "写真 ({{count}}/{{max}})",
+    "addPhotos": "写真を追加",
+    "addPhotosShort": "写真",
+    "removePhoto": "この写真を外す",
+    "note": "メモ",
+    "notePlaceholder": "今日はどんな一日でしたか？あとで読み返せるように。",
+    "saving": "保存中…",
+    "uploading": "写真をアップロード中 {{done}}/{{total}}…",
+    "untitled": "無題の思い出",
+    "edit": "編集",
+    "delete": "削除",
+    "confirmDelete": "もう一度押すと削除",
+    "previous": "前の写真",
+    "next": "次の写真",
+    "photoAlt": "写真 {{index}}",
+    "emptyTitle": "思い出はまだありません",
+    "emptyHint": "お出かけや初めての出来事を写真と一緒に残しましょう。",
+    "quickTitle": "思い出",
+    "quickHint": "お出かけ・初めての出来事を写真付きで",
+    "quickLast": "最新: {{title}}（{{date}}）",
+    "seeAll": "すべて見る",
+    "errors": {
+      "storageDisabled": "写真を保存できません。Firebase Storage が有効になっていないか、Storage のルールが未設定です。",
+      "notImage": "画像ではないファイルか、読み込めないファイルがあります。",
+      "tooLarge": "圧縮後も画像が大きすぎます。",
+      "failed": "保存できませんでした。もう一度お試しください。",
+      "tooMany": "一度に選べるのは {{count}} 枚までです。最初の写真を使いました。"
+    }
   }
 }
