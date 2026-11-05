@@ -233,7 +233,16 @@
     "updateFailed": "Không sửa được bản ghi ngoại tuyến, hoặc cập nhật thất bại.",
     "loadFailed": "Không tải được hoạt động.",
     "deleted": "Đã xoá bản ghi",
-    "undo": "Hoàn tác"
+    "undo": "Hoàn tác",
+    "sincePreviousFeed": "cách cữ trước {{gap}}",
+    "filter": {
+      "all": "Tất cả",
+      "milk": "Sữa",
+      "solid": "Ăn dặm",
+      "sleep": "Ngủ",
+      "diaper": "Tã",
+      "other": "Khác"
+    }
   },
   "foodHistory": {
     "title": "Nhật ký ăn dặm",

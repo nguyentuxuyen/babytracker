@@ -244,7 +244,16 @@
     "updateFailed": "Offline records cannot be edited, or the update failed.",
     "loadFailed": "Could not load activities.",
     "deleted": "Record deleted",
-    "undo": "Undo"
+    "undo": "Undo",
+    "sincePreviousFeed": "{{gap}} since last feed",
+    "filter": {
+      "all": "All",
+      "milk": "Milk",
+      "solid": "Solids",
+      "sleep": "Sleep",
+      "diaper": "Diaper",
+      "other": "Other"
+    }
   },
   "foodHistory": {
     "title": "Solid food log",

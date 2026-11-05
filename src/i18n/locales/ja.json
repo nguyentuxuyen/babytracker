@@ -233,7 +233,16 @@
     "updateFailed": "オフライン記録は編集できないか、更新に失敗しました。",
     "loadFailed": "アクティビティを読み込めませんでした。",
     "deleted": "記録を削除しました",
-    "undo": "元に戻す"
+    "undo": "元に戻す",
+    "sincePreviousFeed": "前回から {{gap}}",
+    "filter": {
+      "all": "すべて",
+      "milk": "ミルク",
+      "solid": "離乳食",
+      "sleep": "睡眠",
+      "diaper": "おむつ",
+      "other": "その他"
+    }
   },
   "foodHistory": {
     "title": "離乳食の記録",
