@@ -651,7 +651,20 @@
     "milkHint": "Every milk feed (in the app, via Siri or the assistant) uses this milk. The morning review uses the formula name to judge whether the amount is enough.",
     "reminders": "Reminders",
     "reminderSwitch": "Logging reminders",
-    "reminderInterval": "Remind every"
+    "reminderInterval": "Remind every",
+    "drive": {
+      "section": "Moment photos (Google Drive)",
+      "connected": "Connected. Photos are saved in the \"Baby Tracker - Kỷ niệm\" folder in your Drive, one subfolder per moment.",
+      "notConnected": "Not connected. Moment photos are saved to your own Google Drive; the app only sees files it created.",
+      "notConfigured": "The server has no Google Drive settings yet (GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET).",
+      "openFolder": "Open folder in Drive",
+      "disconnect": "Disconnect",
+      "confirmDisconnect": "Tap again to disconnect",
+      "justConnected": "Google Drive connected.",
+      "cancelled": "Google Drive connection was cancelled.",
+      "error": "Could not connect Google Drive, please try again.",
+      "loading": "Checking connection…"
+    }
   },
   "moments": {
     "label": "Moment",
@@ -688,11 +701,16 @@
     "quickLast": "Latest: {{title}} ({{date}})",
     "seeAll": "See all",
     "errors": {
-      "storageDisabled": "Photos can't be saved yet: Firebase Storage is not enabled or its security rules are not deployed.",
       "notImage": "A file is not an image or could not be read.",
       "tooLarge": "The photo is too large even after compression.",
       "failed": "Could not save, please try again.",
-      "tooMany": "You can pick up to {{count}} photos at a time; the first ones were used."
+      "tooMany": "You can pick up to {{count}} photos at a time; the first ones were used.",
+      "driveNotConnected": "Google Drive is not connected, so photos cannot be saved. Tap \"Connect Google Drive\" and save again.",
+      "driveNotConfigured": "Google Drive is not set up on the server yet, so photos cannot be added."
+    },
+    "drive": {
+      "connect": "Connect Google Drive",
+      "needConnect": "Photos are saved to your own Google Drive. Connect once and it keeps working."
     }
   }
 }

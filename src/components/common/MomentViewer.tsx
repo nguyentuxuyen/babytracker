@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { localeTag } from '../../i18n';
 import { Moment, deleteMoment } from '../../firebase/moments';
 import { SlideUp, bottomSheetProps } from './MomentEditorDialog';
+import DrivePhoto from './DrivePhoto';
 
 const SWIPE_THRESHOLD_PX = 50;
 
@@ -81,10 +82,9 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) =
                             if (Math.abs(delta) > SWIPE_THRESHOLD_PX) go(delta < 0 ? 1 : -1);
                         }}
                     >
-                        <Box
+                        <DrivePhoto
                             key={current.id}
-                            component="img"
-                            src={current.url}
+                            photo={current}
                             alt={t('moments.photoAlt', { index: index + 1 })}
                             sx={{
                                 width: '100%',
@@ -145,7 +145,7 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) =
                                     bgcolor: '#f1f5f9'
                                 }}
                             >
-                                <Box component="img" src={photo.url} alt="" loading="lazy" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                <DrivePhoto photo={photo} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             </Box>
                         ))}
                     </Box>

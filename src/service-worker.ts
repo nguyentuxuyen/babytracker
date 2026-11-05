@@ -47,6 +47,8 @@ registerRoute(
         request.method === 'GET' &&
         !url.hostname.includes('firebaseio.com') &&
         !url.hostname.includes('firestore.googleapis.com') &&
+        // Moment photos from Google Drive are kept by the app itself (googleDrive.ts).
+        !(url.hostname === 'www.googleapis.com' && url.pathname.startsWith('/drive/')) &&
         (
             url.origin.includes('googleapis.com') ||
             url.origin.includes('gstatic.com') ||

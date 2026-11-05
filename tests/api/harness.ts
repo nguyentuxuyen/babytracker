@@ -118,6 +118,16 @@ export function createResponse() {
     const res = {
         statusCode: 0,
         body: undefined as any,
+        headers: {} as Record<string, string>,
+        ended: false,
+        setHeader(name: string, value: string) {
+            res.headers[name.toLowerCase()] = value;
+            return res;
+        },
+        end() {
+            res.ended = true;
+            return res;
+        },
         status(code: number) {
             res.statusCode = code;
             return res;
@@ -130,7 +140,7 @@ export function createResponse() {
     return res;
 }
 
-export async function call(handler: (req: any, res: any) => Promise<void>, req: { method?: string; headers?: Record<string, string>; body?: unknown }) {
+export async function call(handler: (req: any, res: any) => Promise<void>, req: { method?: string; headers?: Record<string, string>; body?: unknown; query?: Record<string, string> }) {
     const res = createResponse();
     await handler({ method: 'POST', headers: {}, ...req }, res);
     return res;

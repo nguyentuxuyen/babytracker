@@ -633,7 +633,20 @@
     "milkHint": "アプリ・Siri・アシスタントで記録したすべての授乳にこのミルクが使われます。朝の評価は商品名をもとに量が足りているかを判断します。",
     "reminders": "リマインダー",
     "reminderSwitch": "記録のリマインダー",
-    "reminderInterval": "通知の間隔"
+    "reminderInterval": "通知の間隔",
+    "drive": {
+      "section": "思い出の写真（Google ドライブ）",
+      "connected": "接続済み。写真はドライブの「Baby Tracker - Kỷ niệm」フォルダに、思い出ごとのサブフォルダで保存されます。",
+      "notConnected": "未接続です。思い出の写真はあなたの Google ドライブに保存されます。アプリが見られるのは自分で作成したファイルだけです。",
+      "notConfigured": "サーバーに Google ドライブの設定（GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET）がありません。",
+      "openFolder": "ドライブでフォルダを開く",
+      "disconnect": "接続を解除",
+      "confirmDisconnect": "もう一度押すと解除します",
+      "justConnected": "Google ドライブに接続しました。",
+      "cancelled": "Google ドライブへの接続をキャンセルしました。",
+      "error": "Google ドライブに接続できませんでした。もう一度お試しください。",
+      "loading": "接続を確認しています…"
+    }
   },
   "moments": {
     "label": "思い出",
@@ -669,11 +682,16 @@
     "quickLast": "最新: {{title}}（{{date}}）",
     "seeAll": "すべて見る",
     "errors": {
-      "storageDisabled": "写真を保存できません。Firebase Storage が有効になっていないか、Storage のルールが未設定です。",
       "notImage": "画像ではないファイルか、読み込めないファイルがあります。",
       "tooLarge": "圧縮後も画像が大きすぎます。",
       "failed": "保存できませんでした。もう一度お試しください。",
-      "tooMany": "一度に選べるのは {{count}} 枚までです。最初の写真を使いました。"
+      "tooMany": "一度に選べるのは {{count}} 枚までです。最初の写真を使いました。",
+      "driveNotConnected": "Google ドライブが未接続のため写真を保存できません。「Google ドライブに接続」を押してから保存してください。",
+      "driveNotConfigured": "サーバーに Google ドライブの設定がないため、写真を追加できません。"
+    },
+    "drive": {
+      "connect": "Google ドライブに接続",
+      "needConnect": "写真はあなたの Google ドライブに保存されます。一度接続すればずっと使えます。"
     }
   }
 }
