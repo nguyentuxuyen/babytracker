@@ -12,7 +12,9 @@ import {
     limit,
     where,
     Timestamp,
-    QueryDocumentSnapshot
+    QueryDocumentSnapshot,
+    onSnapshot,
+    runTransaction
 } from 'firebase/firestore';
 import { db } from './config';
 import { Baby, Activity, ChangelogConfig, ChangelogRelease } from '../types';
@@ -100,11 +102,19 @@ const removeQueuedActivities = (userId: string, localIds: string[]) => {
 };
 
 const queuedAsActivities = (userId: string, from?: Date, to?: Date): Activity[] =>
-    (getQueuedActivities(userId)
-        .map((queued) => normalizeActivityRecord(queued.localId, queued.activity, userId))
+    ([
+        ...getQueuedActivities(userId).map((queued) => normalizeActivityRecord(queued.localId, queued.activity, userId)),
+        ...getPendingSleepStops(userId).map((stop) => normalizeActivityRecord(pendingStopId(stop), revivePendingStop(stop), userId))
+    ]
         .filter((activity) => !!activity
             && (!from || activity.timestamp >= from)
             && (!to || activity.timestamp < to))) as Activity[];
+
+// Server records plus ones still waiting on this device, without listing one twice.
+const withQueued = (server: Activity[], queued: Activity[]): Activity[] => {
+    const ids = new Set(server.map((activity) => activity.id));
+    return [...server, ...queued.filter((activity) => !ids.has(activity.id))];
+};
 
 const byNewestFirst = (left: Activity, right: Activity) => right.timestamp.getTime() - left.timestamp.getTime();
 
@@ -119,6 +129,154 @@ const WRITE_ACK_TIMEOUT_MS = 4000;
 
 // Ids of saved activities the server has not confirmed yet.
 const pendingWriteIds = new Set<string>();
+
+// Outcome of stopping the sleep timer with finishOngoingSleep.
+export type FinishSleepResult =
+    | { status: 'saved'; activity: Activity; pending: boolean }
+    | { status: 'alreadyStopped' }
+    | { status: 'error' };
+
+// One sleep session always maps to the same activity id, so two devices that
+// stop the same session write one record, never two.
+export const sleepActivityId = (babyId: string, startTime: Date) => `sleep-${babyId}-${startTime.getTime()}`;
+
+// Errors that mean "no connection", where the write can still go to the local cache.
+const isOfflineError = (error: unknown) => {
+    const code = (error as { code?: unknown } | null)?.code;
+    return code === 'unavailable' || code === 'deadline-exceeded';
+};
+
+const TRANSACTION_TIMED_OUT = Symbol('transaction-timed-out');
+
+// Sleep stops made without a connection wait here until the server can be
+// checked, so the first stop of a session wins even when two devices stop it.
+type PendingSleepStop = {
+    babyId: string;
+    startTime: string;
+    activity: Record<string, any>;
+    queuedAt: string;
+    attempts: number;
+};
+
+const MAX_SLEEP_STOP_ATTEMPTS = 5;
+const getSleepStopsKey = (userId: string) => `pending-sleep-stops:${userId}`;
+
+const getPendingSleepStops = (userId: string): PendingSleepStop[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const parsed = JSON.parse(window.localStorage.getItem(getSleepStopsKey(userId)) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.error('Error reading pending sleep stops:', error);
+        return [];
+    }
+};
+
+const savePendingSleepStops = (userId: string, stops: PendingSleepStop[]) => {
+    if (typeof window === 'undefined') return;
+    try {
+        if (stops.length === 0) window.localStorage.removeItem(getSleepStopsKey(userId));
+        else window.localStorage.setItem(getSleepStopsKey(userId), JSON.stringify(stops));
+        window.dispatchEvent(new CustomEvent('offline-queue-updated'));
+    } catch (error) {
+        console.error('Error saving pending sleep stops:', error);
+    }
+};
+
+const pendingStopId = (stop: PendingSleepStop) => sleepActivityId(stop.babyId, new Date(stop.startTime));
+
+// JSON turns dates into strings; give the sleep its Date fields back.
+const revivePendingStop = (stop: PendingSleepStop): Record<string, any> => {
+    const time = stop.activity.details?.time;
+    return {
+        ...stop.activity,
+        timestamp: new Date(stop.activity.timestamp),
+        details: { ...stop.activity.details, ...(time ? { time: new Date(time) } : {}) }
+    };
+};
+
+const removePendingSleepStop = (userId: string, activityId: string) => {
+    const stops = getPendingSleepStops(userId);
+    const kept = stops.filter((stop) => pendingStopId(stop) !== activityId);
+    if (kept.length !== stops.length) savePendingSleepStops(userId, kept);
+};
+
+/**
+ * Save a stopped sleep, checking the server in one transaction. The earliest
+ * stop of a session wins:
+ * - the session is still running → save it and clear the timer;
+ * - this session was already saved (by any device) → keep that record, unless
+ *   this stop is earlier and nobody edited the record since;
+ * - the timer is gone or belongs to a newer sleep → write nothing.
+ * Throws when the server can't be reached.
+ */
+const commitSleepStop = (
+    userId: string,
+    babyId: string,
+    startTime: Date,
+    built: Record<string, any>
+): Promise<'saved' | 'alreadyStopped'> => {
+    const markerRef = doc(db, 'users', userId, 'ongoingSleep', babyId);
+    const activityRef = doc(db, 'users', userId, 'activities', sleepActivityId(babyId, startTime));
+    return runTransaction(db, async (tx) => {
+        const marker = await tx.get(markerRef);
+        const existing = await tx.get(activityRef);
+        const markerStart = marker.exists() ? toDateValue(marker.data()?.startTime) : undefined;
+        const sessionRunning = !!markerStart && markerStart.getTime() === startTime.getTime();
+        const endMs = toDateValue(built.timestamp)?.getTime() ?? 0;
+
+        if (existing.exists()) {
+            if (sessionRunning) tx.delete(markerRef);
+            const data = existing.data() || {};
+            const savedEndMs = toDateValue(data.timestamp)?.getTime();
+            if (savedEndMs === endMs) return 'saved';
+            if (savedEndMs !== undefined && endMs < savedEndMs && !data.updatedAt) {
+                tx.set(activityRef, { ...built, createdAt: data.createdAt ?? serverTimestamp() });
+                return 'saved';
+            }
+            return 'alreadyStopped';
+        }
+        if (!sessionRunning) return 'alreadyStopped';
+        tx.delete(markerRef);
+        tx.set(activityRef, { ...built, createdAt: serverTimestamp() });
+        return 'saved';
+    });
+};
+
+// Send sleep stops made offline. Ones another device stopped first are dropped
+// and announced with a 'sleep-stop-discarded' event.
+const syncPendingSleepStops = async (userId: string): Promise<{ synced: number; discarded: number }> => {
+    const stops = getPendingSleepStops(userId);
+    if (stops.length === 0) return { synced: 0, discarded: 0 };
+    const done = new Set<string>();
+    const retry = new Map<string, number>();
+    let synced = 0;
+    let discarded = 0;
+    for (const stop of stops) {
+        const id = pendingStopId(stop);
+        try {
+            const built = buildActivityDoc(revivePendingStop(stop) as any);
+            const outcome = await commitSleepStop(userId, stop.babyId, new Date(stop.startTime), built);
+            done.add(id);
+            if (outcome === 'saved') synced += 1;
+            else discarded += 1;
+        } catch (error) {
+            if (isOfflineError(error)) continue;
+            console.error('Error syncing sleep stop:', id, error);
+            if (stop.attempts + 1 >= MAX_SLEEP_STOP_ATTEMPTS) done.add(id);
+            else retry.set(id, stop.attempts + 1);
+        }
+    }
+    // Re-read so stops added meanwhile (another tab) are kept.
+    savePendingSleepStops(userId, getPendingSleepStops(userId)
+        .filter((stop) => !done.has(pendingStopId(stop)))
+        .map((stop) => (retry.has(pendingStopId(stop)) ? { ...stop, attempts: retry.get(pendingStopId(stop))! } : stop)));
+    if (synced + discarded > 0) invalidateHistoryCache();
+    if (discarded > 0 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sleep-stop-discarded', { detail: { count: discarded } }));
+    }
+    return { synced, discarded };
+};
 
 let syncInFlight: Promise<{ synced: number; failed: number }> | null = null;
 
@@ -353,7 +511,7 @@ export const firestore = {
                 limit(5000)
             );
             const snapshot = await getDocs(q);
-            return [...toActivities(snapshot.docs, userId), ...queuedAsActivities(userId, cutoffDate)].sort(byNewestFirst);
+            return withQueued(toActivities(snapshot.docs, userId), queuedAsActivities(userId, cutoffDate)).sort(byNewestFirst);
         } catch (error) {
             console.error('Error getting activities:', error);
             return queuedAsActivities(userId, cutoffDate).sort(byNewestFirst);
@@ -381,7 +539,7 @@ export const firestore = {
                 limit(200 * days)
             );
             const snapshot = await getDocs(q);
-            return [...toActivities(snapshot.docs, userId), ...queuedAsActivities(userId, startOfRange, endOfRange)]
+            return withQueued(toActivities(snapshot.docs, userId), queuedAsActivities(userId, startOfRange, endOfRange))
                 .sort(byNewestFirst);
         } catch (error) {
             console.error('Error getting activities by date range:', error);
@@ -456,7 +614,7 @@ export const firestore = {
     },
 
     getPendingActivitiesCount: async (userId: string): Promise<number> => {
-        return getQueuedActivities(userId).length + pendingWriteIds.size;
+        return getQueuedActivities(userId).length + getPendingSleepStops(userId).length + pendingWriteIds.size;
     },
 
     /**
@@ -467,8 +625,16 @@ export const firestore = {
     syncPendingActivities: async (userId: string): Promise<{ synced: number; failed: number }> => {
         if (syncInFlight) return syncInFlight;
         syncInFlight = (async () => {
+            const sleepStops = await syncPendingSleepStops(userId);
             const queue = getQueuedActivities(userId);
-            if (queue.length === 0) return { synced: 0, failed: 0 };
+            if (queue.length === 0) {
+                if (sleepStops.synced > 0 && typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('offline-sync-complete', {
+                        detail: { synced: sleepStops.synced, failed: getPendingSleepStops(userId).length }
+                    }));
+                }
+                return { synced: sleepStops.synced, failed: getPendingSleepStops(userId).length };
+            }
 
             const syncedIds: string[] = [];
             const dropIds: string[] = [];
@@ -494,13 +660,14 @@ export const firestore = {
 
             removeQueuedActivities(userId, [...syncedIds, ...dropIds]);
             if (syncedIds.length > 0) invalidateHistoryCache();
-            const failed = getQueuedActivities(userId).length;
+            const failed = getQueuedActivities(userId).length + getPendingSleepStops(userId).length;
+            const synced = syncedIds.length + sleepStops.synced;
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('offline-sync-complete', {
-                    detail: { synced: syncedIds.length, failed }
+                    detail: { synced, failed }
                 }));
             }
-            return { synced: syncedIds.length, failed };
+            return { synced, failed };
         })();
         try {
             return await syncInFlight;
@@ -515,6 +682,9 @@ export const firestore = {
         try {
             if (activityId.startsWith('offline-')) {
                 removeQueuedActivities(userId, [activityId]);
+            }
+            if (activityId.startsWith('sleep-')) {
+                removePendingSleepStop(userId, activityId);
             }
             const deletion = deleteDoc(doc(db, 'users', userId, 'activities', activityId));
             const acknowledged = await Promise.race([
@@ -553,10 +723,10 @@ export const firestore = {
             const sleepDoc = await getDoc(sleepDocRef);
             
             if (sleepDoc.exists()) {
-                const data = sleepDoc.data();
-                return {
-                    startTime: data.startTime.toDate()
-                };
+                const startTime = toDateValue(sleepDoc.data().startTime);
+                const stoppedHere = !!startTime && getPendingSleepStops(userId)
+                    .some((stop) => stop.babyId === babyId && new Date(stop.startTime).getTime() === startTime.getTime());
+                return startTime && !stoppedHere ? { startTime } : null;
             }
             
             return null;
@@ -581,6 +751,96 @@ export const firestore = {
             console.error('Error starting sleep timer:', error);
             return false;
         }
+    },
+
+    // Follow the ongoing sleep session live, so a sleep stopped or started on
+    // another device shows up here right away. Returns the unsubscribe function.
+    subscribeOngoingSleep: (
+        userId: string,
+        babyId: string,
+        onChange: (sleep: { startTime: Date } | null) => void
+    ): (() => void) => {
+        try {
+            return onSnapshot(
+                doc(db, 'users', userId, 'ongoingSleep', babyId),
+                (snapshot) => {
+                    const startTime = snapshot.exists() ? toDateValue(snapshot.data()?.startTime) : undefined;
+                    // A session stopped offline on this device is over here, even
+                    // though the server (and this cache) still has its timer.
+                    const stoppedHere = !!startTime && getPendingSleepStops(userId)
+                        .some((stop) => stop.babyId === babyId && new Date(stop.startTime).getTime() === startTime.getTime());
+                    onChange(startTime && !stoppedHere ? { startTime } : null);
+                },
+                (error) => console.error('Error watching ongoing sleep:', error)
+            );
+        } catch (error) {
+            console.error('Error watching ongoing sleep:', error);
+            return () => undefined;
+        }
+    },
+
+    /**
+     * Stop the sleep session that started at `startTime` and save it as a sleep activity.
+     *
+     * Online, the server is checked in a transaction (see commitSleepStop): if the
+     * session was already stopped on another device, nothing is written and the
+     * result is `alreadyStopped`, so the first stop's time is kept.
+     * Offline, the stop waits on this device (shown as pending) and is checked the
+     * same way once the connection returns; if another device stopped the session
+     * first, it is dropped and a 'sleep-stop-discarded' event is sent.
+     */
+    finishOngoingSleep: async (
+        userId: string,
+        babyId: string,
+        startTime: Date,
+        activity: Omit<Activity, 'id'>
+    ): Promise<FinishSleepResult> => {
+        let built: Record<string, any>;
+        try {
+            built = buildActivityDoc(activity as any);
+        } catch (error) {
+            console.error('Invalid sleep activity:', error);
+            return { status: 'error' };
+        }
+        invalidateHistoryCache();
+
+        const saved = normalizeActivityRecord(sleepActivityId(babyId, startTime), built, userId) as Activity;
+        const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+
+        if (online) {
+            try {
+                const transaction = commitSleepStop(userId, babyId, startTime, built);
+                // A late result after the timeout is harmless: the queued stop has the
+                // same id and end time, so syncing it later finds it already saved.
+                transaction.catch(() => undefined);
+                const outcome = await Promise.race([
+                    transaction,
+                    new Promise<typeof TRANSACTION_TIMED_OUT>((resolve) =>
+                        setTimeout(() => resolve(TRANSACTION_TIMED_OUT), WRITE_ACK_TIMEOUT_MS)
+                    )
+                ]);
+                if (outcome === 'alreadyStopped') return { status: 'alreadyStopped' };
+                if (outcome === 'saved') return { status: 'saved', activity: saved, pending: false };
+            } catch (error) {
+                if (!isOfflineError(error)) {
+                    console.error('Error stopping sleep:', error);
+                    return { status: 'error' };
+                }
+            }
+        }
+
+        const stop: PendingSleepStop = {
+            babyId,
+            startTime: startTime.toISOString(),
+            activity: JSON.parse(JSON.stringify(activity)),
+            queuedAt: new Date().toISOString(),
+            attempts: 0
+        };
+        savePendingSleepStops(userId, [
+            ...getPendingSleepStops(userId).filter((item) => pendingStopId(item) !== pendingStopId(stop)),
+            stop
+        ]);
+        return { status: 'saved', activity: saved, pending: true };
     },
 
     // Remove the ongoing sleep session marker

@@ -7,27 +7,14 @@ export const useSleepTimer = (userId?: string, babyId?: string) => {
 	const [ongoingSleep, setOngoingSleep] = useState<OngoingSleep | null>(null);
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
+	// Follow the session live: when it is stopped or started on another device,
+	// this device updates at once instead of showing a stale timer.
 	useEffect(() => {
-		let cancelled = false;
-
-		const load = async () => {
-			if (!userId || !babyId) {
-				setOngoingSleep(null);
-				return;
-			}
-			const sleep = await firestore.getOngoingSleep(userId, babyId);
-			if (!cancelled) setOngoingSleep(sleep);
-		};
-
-		void load();
-		const handleVisibilityChange = () => {
-			if (document.visibilityState === 'visible') void load();
-		};
-		document.addEventListener('visibilitychange', handleVisibilityChange);
-		return () => {
-			cancelled = true;
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-		};
+		if (!userId || !babyId) {
+			setOngoingSleep(null);
+			return;
+		}
+		return firestore.subscribeOngoingSleep(userId, babyId, setOngoingSleep);
 	}, [userId, babyId]);
 
 	useEffect(() => {

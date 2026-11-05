@@ -1,5 +1,7 @@
 export type ActivityType = 'feeding' | 'sleep' | 'diaper' | 'bath' | 'measurement' | 'memo' | 'dailyRating';
 
+export type MilkType = 'breast' | 'formula';
+
 export type FoodPreference = 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
 export type StoolConsistency = 'lỏng' | 'bình thường' | 'khô';
 
@@ -8,7 +10,14 @@ export interface FeedingDetails {
     /** ml for milk, g for solid food; 0 when not given. */
     amount: number;
     notes: string;
+    /** Milk feeds only: breast milk or formula; absent when not given. */
+    milkType?: MilkType;
+    /** Solid only: the dishes joined for display, "Cháo, Bí đỏ". */
     foodItem?: string;
+    /** Solid only: every dish eaten in this meal. */
+    foodItems?: string[];
+    /** Solid only, meals of several dishes: grams per dish, same order as foodItems (0 = not given). */
+    foodGrams?: number[];
     foodPreference?: FoodPreference;
     isAllergic?: boolean;
 }
@@ -81,6 +90,11 @@ export interface NormalizedActivity {
 
 export declare const SCHEMA_VERSION: number;
 export declare const ACTIVITY_TYPES: ActivityType[];
+export declare const MILK_TYPES: MilkType[];
+export declare const MAX_FOODS_PER_MEAL: number;
+export declare function foodNamesOf(details: unknown): string[];
+export declare function foodGramsOf(details: unknown): Array<{ name: string; grams: number; estimated: boolean }>;
+export declare function foodPortionsOf(details: unknown): Array<{ name: string; grams: number | null }>;
 export declare const LIMITS: {
     amount: number;
     duration: number;

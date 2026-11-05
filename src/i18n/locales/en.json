@@ -78,7 +78,12 @@
     "sendTestPush": "Send test notification",
     "logout": "Log out",
     "editTranslations": "Edit translations",
-    "account": "Account"
+    "account": "Account",
+    "defaultMilkType": "Milk your baby drinks",
+    "defaultMilkTypeNone": "Not set",
+    "milkProduct": "Formula name",
+    "milkProductPlaceholder": "Formula name, e.g. Meiji Hohoemi",
+    "dailyReviews": "Daily reviews"
   },
   "changelog": {
     "title": "What's new",
@@ -151,6 +156,7 @@
       "sleepTimerStarted": "Sleep timer started. ⏱️",
       "sleepTimerStartFailed": "Could not start the sleep timer.",
       "sleepTimerStopFailed": "Could not stop the sleep timer.",
+      "sleepAlreadyStopped": "This sleep was already stopped on another device, so it can't be stopped again. The first stop time is kept.",
       "sleepSaved": "Sleep saved: {{count}} min 😴",
       "sleepSavedOffline": "Sleep saved offline: {{count}} min. It will sync when you are back online.",
       "updated": "Activity updated.",
@@ -189,6 +195,10 @@
   "feeding": {
     "milk": "Milk",
     "solid": "Solids",
+    "milkType": {
+      "breast": "Breast milk",
+      "formula": "Formula"
+    },
     "amountMl": "Amount (ml)",
     "amountG": "Amount (g)",
     "recentFoods": "Recent foods",
@@ -200,7 +210,12 @@
       "normal": "Normal",
       "dislike": "Disliked",
       "allergic": "Allergy"
-    }
+    },
+    "pickSeveral": "pick several",
+    "addAnotherFood": "Add another food",
+    "gramsPerFood": "Amount of each food",
+    "gramsOf": "Amount of {{food}} (g)",
+    "totalGrams": "Total {{amount}}g"
   },
   "sleep": {
     "startTime": "Start time",
@@ -241,7 +256,8 @@
     "triedCount": "Foods tried",
     "lovedCount": "Loved",
     "averageAmount": "avg {{amount}}g",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "eatenWith": "Eaten with: {{foods}}"
   },
   "stats": {
     "loading": "Loading stats...",
@@ -633,12 +649,28 @@
     },
     "open": "Open",
     "gotIt": "Got it",
-    "titleFor": "Review of {{date}}"
+    "titleFor": "Review of {{date}}",
+    "newFood": "new",
+    "history": "Past days",
+    "rewrite": "Review again",
+    "rewriteFailed": "The AI is busy, so the review was not rewritten. The previous one is kept.",
+    "historyTitle": "Daily reviews",
+    "historyHint": "Tap a day to see the details. \"Review again\" rewrites it from the current log, for example after you added a feed.",
+    "historyEmpty": "No reviews yet.",
+    "nothingLogged": "Nothing was logged that day, so there is nothing to review."
   },
   "notifications": {
     "title": "Notifications",
     "open": "Open notifications",
     "openWithCount": "Open notifications ({{count}} new)",
     "empty": "No notifications yet"
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "milk": "Baby's milk",
+    "milkHint": "Every milk feed (in the app, via Siri or the assistant) uses this milk. The morning review uses the formula name to judge whether the amount is enough.",
+    "reminders": "Reminders",
+    "reminderSwitch": "Logging reminders",
+    "reminderInterval": "Remind every"
   }
 }

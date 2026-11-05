@@ -25,8 +25,13 @@ const addActivity = (type: string, timestamp: Date, details: Record<string, unkn
 
 // Yesterday (20/10): milk 4 × 100ml (low for 6 months), one solid meal (low), 13 h of sleep (ok).
 const logYesterday = () => {
-    for (const hour of [7, 11, 15, 19]) addActivity('feeding', jst(20, hour), { foodType: 'milk', amount: 100 });
-    addActivity('feeding', jst(20, 12), { foodType: 'solid', amount: 60, foodItem: 'cháo' });
+    addActivity('feeding', jst(20, 7), { foodType: 'milk', amount: 100, milkType: 'breast' });
+    addActivity('feeding', jst(20, 11), { foodType: 'milk', amount: 100, milkType: 'formula' });
+    addActivity('feeding', jst(20, 15), { foodType: 'milk', amount: 100, milkType: 'formula' });
+    addActivity('feeding', jst(20, 19), { foodType: 'milk', amount: 100 });
+    addActivity('feeding', jst(20, 12), { foodType: 'solid', amount: 60, foodItem: 'cháo bí', foodPreference: 'enthusiastic' });
+    // Eaten earlier in the week, so not new; a reaction is reported once.
+    addActivity('feeding', jst(18, 12), { foodType: 'solid', amount: 30, foodItem: 'Cà rốt' });
     addActivity('sleep', jst(20, 6), { duration: 600 });
     addActivity('sleep', jst(20, 14), { duration: 180 });
 };
@@ -104,12 +109,23 @@ describe('morning review from the reminder cron', () => {
                 day: '2026-10-20',
                 targets: { milkMinMl: 500, sleepMinHours: 12, sleepMaxHours: 16, solidMinMeals: 2 },
                 yesterday: { milkMl: 400, milkFeeds: 4, solidMeals: 1, solidGrams: 60, sleepMinutes: 780, sleeps: 2 },
-                status: { milk: 'low', solids: 'low', sleep: 'ok' }
+                status: { milk: 'low', solids: 'low', sleep: 'ok' },
+                milkByType: {
+                    breast: { feeds: 1, ml: 100 },
+                    formula: { feeds: 2, ml: 200 },
+                    unspecified: { feeds: 1, ml: 100 }
+                },
+                milkProduct: null,
+                solidFoods: [{ name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true }],
+                weekFoods: [{ name: 'cháo bí', days: 1 }, { name: 'Cà rốt', days: 1 }]
             }
         });
         const prompt = JSON.parse(fetchMock.mock.calls[0][1].body).contents[0].parts[0].text;
         expect(prompt).toContain('in Vietnamese');
-        expect(prompt).not.toContain('cháo');
+        // The AI sees the kinds of milk and the foods, but not notes or the baby's name.
+        expect(prompt).toContain('"milkByType"');
+        expect(prompt).toContain('cháo bí');
+        expect(prompt).not.toContain('Bin');
         expect(db.docs.get(`users/${UID}/usage/assistant`)).toMatchObject({ count: 1 });
 
         await dispatch();
@@ -123,6 +139,70 @@ describe('morning review from the reminder cron', () => {
 
         expect((await dispatch()).body).toMatchObject({ reviews: 1 });
         expect(reviewDoc()).toMatchObject({ trigger: 'fallback' });
+    });
+
+    it('reports foods already eaten this week and the worst reaction', async () => {
+        logYesterday();
+        addActivity('feeding', jst(20, 17), { foodType: 'solid', amount: 20, foodItem: 'cà rốt' });
+        addActivity('feeding', jst(20, 18), { foodType: 'solid', amount: 10, foodItem: 'Cà rốt', isAllergic: true });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.solidFoods).toEqual([
+            { name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true },
+            { name: 'cà rốt', meals: 2, grams: 30, reaction: 'allergic', newThisWeek: false }
+        ]);
+    });
+
+    it('counts every dish of a meal with several foods', async () => {
+        logYesterday();
+        addActivity('feeding', jst(20, 17), { foodType: 'solid', amount: 40, foodItems: ['Cháo bí', 'Chuối'], foodPreference: 'dislike' });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.solidFoods).toEqual([
+            { name: 'cháo bí', meals: 2, grams: 80, reaction: 'dislike', newThisWeek: true },
+            { name: 'Chuối', meals: 1, grams: 20, reaction: 'dislike', newThisWeek: true }
+        ]);
+        expect(reviewDoc()?.facts.weekFoods).toEqual(expect.arrayContaining([{ name: 'Chuối', days: 1 }]));
+    });
+
+    it('uses the grams weighed for each dish', async () => {
+        logYesterday();
+        addActivity('feeding', jst(20, 17), { foodType: 'solid', foodItems: ['Cơm', 'Chuối'], foodGrams: [50, 15] });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.solidFoods).toEqual(expect.arrayContaining([
+            { name: 'Cơm', meals: 1, grams: 50, reaction: 'normal', newThisWeek: true },
+            { name: 'Chuối', meals: 1, grams: 15, reaction: 'normal', newThisWeek: true }
+        ]));
+    });
+
+    it('tells the AI which formula the baby drinks', async () => {
+        logYesterday();
+        db.docs.set(`users/${UID}/settings/feeding`, { defaultMilkType: 'formula', milkProduct: '  Meiji   Hohoemi ' });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.milkProduct).toBe('Meiji Hohoemi');
+        const prompt = JSON.parse(fetchMock.mock.calls[0][1].body).contents[0].parts[0].text;
+        expect(prompt).toContain('"milkProduct":"Meiji Hohoemi"');
+        expect(prompt).toContain('mostly fruit');
+    });
+
+    it('ignores the formula name once breast milk is the chosen milk', async () => {
+        logYesterday();
+        db.docs.set(`users/${UID}/settings/feeding`, { defaultMilkType: 'breast', milkProduct: 'Meiji Hohoemi' });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.milkProduct).toBeNull();
     });
 
     it('sends nothing in the afternoon', async () => {
@@ -217,5 +297,62 @@ describe('POST /api/mcp daily_review', () => {
         expect(retried.body.review.ai).toEqual(AI_REVIEW);
         expect(reviews()).toHaveLength(1);
         expect(reviewDoc()?.pushedAt).toBeTruthy();
+    });
+
+    it('writes a past day again from the current log, without notifying', async () => {
+        logYesterday();
+        await request({ generate: true });
+        expect(reviews()).toHaveLength(1);
+
+        // A feed added afterwards, then "Đánh giá lại".
+        addActivity('feeding', jst(20, 21), { foodType: 'milk', amount: 150 });
+        const res = await request({ rewriteDay: '2026-10-20' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.review.facts.yesterday).toMatchObject({ milkMl: 550, milkFeeds: 5 });
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(reviews()).toHaveLength(1);
+        expect(reviewDoc()).toMatchObject({ trigger: 'rewrite', status: 'done' });
+        expect(reviewDoc()?.pushedAt).toBeTruthy();
+    });
+
+    it('writes an older day as that day, using only the log up to it', async () => {
+        logYesterday();
+        addActivity('feeding', jst(19, 9), { foodType: 'milk', amount: 120 });
+
+        const res = await request({ rewriteDay: '2026-10-19' });
+
+        expect(res.body.review).toMatchObject({ day: '2026-10-19', status: 'done' });
+        expect(res.body.review.facts.yesterday).toMatchObject({ milkMl: 120, milkFeeds: 1 });
+        expect(reviews()).toHaveLength(0);
+    });
+
+    it('keeps the previous review when the AI fails on a rewrite', async () => {
+        logYesterday();
+        await request({ generate: true });
+        fetchMock.mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'busy' });
+
+        const res = await request({ rewriteDay: '2026-10-20' });
+
+        expect(res.statusCode).toBe(503);
+        expect(res.body.code).toBe('AI_UNAVAILABLE');
+        expect(reviewDoc()).toMatchObject({ status: 'done', ai: AI_REVIEW });
+    });
+
+    it.each(['2026-10-21', '2026-08-01', 'yesterday'])('refuses to rewrite %s', async (day) => {
+        const res = await request({ rewriteDay: day });
+        expect(res.statusCode).toBe(400);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('lists written reviews, newest first', async () => {
+        db.docs.set(`users/${UID}/dailyReviews/2026-10-18`, { day: '2026-10-18', status: 'done', headline: 'a', facts: null, ai: null });
+        db.docs.set(`users/${UID}/dailyReviews/2026-10-20`, { day: '2026-10-20', status: 'done', headline: 'c', facts: null, ai: null, pushedAt: 'x' });
+        db.docs.set(`users/${UID}/dailyReviews/2026-10-19`, { day: '2026-10-19', status: 'empty' });
+
+        const res = await call(loadHandler('mcp.js', { db, uid: UID }), { headers: auth, body: { action: 'daily_review_history' } });
+
+        expect(res.body.reviews.map((review: any) => review.day)).toEqual(['2026-10-20', '2026-10-18']);
+        expect(res.body.reviews[0]).not.toHaveProperty('pushedAt');
     });
 });

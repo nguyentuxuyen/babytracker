@@ -8,6 +8,7 @@ import { ChoiceChips, SegmentedControl, fieldSx } from '../components/common/For
 import { firestore } from '../firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 import { Activity } from '../types';
+import { foodGramsOf } from '../domain/activitySchema.mjs';
 
 type Reaction = 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
 type ReactionFilter = Reaction | 'all';
@@ -16,6 +17,10 @@ type ViewMode = 'food' | 'date';
 type Meal = {
     id: string;
     date: Date;
+    /** Every dish of the meal; one meal can hold several. */
+    names: string[];
+    /** Grams of each dish (own when weighed, else a share of the meal), same order as names. */
+    grams: number[];
     name: string;
     amount: number;
     reaction: Reaction;
@@ -57,14 +62,25 @@ const toMeal = (activity: Activity): Meal | null => {
     const reaction: Reaction = details.isAllergic || preference === 'allergic'
         ? 'allergic'
         : (['enthusiastic', 'dislike'].includes(preference) ? preference as Reaction : 'normal');
+    const portions = foodGramsOf(details);
+    const names = portions.map((portion) => portion.name);
     return {
         id: activity.id,
         date: new Date(activity.timestamp),
-        name: String(details.foodItem || '').trim(),
+        names,
+        grams: portions.map((portion) => portion.grams),
+        // "Cơm 50g, Chuối 20g" when the dishes were weighed one by one.
+        name: portions.map((portion) => (portion.estimated || names.length === 1 || !portion.grams ? portion.name : `${portion.name} ${portion.grams}g`)).join(', '),
         amount: Number(details.amount) || 0,
         reaction,
         notes: details.notes ? String(details.notes) : undefined
     };
+};
+
+// Grams of one dish (by search key) in a meal; a meal without a name counts whole.
+const dishGrams = (meal: Meal, key: string) => {
+    if (meal.names.length === 0) return meal.amount;
+    return meal.grams[meal.names.findIndex((item) => (searchKey(item) || '?') === key)] || 0;
 };
 
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -104,21 +120,27 @@ const FoodHistoryPage: React.FC = () => {
     }, [currentUser]);
 
     const foods = useMemo<FoodSummary[]>(() => {
-        const groups = new Map<string, Meal[]>();
+        // A meal with several dishes counts for each of them.
+        const groups = new Map<string, { name: string; meals: Meal[] }>();
         for (const meal of meals || []) {
-            const key = searchKey(meal.name) || '?';
-            const group = groups.get(key);
-            if (group) group.push(meal); else groups.set(key, [meal]);
+            const names = meal.names.length > 0 ? meal.names : [''];
+            for (const name of names) {
+                const key = searchKey(name) || '?';
+                const group = groups.get(key);
+                if (group) group.meals.push(meal); else groups.set(key, { name, meals: [meal] });
+            }
         }
-        return Array.from(groups.entries()).map(([key, group]) => {
-            const withAmount = group.filter((meal) => meal.amount > 0);
+        return Array.from(groups.entries()).map(([key, { name, meals: group }]) => {
             const everAllergic = group.some((meal) => meal.reaction === 'allergic');
+            // Grams of this dish in a meal: its own when weighed, else a share of the meal.
+            const shareOf = (meal: Meal) => dishGrams(meal, key);
+            const withAmount = group.filter((meal) => shareOf(meal) > 0);
             return {
                 key,
-                name: group[0].name || t('foodHistory.dish'),
+                name: name || t('foodHistory.dish'),
                 meals: group,
                 lastDate: group[0].date,
-                averageAmount: withAmount.length ? Math.round(withAmount.reduce((sum, meal) => sum + meal.amount, 0) / withAmount.length) : 0,
+                averageAmount: withAmount.length ? Math.round(withAmount.reduce((sum, meal) => sum + shareOf(meal), 0) / withAmount.length) : 0,
                 everAllergic,
                 // An allergy outweighs any later reaction; otherwise show the latest one.
                 reaction: everAllergic ? 'allergic' : group[0].reaction
@@ -132,7 +154,7 @@ const FoodHistoryPage: React.FC = () => {
         && (reactionFilter === 'all' || food.reaction === reactionFilter)
     )), [foods, query, reactionFilter]);
     const visibleMeals = useMemo(() => (meals || []).filter((meal) => (
-        (!query || searchKey(meal.name).includes(query))
+        (!query || meal.names.some((name) => searchKey(name).includes(query)))
         && (reactionFilter === 'all' || meal.reaction === reactionFilter)
     )), [meals, query, reactionFilter]);
 
@@ -297,9 +319,17 @@ const FoodHistoryPage: React.FC = () => {
                                                         <Typography sx={{ fontSize: 13, color: '#475569', flex: 1 }}>
                                                             {dayLabel(startOfDay(meal.date))} · {timeLabel(meal.date)}
                                                         </Typography>
-                                                        {meal.amount > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#101c22' }}>{meal.amount}g</Typography>}
+                                                        {(() => {
+                                                            const grams = dishGrams(meal, food.key);
+                                                            return grams > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#101c22' }}>{Math.round(grams)}g</Typography>;
+                                                        })()}
                                                         <ReactionBadge reaction={meal.reaction} />
                                                     </Box>
+                                                    {meal.names.length > 1 && (
+                                                        <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25 }}>
+                                                            {t('foodHistory.eatenWith', { foods: meal.names.filter((name) => searchKey(name) !== food.key).join(', ') })}
+                                                        </Typography>
+                                                    )}
                                                     {meal.notes && <Typography sx={{ fontSize: 13, color: '#6b7f8a', mt: 0.25 }}>{meal.notes}</Typography>}
                                                 </Box>
                                             ))}
@@ -324,7 +354,7 @@ const FoodHistoryPage: React.FC = () => {
                                     <Box key={meal.id} sx={{ py: 1.25, borderTop: index === 0 ? 'none' : '1px solid #f1f5f9' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                                             <Typography sx={{ width: 44, flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>{timeLabel(meal.date)}</Typography>
-                                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: '#101c22' }} noWrap>{meal.name || t('foodHistory.dish')}</Typography>
+                                            <Typography sx={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: '#101c22', overflowWrap: 'anywhere' }}>{meal.name || t('foodHistory.dish')}</Typography>
                                             {meal.amount > 0 && <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>{meal.amount}g</Typography>}
                                             <ReactionBadge reaction={meal.reaction} />
                                         </Box>

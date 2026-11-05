@@ -72,7 +72,12 @@
     "sendTestPush": "テスト通知を送信",
     "logout": "ログアウト",
     "editTranslations": "翻訳を編集",
-    "account": "アカウント"
+    "account": "アカウント",
+    "defaultMilkType": "飲んでいるミルク",
+    "defaultMilkTypeNone": "未設定",
+    "milkProduct": "ミルクの商品名",
+    "milkProductPlaceholder": "商品名(例: 明治ほほえみ)",
+    "dailyReviews": "毎日の評価"
   },
   "changelog": {
     "title": "更新内容",
@@ -142,6 +147,7 @@
       "sleepTimerStarted": "睡眠タイマーを開始しました。⏱️",
       "sleepTimerStartFailed": "睡眠タイマーの開始に失敗しました。",
       "sleepTimerStopFailed": "睡眠タイマーの停止に失敗しました。",
+      "sleepAlreadyStopped": "この睡眠は別の端末で既に終了しているため、もう一度終了できません。最初に終了した時刻を記録しています。",
       "sleepSaved": "睡眠を記録しました: {{count}}分 😴",
       "sleepSavedOffline": "睡眠をオフライン保存しました: {{count}}分。オンライン時に自動同期されます。",
       "updated": "アクティビティを更新しました。",
@@ -178,6 +184,10 @@
   "feeding": {
     "milk": "ミルク",
     "solid": "離乳食",
+    "milkType": {
+      "breast": "母乳",
+      "formula": "ミルク"
+    },
     "amountMl": "量 (ml)",
     "amountG": "量 (g)",
     "recentFoods": "最近の食品",
@@ -189,7 +199,12 @@
       "normal": "普通",
       "dislike": "嫌がる",
       "allergic": "アレルギー"
-    }
+    },
+    "pickSeveral": "複数選べます",
+    "addAnotherFood": "別の食品を追加",
+    "gramsPerFood": "食品ごとの量",
+    "gramsOf": "{{food}}の量 (g)",
+    "totalGrams": "合計 {{amount}}g"
   },
   "sleep": {
     "startTime": "開始時刻",
@@ -230,7 +245,8 @@
     "triedCount": "試した食材",
     "lovedCount": "好き",
     "averageAmount": "平均{{amount}}g",
-    "yesterday": "昨日"
+    "yesterday": "昨日",
+    "eatenWith": "一緒に: {{foods}}"
   },
   "stats": {
     "loading": "統計を読み込んでいます...",
@@ -614,12 +630,28 @@
     },
     "open": "見る",
     "gotIt": "OK",
-    "titleFor": "{{date}}のふりかえり"
+    "titleFor": "{{date}}のふりかえり",
+    "newFood": "初",
+    "history": "過去の日",
+    "rewrite": "もう一度評価",
+    "rewriteFailed": "AIが混み合っているため再評価できませんでした。前の評価はそのまま残っています。",
+    "historyTitle": "毎日の評価",
+    "historyHint": "日付をタップすると詳細が見られます。「もう一度評価」は今の記録で書き直します(後から授乳を追加したときなど)。",
+    "historyEmpty": "まだ評価はありません。",
+    "nothingLogged": "この日は記録がないため評価できません。"
   },
   "notifications": {
     "title": "お知らせ",
     "open": "お知らせを開く",
     "openWithCount": "お知らせを開く（新着{{count}}件）",
     "empty": "お知らせはまだありません"
+  },
+  "settingsPage": {
+    "title": "設定",
+    "milk": "赤ちゃんのミルク",
+    "milkHint": "アプリ・Siri・アシスタントで記録したすべての授乳にこのミルクが使われます。朝の評価は商品名をもとに量が足りているかを判断します。",
+    "reminders": "リマインダー",
+    "reminderSwitch": "記録のリマインダー",
+    "reminderInterval": "通知の間隔"
   }
 }

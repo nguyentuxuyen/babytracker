@@ -22,6 +22,8 @@ const UNTIL_HOUR = 12;
 // A review being written by another request is left alone for this long.
 const PENDING_MS = 2 * 60 * 1000;
 const HISTORY_DAYS = 7;
+// Past reviews the app lists, and how far back one can be written again.
+const PAST_REVIEWS = 60;
 
 let targetsPromise = null;
 const loadTargets = () => {
@@ -61,10 +63,11 @@ function sanitizeTargetSettings(raw) {
 }
 
 /**
- * Totals, statuses and targets for yesterday plus the six days before: the only
- * data the AI sees (no notes or names). Null when there is no baby profile.
+ * Totals, statuses and targets for yesterday plus the six days before, with
+ * yesterday's milk by kind, the formula's name, the foods eaten yesterday and over
+ * the week: the only data the AI sees (no notes or the baby's name). Null when there is no baby profile.
  */
-function buildReviewFacts({ targetsModule, activities, baby, settings, nowMs, utcOffsetMinutes }) {
+function buildReviewFacts({ targetsModule, activities, baby, settings, milkProduct, nowMs, utcOffsetMinutes }) {
   const birthDate = baby && toDate(baby.birthDate);
   if (!birthDate) return null;
   const { dayIndex } = localDay(nowMs, utcOffsetMinutes);
@@ -79,6 +82,8 @@ function buildReviewFacts({ targetsModule, activities, baby, settings, nowMs, ut
 
   const totalsFor = (index) => targetsModule.summarizeDay(activities.filter((a) => dayOf(a.timestamp) === index));
   const yesterday = totalsFor(yesterdayIndex);
+  const yesterdayActivities = activities.filter((a) => dayOf(a.timestamp) === yesterdayIndex);
+  const earlierActivities = activities.filter((a) => dayOf(a.timestamp) < yesterdayIndex);
   const previousDays = [];
   for (let index = yesterdayIndex - (HISTORY_DAYS - 1); index < yesterdayIndex; index++) {
     previousDays.push({ date: isoDayOf(index), ...totalsFor(index) });
@@ -96,9 +101,99 @@ function buildReviewFacts({ targetsModule, activities, baby, settings, nowMs, ut
     },
     yesterday,
     status: targetsModule.assessDay(yesterday, targets),
+    milkByType: milkByType(yesterdayActivities),
+    milkProduct: milkProduct || null,
+    solidFoods: solidFoods(yesterdayActivities, earlierActivities),
+    weekFoods: weekFoods(activities.filter((a) => dayOf(a.timestamp) <= yesterdayIndex), dayOf),
     previousDays
   };
 }
+
+const MAX_FOOD_NAME = 40;
+const MAX_FOODS = 30;
+// Worst reaction first, so a food the baby reacted to once is reported that way.
+const REACTION_ORDER = ['allergic', 'dislike', 'enthusiastic', 'normal'];
+
+const cleanFoodName = (value) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, MAX_FOOD_NAME);
+// Every dish of one meal with the grams eaten of it; a meal can hold several dishes
+// ("Cơm, Chuối"), each with its own grams or an even share of the meal's amount;
+// older records have one `foodItem`.
+const foodPortions = (activity) => {
+  const details = activity.details;
+  const hasList = Array.isArray(details.foodItems) && details.foodItems.length > 0;
+  const names = (hasList ? details.foodItems : [details.foodItem]).map(cleanFoodName);
+  const own = names.map((_, index) => (hasList && Array.isArray(details.foodGrams) ? Number(details.foodGrams[index]) || 0 : 0));
+  const known = own.reduce((sum, grams) => sum + grams, 0);
+  const unknown = names.filter((name, index) => name && own[index] === 0).length;
+  const share = unknown > 0 ? Math.max(0, (Number(details.amount) || 0) - known) / unknown : 0;
+  return names
+    .map((name, index) => ({ name, grams: own[index] > 0 ? own[index] : share }))
+    .filter((portion) => portion.name);
+};
+const foodNames = (activity) => foodPortions(activity).map((portion) => portion.name);
+const isMilk = (a) => a.type === 'feeding' && a.details.foodType !== 'solid';
+const isSolid = (a) => a.type === 'feeding' && a.details.foodType === 'solid';
+
+/** Milk split by kind (breast milk, formula, not given), only the kinds that were logged. */
+function milkByType(dayActivities) {
+  const result = {};
+  for (const activity of dayActivities.filter(isMilk)) {
+    const kind = activity.details.milkType === 'breast' || activity.details.milkType === 'formula' ? activity.details.milkType : 'unspecified';
+    result[kind] = result[kind] || { feeds: 0, ml: 0 };
+    result[kind].feeds += 1;
+    result[kind].ml += Number(activity.details.amount) || 0;
+  }
+  return result;
+}
+
+/** Each food eaten that day with meals, grams and the baby's reaction; plus whether it is new this week. */
+function solidFoods(dayActivities, earlierActivities) {
+  const seenBefore = new Set(earlierActivities.filter(isSolid).flatMap(foodNames).map((name) => name.toLocaleLowerCase()));
+  const byName = new Map();
+  for (const activity of dayActivities.filter(isSolid)) {
+    const portions = foodPortions(activity);
+    if (portions.length === 0) portions.push({ name: '?', grams: Number(activity.details.amount) || 0 });
+    const reaction = activity.details.isAllergic ? 'allergic' : activity.details.foodPreference || 'normal';
+    for (const { name, grams } of portions) {
+      const entry = byName.get(name.toLocaleLowerCase()) || { name, meals: 0, grams: 0, reaction: 'normal' };
+      entry.meals += 1;
+      entry.grams += grams;
+      if (REACTION_ORDER.indexOf(reaction) !== -1 && REACTION_ORDER.indexOf(reaction) < REACTION_ORDER.indexOf(entry.reaction)) {
+        entry.reaction = reaction;
+      }
+      byName.set(name.toLocaleLowerCase(), entry);
+    }
+  }
+  return [...byName.values()].slice(0, MAX_FOODS).map((entry) => ({
+    ...entry,
+    grams: Math.round(entry.grams),
+    newThisWeek: entry.name !== '?' && !seenBefore.has(entry.name.toLocaleLowerCase())
+  }));
+}
+
+/** Foods eaten over the last seven days with the number of days each was eaten, most frequent first. */
+function weekFoods(weekActivities, dayOf) {
+  const byName = new Map();
+  for (const activity of weekActivities.filter(isSolid)) {
+    for (const name of foodNames(activity)) {
+      const entry = byName.get(name.toLocaleLowerCase()) || { name, days: new Set() };
+      entry.days.add(dayOf(activity.timestamp));
+      byName.set(name.toLocaleLowerCase(), entry);
+    }
+  }
+  return [...byName.values()]
+    .map(({ name, days }) => ({ name, days: days.size }))
+    .sort((a, b) => b.days - a.days)
+    .slice(0, MAX_FOODS);
+}
+
+const MAX_MILK_PRODUCT = 60;
+// The formula named in the menu (users/{uid}/settings/feeding), only while formula is the chosen milk.
+const milkProductOf = (snap) => {
+  const data = snap.exists ? snap.data() : {};
+  if (data.defaultMilkType !== 'formula' || typeof data.milkProduct !== 'string') return null;
+  return data.milkProduct.replace(/\s+/g, ' ').trim().slice(0, MAX_MILK_PRODUCT) || null;
+};
 
 const hasAnyLog = (totals) => totals.milkFeeds + totals.solidMeals + totals.sleeps + totals.wetDiapers + totals.stools > 0;
 
@@ -115,12 +210,13 @@ async function loadReviewInputs(uid, nowMs, utcOffsetMinutes) {
   const { normalizeActivityRecord } = await loadSchema();
   const { todayStartMs } = localDay(nowMs, utcOffsetMinutes);
   const userRef = db.collection('users').doc(uid);
-  const [activitySnap, measurementSnap, babySnap, settingsSnap] = await Promise.all([
+  const [activitySnap, measurementSnap, babySnap, settingsSnap, feedingSnap] = await Promise.all([
     userRef.collection('activities').where('timestamp', '>=', new Date(todayStartMs - HISTORY_DAYS * DAY_MS)).get(),
     // Weight may have been measured long before the last week.
     userRef.collection('activities').where('type', '==', 'measurement').get(),
     db.collection('babies').doc(uid).get(),
-    userRef.collection('settings').doc('dailyTargets').get()
+    userRef.collection('settings').doc('dailyTargets').get(),
+    userRef.collection('settings').doc('feeding').get()
   ]);
 
   const byId = new Map();
@@ -131,7 +227,8 @@ async function loadReviewInputs(uid, nowMs, utcOffsetMinutes) {
   return {
     activities: [...byId.values()],
     baby: babySnap.exists ? babySnap.data() : null,
-    settings: settingsSnap.exists ? sanitizeTargetSettings(settingsSnap.data()) : null
+    settings: settingsSnap.exists ? sanitizeTargetSettings(settingsSnap.data()) : null,
+    milkProduct: milkProductOf(feedingSnap)
   };
 }
 
@@ -169,13 +266,28 @@ async function sendReviewPush(uid, review) {
   return sent;
 }
 
+/** Day index of a past day ("YYYY-MM-DD") that may be reviewed again, else null. */
+function pastDayIndex(day, nowMs, utcOffsetMinutes) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(day || ''))) return null;
+  const index = Math.floor(Date.parse(`${day}T00:00:00Z`) / DAY_MS);
+  const { dayIndex } = localDay(nowMs, utcOffsetMinutes);
+  return Number.isFinite(index) && index < dayIndex && index >= dayIndex - PAST_REVIEWS ? index : null;
+}
+
 /**
  * Writes yesterday's review once (concurrent callers get the existing one) and
  * optionally pushes it. `retryAi` rewrites a review whose AI part failed.
- * @returns {Promise<{ review: object|null, created: boolean, pushed: number }>}
+ * `rewriteDay` ("YYYY-MM-DD", a past day) writes that day's review again from the
+ * current log; when the AI fails then, the previous review is kept.
+ * @returns {Promise<{ review: object|null, created: boolean, pushed: number, aiFailed?: boolean }>}
  */
-async function generateDailyReview(uid, { nowMs = Date.now(), utcOffsetMinutes, language, trigger, push = true, retryAi = false }) {
-  const { dayIndex } = localDay(nowMs, utcOffsetMinutes);
+async function generateDailyReview(uid, { nowMs = Date.now(), utcOffsetMinutes, language, trigger, push = true, retryAi = false, rewriteDay = null }) {
+  const rewriteIndex = rewriteDay ? pastDayIndex(rewriteDay, nowMs, utcOffsetMinutes) : null;
+  if (rewriteDay && rewriteIndex === null) return { review: null, created: false, pushed: 0 };
+  const rewrite = rewriteIndex !== null;
+  // The review covers the day before `reviewNowMs`: for a rewrite, any time on the day after it.
+  const reviewNowMs = rewrite ? (rewriteIndex + 1) * DAY_MS - utcOffsetMinutes * 60 * 1000 : nowMs;
+  const { dayIndex } = localDay(reviewNowMs, utcOffsetMinutes);
   const day = isoDayOf(dayIndex - 1);
   const ref = reviewRef(uid, day);
 
@@ -183,15 +295,15 @@ async function generateDailyReview(uid, { nowMs = Date.now(), utcOffsetMinutes, 
     const snapshot = await transaction.get(ref);
     const data = snapshot.exists ? snapshot.data() : null;
     const pendingElsewhere = data && data.status === 'pending' && nowMs - Number(data.claimedAtMs || 0) < PENDING_MS;
-    const canRetry = retryAi && data && data.status === 'done' && !data.ai;
+    const canRetry = (retryAi && data && data.status === 'done' && !data.ai) || rewrite;
     if (data && (pendingElsewhere || (data.status !== 'pending' && !canRetry))) return { existing: data };
     transaction.set(ref, { day, status: 'pending', claimedAtMs: nowMs, trigger, retried: Boolean(canRetry) }, { merge: true });
     return { existing: null, previous: data };
   });
   if (claimed.existing) return { review: publicReview(claimed.existing), created: false, pushed: 0 };
 
-  const [targetsModule, inputs] = await Promise.all([loadTargets(), loadReviewInputs(uid, nowMs, utcOffsetMinutes)]);
-  const facts = buildReviewFacts({ targetsModule, ...inputs, nowMs, utcOffsetMinutes });
+  const [targetsModule, inputs] = await Promise.all([loadTargets(), loadReviewInputs(uid, reviewNowMs, utcOffsetMinutes)]);
+  const facts = buildReviewFacts({ targetsModule, ...inputs, nowMs: reviewNowMs, utcOffsetMinutes });
   if (!facts || !hasAnyLog(facts.yesterday)) {
     // Nothing logged (or no baby profile): nothing to review, and no retry every few minutes.
     const empty = { day, status: 'empty', trigger, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
@@ -205,6 +317,11 @@ async function generateDailyReview(uid, { nowMs = Date.now(), utcOffsetMinutes, 
     if (await consumeAiQuota(uid)) ai = await writeDailyReview(facts, lang);
   } catch (error) {
     console.error('[dailyReview] AI failed:', error?.code, error?.message);
+  }
+  if (rewrite && !ai && claimed.previous && claimed.previous.status === 'done') {
+    // Keep the review the parents already have rather than replacing it with the plain summary.
+    await ref.set(claimed.previous);
+    return { review: publicReview(claimed.previous), created: false, pushed: 0, aiFailed: true };
   }
 
   const review = {
@@ -233,6 +350,17 @@ async function generateDailyReview(uid, { nowMs = Date.now(), utcOffsetMinutes, 
     await ref.update({ pushedAt: claimed.previous.pushedAt });
   }
   return { review: publicReview(review), created: true, pushed };
+}
+
+/** Written reviews, newest day first. */
+async function listDailyReviews(uid) {
+  const snapshot = await db.collection('users').doc(uid).collection('dailyReviews').get();
+  return snapshot.docs
+    .map((doc) => doc.data())
+    .filter((data) => data && data.status === 'done')
+    .sort((a, b) => (a.day < b.day ? 1 : -1))
+    .slice(0, PAST_REVIEWS)
+    .map(publicReview);
 }
 
 /** The stored review of yesterday, or null when it was not written yet. */
@@ -294,6 +422,7 @@ module.exports = {
   sanitizeTargetSettings,
   generateDailyReview,
   getDailyReview,
+  listDailyReviews,
   saveTargetSettings,
   maybeSendMorningReview,
   loadTargets

@@ -21,6 +21,7 @@ import {
     House,
     Info,
     Languages,
+    Settings,
     LogOut,
     LucideIcon,
     Menu,
@@ -103,3 +104,4 @@ export const NotificationsIcon = createIcon(Bell, 'NotificationsIcon');
 export const NotificationsOffIcon = createIcon(BellOff, 'NotificationsOffIcon');
 export const InfoIcon = createIcon(Info, 'InfoIcon');
 export const TranslateIcon = createIcon(Languages, 'TranslateIcon');
+export const SettingsIcon = createIcon(Settings, 'SettingsIcon');

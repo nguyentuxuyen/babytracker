@@ -82,6 +82,14 @@ describe('POST /api/logMilk', () => {
         });
     });
 
+    it('tags the feed with the milk set in the menu', async () => {
+        db.docs.set(`users/${UID}/settings/feeding`, { defaultMilkType: 'formula' });
+
+        await call(handler, { headers: withSecret, body: { amountMl: 120 } });
+
+        expect(savedActivities()[0][1].details).toMatchObject({ foodType: 'milk', amount: 120, milkType: 'formula' });
+    });
+
     it('reads a timestamp without an offset in the given offset, defaulting to JST', async () => {
         const jst = await call(handler, { headers: withSecret, body: { amountMl: 100, timestamp: '2026-10-12T08:30' } });
         const vietnam = await call(handler, { headers: withSecret, body: { amountMl: 100, timestamp: '2026-10-12T08:30', utcOffsetMinutes: 420 } });
