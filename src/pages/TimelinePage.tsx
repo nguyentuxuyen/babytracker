@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { localeTag } from '../i18n';
-import { Alert, Box, Button, Card, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, Chip, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { DeleteIcon, EditIcon } from '../components/common/icons';
 import DayStatsCard from '../components/common/DayStatsCard';
 import { formatGap, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel } from '../components/common/activityDisplay';
@@ -14,6 +14,18 @@ import RecentDaysStrip from '../components/common/RecentDaysStrip';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { formatHoursMinutes } from '../i18n/format';
+import { MAX_FOODS_PER_MEAL, foodPortionsOf } from '../domain/activitySchema.mjs';
+
+// "cơm, chuối + bơ" typed in one go becomes three dishes.
+const splitFoodNames = (value: string) => value.split(/[,+、，]/).map((name) => name.replace(/\s+/g, ' ').trim()).filter(Boolean);
+const addUniqueFoods = (current: string[], names: string[]) => {
+    const result = [...current];
+    names.forEach((name) => {
+        if (!result.some((item) => item.toLocaleLowerCase() === name.toLocaleLowerCase())) result.push(name);
+    });
+    return result.slice(0, MAX_FOODS_PER_MEAL);
+};
+const gramsOf = (value: string | undefined) => Number(String(value ?? '').replace(',', '.')) || 0;
 
 const TimelinePage: React.FC = () => {
     const { user } = useAuth();
@@ -35,6 +47,10 @@ const TimelinePage: React.FC = () => {
     const [editIsUrine, setEditIsUrine] = useState(false);
     const [editIsStool, setEditIsStool] = useState(false);
     const [savingEdit, setSavingEdit] = useState(false);
+    // Solid-food meals: the dishes, the grams typed for each (by name) and a dish being typed.
+    const [editFoods, setEditFoods] = useState<string[]>([]);
+    const [editFoodGrams, setEditFoodGrams] = useState<Record<string, string>>({});
+    const [editFoodInput, setEditFoodInput] = useState('');
     const selectedDateTime = selectedDate.getTime();
     const selectedActivities = useMemo(() => activities.filter((activity) => {
         const timestamp = new Date(activity.timestamp);
@@ -117,6 +133,12 @@ const TimelinePage: React.FC = () => {
         setEditIsUrine(Boolean(details.isUrine));
         setEditIsStool(Boolean(details.isStool));
         setEditTime(new Date(activity.timestamp).toTimeString().slice(0, 5));
+        const portions = activity.type === 'feeding' && details.foodType === 'solid' ? foodPortionsOf(details) : [];
+        setEditFoods(portions.map((portion) => portion.name));
+        setEditFoodGrams(Object.fromEntries(portions
+            .filter((portion) => portions.length > 1 && portion.grams !== null)
+            .map((portion) => [portion.name, String(portion.grams)])));
+        setEditFoodInput('');
 
         if (activity.type === 'sleep') {
             const endTime = new Date(activity.timestamp);
@@ -131,11 +153,33 @@ const TimelinePage: React.FC = () => {
         }
     };
 
+    const isSolidEdit = editingActivity?.type === 'feeding'
+        && (editingActivity.details as Record<string, unknown>)?.foodType === 'solid';
+    const addEditFoods = (text: string) => {
+        const names = splitFoodNames(text);
+        if (names.length > 0) setEditFoods((current) => addUniqueFoods(current, names));
+        setEditFoodInput('');
+    };
+    const editTotalGrams = Math.round(editFoods.reduce((sum, food) => sum + gramsOf(editFoodGrams[food]), 0) * 10) / 10;
+
     const saveEdit = async () => {
         if (!user?.uid || !editingActivity) return;
         setSavingEdit(true);
         const details = { ...(editingActivity.details as Record<string, unknown>) };
         if ('amount' in details) details.amount = Number(editAmount) || 0;
+        if (isSolidEdit) {
+            // Text still in the dish box counts too.
+            const foods = addUniqueFoods(editFoods, splitFoodNames(editFoodInput));
+            details.foodItems = foods;
+            details.foodItem = foods.join(', ');
+            const grams = foods.map((food) => gramsOf(editFoodGrams[food]));
+            if (foods.length > 1 && grams.some((value) => value > 0)) {
+                details.foodGrams = grams;
+                details.amount = Math.round(grams.reduce((sum, value) => sum + value, 0) * 10) / 10;
+            } else {
+                delete details.foodGrams;
+            }
+        }
         if (editingActivity.type === 'diaper') {
             details.isUrine = editIsUrine;
             details.isStool = editIsStool;
@@ -310,8 +354,71 @@ const TimelinePage: React.FC = () => {
                             <FormControlLabel control={<Checkbox checked={editIsStool} onChange={(event) => setEditIsStool(event.target.checked)} />} label={t('diaper.stool')} />
                         </FormGroup>
                     )}
-                    {editingActivity?.type === 'feeding' && (
+                    {editingActivity?.type === 'feeding' && !isSolidEdit && (
                         <TextField label={t('feeding.amountMl')} type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
+                    )}
+                    {isSolidEdit && (
+                        <Box sx={{ mt: 2 }}>
+                            {editFoods.length > 0 && (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+                                    {editFoods.map((food) => (
+                                        <Chip
+                                            key={food}
+                                            label={food}
+                                            onDelete={() => setEditFoods((current) => current.filter((item) => item !== food))}
+                                            sx={{ fontWeight: 600 }}
+                                        />
+                                    ))}
+                                </Box>
+                            )}
+                            <TextField
+                                label={editFoods.length > 0 ? t('feeding.addAnotherFood') : t('feeding.foodName')}
+                                placeholder={t('feeding.foodNamePlaceholder')}
+                                value={editFoodInput}
+                                onChange={(event) => setEditFoodInput(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' && editFoodInput.trim()) {
+                                        event.preventDefault();
+                                        addEditFoods(editFoodInput);
+                                    }
+                                }}
+                                onBlur={() => { if (editFoodInput.trim()) addEditFoods(editFoodInput); }}
+                                fullWidth
+                                size="small"
+                            />
+                            {editFoods.length > 1 ? (
+                                <Box sx={{ mt: 2 }}>
+                                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mb: 1 }}>{t('feeding.gramsPerFood')}</Typography>
+                                    <Stack spacing={1}>
+                                        {editFoods.map((food) => (
+                                            <Box key={food} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                <Typography sx={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, overflowWrap: 'anywhere' }}>{food}</Typography>
+                                                <TextField
+                                                    type="number"
+                                                    size="small"
+                                                    placeholder="0"
+                                                    value={editFoodGrams[food] ?? ''}
+                                                    onChange={(event) => {
+                                                        const value = event.target.value;
+                                                        setEditFoodGrams((current) => ({ ...current, [food]: value }));
+                                                    }}
+                                                    inputProps={{ inputMode: 'decimal', 'aria-label': t('feeding.gramsOf', { food }) }}
+                                                    InputProps={{ endAdornment: <Typography sx={{ color: '#94a3b8', fontSize: 14 }}>g</Typography> }}
+                                                    sx={{ width: 110, flexShrink: 0 }}
+                                                />
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                    {editTotalGrams > 0 && (
+                                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mt: 1, textAlign: 'right' }}>
+                                            {t('feeding.totalGrams', { amount: editTotalGrams })}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            ) : (
+                                <TextField label={t('feeding.amountG')} type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
+                            )}
+                        </Box>
                     )}
                     {editingActivity?.type === 'sleep' && (
                         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, mt: 1 }}>
