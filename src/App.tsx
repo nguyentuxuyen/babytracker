@@ -8,7 +8,6 @@ import { BabyProvider, useBaby } from './contexts/BabyContext';
 import { DateProvider } from './contexts/DateContext';
 import AppRouter from './routes/AppRouter';
 import DriveConnectNotice from './components/common/DriveConnectNotice';
-import BabyInfoPage from './pages/BabyInfoPageNew';
 import TranslationsPage from './pages/TranslationsPage';
 import { loadTranslationOverrides } from './i18n/overrides';
 import { firestore } from './firebase/firestore';
@@ -16,7 +15,7 @@ import { loadReminderSettings, saveReminderSettings } from './utils/reminderSett
 import { loadCachedFeedingSettings, loadFeedingSettings, saveFeedingSettings, type FeedingSettings } from './utils/feedingSettings';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 import { ChangelogRelease } from './types';
-import { SettingsProvider, navigateTo, useAppSettings } from './contexts/SettingsContext';
+import { SettingsProvider, navigateTo } from './contexts/SettingsContext';
 import { HEADER_NOTIFICATION_SLOT_ID } from './components/common/NotificationCenter';
 import i18n from './i18n';
 
@@ -58,7 +57,6 @@ const HeaderComponent: React.FC<{
 }) => {
     const { baby } = useBaby();
     const { t } = useTranslation();
-    const appSettings = useAppSettings();
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -164,7 +162,7 @@ const HeaderComponent: React.FC<{
                     <div style={{
                         fontSize: '12px',
                         fontWeight: '400',
-                        color: '#6b7f8a'
+                        color: '#5b6b75'
                     }}>
                         {(() => {
                             try {
@@ -237,30 +235,6 @@ const HeaderComponent: React.FC<{
                                 {t('header.syncing')}
                             </div>
                         )}
-                        {appSettings?.reminderEnabled && (
-                            <div style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                backgroundColor: '#10b981',
-                                borderRadius: '999px',
-                                padding: '2px 8px'
-                            }}>
-                                {t('header.reminderEvery', { count: Math.round(appSettings.reminderIntervalMinutes / 60) })}
-                            </div>
-                        )}
-                        {appSettings?.pushEnabled && (
-                            <div style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                backgroundColor: '#0f766e',
-                                borderRadius: '999px',
-                                padding: '2px 8px'
-                            }}>
-                                {t('header.pushOn')}
-                            </div>
-                        )}
                     </div>
                 </div>
                 </div>
@@ -269,24 +243,6 @@ const HeaderComponent: React.FC<{
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {/* Filled with the notification bell by the page (NotificationCenter) */}
                         <div id={HEADER_NOTIFICATION_SLOT_ID} style={{ display: 'flex' }} />
-                        <button
-                            onClick={() => navigateTo('/settings')}
-                            aria-label={t('settingsPage.title')}
-                            style={{
-                                width: '44px',
-                                height: '44px',
-                                borderRadius: '50%',
-                                background: '#ffffff',
-                                border: '1px solid #e5e7eb',
-                                color: '#475569',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
-                        >
-                            <SettingsIcon sx={{ fontSize: '22px' }} />
-                        </button>
                         <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
@@ -499,7 +455,7 @@ const HeaderComponent: React.FC<{
             <Dialog open={showChangelog} onClose={handleCloseChangelog} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ pb: 1 }}>{t('changelog.title')}</DialogTitle>
                 <DialogContent dividers>
-                    <Typography variant="caption" sx={{ display: 'block', color: '#6b7f8a', mb: 2 }}>
+                    <Typography variant="caption" sx={{ display: 'block', color: '#5b6b75', mb: 2 }}>
                         {t('changelog.source', { source: changelogUsesFirebase ? 'Firebase' : t('changelog.local') })}
                     </Typography>
                     {changelogReleases.map((entry) => (
@@ -510,7 +466,7 @@ const HeaderComponent: React.FC<{
                                 </Typography>
                                 <Chip label={`v${entry.version}`} size="small" sx={{ bgcolor: '#f0fdf4', color: '#166534' }} />
                             </Box>
-                            <Typography variant="body2" sx={{ color: '#6b7f8a', mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: '#5b6b75', mb: 1 }}>
                                 {formatChangelogDate(entry.releasedAt)}
                             </Typography>
                             {entry.summary && (
@@ -542,7 +498,6 @@ const HeaderComponent: React.FC<{
 const MainApp: React.FC = () => {
     const { currentUser, logout, loading } = useAuth();
     const { baby } = useBaby();
-    const [showBabyInfo, setShowBabyInfo] = useState(false);
     const [showTranslations, setShowTranslations] = useState(false);
     const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
     const [pendingSyncCount, setPendingSyncCount] = useState(0);
@@ -858,9 +813,6 @@ const MainApp: React.FC = () => {
     }
 
     // Show baby info modal if requested
-    if (showBabyInfo) {
-        return <BabyInfoPage onBack={() => setShowBabyInfo(false)} />;
-    }
 
     if (showTranslations) {
         return <TranslationsPage onBack={() => setShowTranslations(false)} />;
@@ -893,7 +845,7 @@ const MainApp: React.FC = () => {
             <HeaderComponent
                 currentUser={currentUser}
                 logout={logout}
-                onShowBabyInfo={() => setShowBabyInfo(true)}
+                onShowBabyInfo={() => navigateTo('/baby-info')}
                 isOnline={isOnline}
                 pendingSyncCount={pendingSyncCount}
                 isSyncing={isSyncing}

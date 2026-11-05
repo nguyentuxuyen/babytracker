@@ -114,6 +114,7 @@
     },
     "quick": {
       "milk": "ミルク",
+      "solid": "離乳食",
       "diaper": "おむつ",
       "sleep": "睡眠",
       "bath": "お風呂",
@@ -227,11 +228,21 @@
     "edit": "記録を編集",
     "delete": "記録を削除",
     "confirmDelete": "この記録を削除しますか？",
+    "deleteShort": "削除",
     "deleteFailed": "記録を削除できませんでした。",
     "updateFailed": "オフライン記録は編集できないか、更新に失敗しました。",
     "loadFailed": "アクティビティを読み込めませんでした。",
     "deleted": "記録を削除しました",
-    "undo": "元に戻す"
+    "undo": "元に戻す",
+    "sincePreviousFeed": "前回から {{gap}}",
+    "filter": {
+      "all": "すべて",
+      "milk": "ミルク",
+      "solid": "離乳食",
+      "sleep": "睡眠",
+      "diaper": "おむつ",
+      "other": "その他"
+    }
   },
   "foodHistory": {
     "title": "離乳食の記録",
@@ -679,6 +690,7 @@
     "emptyHint": "お出かけや初めての出来事を写真と一緒に残しましょう。",
     "quickTitle": "思い出",
     "quickHint": "お出かけ・初めての出来事を写真付きで",
+    "quickHintShort": "写真と一緒に",
     "quickLast": "最新: {{title}}（{{date}}）",
     "seeAll": "すべて見る",
     "errors": {

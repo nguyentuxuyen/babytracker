@@ -11,6 +11,7 @@ import { TextField } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { useDriveStatus } from '../hooks/useDriveStatus';
 import { connectDrive, disconnectDrive, driveFolderUrl } from '../firebase/googleDrive';
+import PageHeader from '../components/common/PageHeader';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <Box sx={{ p: 2, mb: 1.5, borderRadius: '16px', bgcolor: '#ffffff', border: '1px solid #e5e7eb' }}>
@@ -105,7 +106,7 @@ const SettingsPage: React.FC = () => {
 
     return (
         <Box sx={{ px: 2, pt: 2, maxWidth: 720, mx: 'auto' }}>
-            <Typography sx={{ fontSize: 24, fontWeight: 800, color: '#101c22', mb: 2 }}>{t('settingsPage.title')}</Typography>
+            <PageHeader back title={t('settingsPage.title')} />
 
             <Section title={t('settingsPage.milk')}>
                 <Label>{t('menu.defaultMilkType')}</Label>
@@ -143,7 +144,7 @@ const SettingsPage: React.FC = () => {
             <Section title={t('settingsPage.reminders')}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <NotificationsIcon sx={{ fontSize: 20, color: settings.reminderEnabled ? '#10b981' : '#6b7f8a' }} />
+                        <NotificationsIcon sx={{ fontSize: 20, color: settings.reminderEnabled ? '#10b981' : '#5b6b75' }} />
                         <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#101c22' }}>{t('settingsPage.reminderSwitch')}</Typography>
                     </Box>
                     <Switch checked={settings.reminderEnabled} onChange={settings.onToggleReminder} inputProps={{ 'aria-label': t('settingsPage.reminderSwitch') }} />

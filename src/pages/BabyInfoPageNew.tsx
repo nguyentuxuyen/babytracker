@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localeTag } from '../i18n';
 import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, List, ListItem, ListItemText, ListItemSecondaryAction } from '@mui/material';
-import { BackIcon as ArrowBackIosNewIcon, EditIcon, DeleteIcon, AddIcon, CheckIcon, CloseIcon, FoodIcon as RestaurantIcon } from '../components/common/icons';
+import { EditIcon, DeleteIcon, AddIcon, CheckIcon, CloseIcon, FoodIcon as RestaurantIcon } from '../components/common/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useBaby } from '../contexts/BabyContext';
 import { firestore } from '../firebase/firestore';
+import PageHeader from '../components/common/PageHeader';
 
-const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+const BabyInfoPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const { currentUser } = useAuth();
     const { baby } = useBaby();
     const { t } = useTranslation();
@@ -124,89 +125,21 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <Box sx={{
             minHeight: '100vh',
             bgcolor: '#f6f7f8',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             display: 'flex',
             flexDirection: 'column',
             pb: '80px' // Space for sticky footer
         }}>
-            {/* Header */}
-            <Box sx={{
-                position: 'sticky',
-                top: 0,
-                bgcolor: '#f6f7f8',
-                borderBottom: '1px solid #e5e7eb',
-                zIndex: 10,
-                px: 2,
-                py: 2
-            }}>
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    <IconButton
-                        onClick={onBack}
-                        sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '12px',
-                            '&:hover': {
-                                bgcolor: 'rgba(0, 0, 0, 0.04)'
-                            }
-                        }}
-                    >
-                        <ArrowBackIosNewIcon sx={{ fontSize: 18, color: '#6b7f8a' }} />
-                    </IconButton>
-                    
-                    <Box sx={{ textAlign: 'center', flex: 1 }}>
-                        <Typography sx={{
-                            fontSize: '18px',
-                            fontWeight: 700,
-                            color: '#101c22'
-                        }}>
-                            {t('babyInfo.welcome', { name: currentUser?.email?.split('@')[0] || t('babyInfo.user') })}
-                        </Typography>
-                        <Typography sx={{
-                            fontSize: '12px',
-                            color: '#6b7f8a'
-                        }}>
-                            {t('babyInfo.ageInDays', { name: babyName, count: ageInDays })}
-                        </Typography>
-                    </Box>
-
-                    <Box
-                        sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            bgcolor: '#e5e7eb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
-                    >
-                        {currentUser?.photoURL ? (
-                            <img
-                                src={currentUser.photoURL}
-                                alt="User avatar"
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover'
-                                }}
-                            />
-                        ) : (
-                            <Typography sx={{ fontSize: '16px', color: '#6b7f8a' }}>
-                                {currentUser?.email?.[0].toUpperCase() || 'U'}
-                            </Typography>
-                        )}
-                    </Box>
-                </Box>
+            <Box sx={{ px: 2, pt: 2 }}>
+                <PageHeader
+                    back
+                    onBack={onBack}
+                    title={t('menu.babyInfo')}
+                    subtitle={t('babyInfo.ageInDays', { name: babyName, count: ageInDays })}
+                />
             </Box>
 
             {/* Main Content */}
-            <Box sx={{ flex: 1, px: 3, py: 4 }}>
+            <Box sx={{ flex: 1, px: 3, pb: 4 }}>
                 {/* Profile Section */}
                 <Box sx={{
                     display: 'flex',
@@ -232,7 +165,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             }}
                         >
                             {!baby?.avatarUrl && (
-                                <Typography sx={{ fontSize: '48px', color: '#6b7f8a' }}>
+                                <Typography sx={{ fontSize: '48px', color: '#5b6b75' }}>
                                     👶
                                 </Typography>
                             )}
@@ -268,7 +201,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         </Typography>
                         <Typography sx={{
                             fontSize: '14px',
-                            color: '#6b7f8a'
+                            color: '#5b6b75'
                         }}>
                             {t('babyInfo.birthday')}: {baby?.birthDate
                                 ? new Date(baby.birthDate).toLocaleDateString(locale, {
@@ -280,7 +213,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         </Typography>
                         <Typography sx={{
                             fontSize: '14px',
-                            color: '#6b7f8a'
+                            color: '#5b6b75'
                         }}>
                             {genderLabel('babyInfo.genderNotSet')}
                         </Typography>
@@ -337,7 +270,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                     }}>
                                         <Typography sx={{
                                             fontSize: '14px',
-                                            color: '#6b7f8a'
+                                            color: '#5b6b75'
                                         }}>
                                             {item.label}
                                         </Typography>
@@ -395,7 +328,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                     }}>
                                         <Typography sx={{
                                             fontSize: '14px',
-                                            color: '#6b7f8a'
+                                            color: '#5b6b75'
                                         }}>
                                             {item.label}
                                         </Typography>
@@ -472,7 +405,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 ))}
                             </Box>
                         ) : (
-                            <Typography sx={{ color: '#6b7f8a', fontSize: '14px', fontStyle: 'italic' }}>
+                            <Typography sx={{ color: '#5b6b75', fontSize: '14px', fontStyle: 'italic' }}>
                                 {t('babyInfo.foodMenuEmpty')}
                             </Typography>
                         )}
@@ -657,7 +590,7 @@ const BabyInfoPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 <ListItemText 
                                     primary="No items yet" 
                                     secondary="Add foods like 'Porridge', 'Carrots', etc."
-                                    sx={{ textAlign: 'center', color: '#6b7f8a' }}
+                                    sx={{ textAlign: 'center', color: '#5b6b75' }}
                                 />
                             </ListItem>
                         )}

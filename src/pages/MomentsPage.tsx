@@ -7,6 +7,7 @@ import { groupMomentsByMonth } from '../firebase/moments';
 import { localeTag } from '../i18n';
 import MomentCard from '../components/common/MomentCard';
 import { useMomentSheets } from '../components/common/MomentSheets';
+import PageHeader from '../components/common/PageHeader';
 
 // "Kỷ niệm": every moment, newest first, grouped by month.
 const MomentsPage: React.FC = () => {
@@ -23,29 +24,26 @@ const MomentsPage: React.FC = () => {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f6f7f8' }}>
-            <Box sx={{ position: 'sticky', top: 0, zIndex: 10, bgcolor: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 1, pl: 2, pr: 1, py: 1 }}>
-                <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontSize: 20, fontWeight: 700, color: '#101c22' }}>{t('moments.pageTitle')}</Typography>
-                    <Typography sx={{ fontSize: 13, color: '#6b7f8a' }}>
-                        {t('moments.summary', { count: moments.length, photos: photoCount })}
-                    </Typography>
-                </Box>
-                <Button
-                    onClick={() => addMoment()}
-                    variant="contained"
-                    sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' }, mr: 1 }}
-                >
-                    + {t('moments.addShort')}
-                </Button>
-            </Box>
-
             <Box sx={{ px: 2, pt: 2 }}>
+                <PageHeader
+                    title={t('moments.pageTitle')}
+                    subtitle={t('moments.summary', { count: moments.length, photos: photoCount })}
+                    action={moments.length > 0 ? (
+                        <Button
+                            onClick={() => addMoment()}
+                            variant="contained"
+                            sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' } }}
+                        >
+                            + {t('moments.addShort')}
+                        </Button>
+                    ) : undefined}
+                />
                 {loading && <CircularProgress size={28} sx={{ color: '#13a4ec' }} />}
                 {!loading && moments.length === 0 && (
                     <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
-                        <Typography sx={{ fontSize: 40 }} aria-hidden>📸</Typography>
+                        <Typography sx={{ fontSize: 40, lineHeight: 1.2, mb: 1 }} aria-hidden>📸</Typography>
                         <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#101c22', mt: 1 }}>{t('moments.emptyTitle')}</Typography>
-                        <Typography sx={{ fontSize: 14, color: '#6b7f8a', mt: 0.5, mb: 2 }}>{t('moments.emptyHint')}</Typography>
+                        <Typography sx={{ fontSize: 14, color: '#5b6b75', mt: 0.5, mb: 2 }}>{t('moments.emptyHint')}</Typography>
                         <Button onClick={() => addMoment()} variant="contained" sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec' }}>
                             {t('moments.addTitle')}
                         </Button>

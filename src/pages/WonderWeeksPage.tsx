@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, Typography, IconButton } from '@mui/material';
-import { useHistory } from 'react-router-dom';
+import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useBaby } from '../contexts/BabyContext';
+import PageHeader from '../components/common/PageHeader';
 
 // Timing of the 10 Wonder Weeks leaps; names, descriptions and skills live in the locale files.
 const wonderWeeksData = [
@@ -19,7 +19,6 @@ const wonderWeeksData = [
 ];
 
 const WonderWeeksPage: React.FC = () => {
-    const history = useHistory();
     const { baby } = useBaby();
     const { t } = useTranslation();
 
@@ -46,30 +45,12 @@ const WonderWeeksPage: React.FC = () => {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#f3f4f6', pb: '80px' }}>
-            {/* Header */}
-            <Box sx={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                bgcolor: '#ffffff',
-                borderBottom: '1px solid #e5e7eb',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
-                    <IconButton onClick={() => history.push('/')}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M15 18L9 12L15 6" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                    </IconButton>
-                    <Typography variant="h6" sx={{ flexGrow: 1, textAlign: 'center', fontWeight: 'bold' }}>
-                        {t('wonderWeeks.title')}
-                    </Typography>
-                    <Box sx={{ width: 40 }} />
-                </Box>
+            <Box sx={{ px: 2, pt: 2 }}>
+                <PageHeader back title={t('wonderWeeks.title')} />
             </Box>
 
             {/* Content */}
-            <Box sx={{ p: 2 }}>
+            <Box sx={{ px: 2, pb: 2 }}>
                 <Box sx={{ mb: 3, p: 2, bgcolor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                     <Typography sx={{ fontWeight: 'bold', color: '#1f2937', mb: 1 }}>{t('wonderWeeks.age', { count: ageInWeeks })}</Typography>
                     {currentLeap && <Typography sx={{ color: '#ef4444' }}>{t('wonderWeeks.currentLeap', { id: currentLeap.id })}</Typography>}

@@ -26,15 +26,12 @@ vi.mock('../firebase/firestore', () => ({
 }));
 
 let container: HTMLDivElement;
-const deleteButton = () => container.querySelector('button[aria-label="Xoá bản ghi"]') as HTMLButtonElement;
-const deleteButtons = () => container.querySelectorAll('button[aria-label="Xoá bản ghi"]');
-const editButtonFor = (text: string) => {
-    const buttons = [...container.querySelectorAll('button[aria-label="Sửa bản ghi"]')] as HTMLButtonElement[];
-    return buttons.find((button) => {
-        let node: HTMLElement | null = button;
-        while (node && !node.textContent?.includes(text)) node = node.parentElement;
-        return node && node.querySelectorAll('button[aria-label="Sửa bản ghi"]').length === 1;
-    }) as HTMLButtonElement;
+// Each record is one tappable card that opens the edit dialog; delete lives in that dialog.
+const cards = () => [...container.querySelectorAll('.MuiCardActionArea-root')] as HTMLButtonElement[];
+const editButtonFor = (text: string) => cards().find((card) => card.textContent?.includes(text)) as HTMLButtonElement;
+const openDelete = async () => {
+    act(() => cards()[0].click());
+    await act(async () => dialogButton('Xoá').click());
 };
 const setInput = (input: HTMLInputElement, value: string) => {
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
@@ -62,20 +59,20 @@ afterEach(() => {
 
 describe('TimelinePage delete', () => {
     it('asks for confirmation and keeps the record when cancelled', async () => {
-        act(() => deleteButton().click());
+        await openDelete();
 
-        expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Xoá bản ghi này?');
+        expect([...document.querySelectorAll('[role="dialog"]')].some((dialog) => dialog.textContent?.includes('Xoá bản ghi này?'))).toBe(true);
         await act(async () => dialogButton('Huỷ').click());
 
-        expect(deleteButton()).not.toBeNull();
+        expect(cards()).toHaveLength(2);
         expect(firestore.deleteActivity).not.toHaveBeenCalled();
     });
 
     it('removes the record only after the user confirms', async () => {
-        act(() => deleteButton().click());
+        await openDelete();
         await act(async () => dialogButton('Xoá bản ghi').click());
 
-        expect(deleteButtons()).toHaveLength(1);
+        expect(cards()).toHaveLength(1);
         expect(document.body.textContent).toContain('Hoàn tác');
     });
 });

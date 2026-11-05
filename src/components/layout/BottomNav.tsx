@@ -66,7 +66,7 @@ const BottomNav: React.FC = () => {
                         minWidth: 0,
                         flex: 1,
                         padding: '6px 4px',
-                        color: '#6b7f8a',
+                        color: '#5b6b75',
                         '&.Mui-selected': { color: '#13a4ec' }
                     }
                 }}

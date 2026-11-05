@@ -151,7 +151,7 @@ const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, bab
         <Dialog open={editing} onClose={() => setEditing(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '24px', m: 2, width: 'calc(100% - 32px)' } }}>
             <DialogTitle sx={{ fontWeight: 700, fontSize: 20, pb: 0.5 }}>{t('yesterdayCheck.settingsTitle')}</DialogTitle>
             <DialogContent sx={{ pt: '12px !important', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography sx={{ fontSize: 13, color: '#6b7f8a' }}>{t('yesterdayCheck.settingsHint')}</Typography>
+                <Typography sx={{ fontSize: 13, color: '#5b6b75' }}>{t('yesterdayCheck.settingsHint')}</Typography>
                 <TextField
                     type="number"
                     label={t('yesterdayCheck.milkMinLabel')}

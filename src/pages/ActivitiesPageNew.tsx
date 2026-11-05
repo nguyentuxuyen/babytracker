@@ -884,7 +884,7 @@ const ActivitiesPage: React.FC = () => {
             >
                 <DialogTitle sx={{ fontWeight: 700, fontSize: 20, pb: 0.5 }}>{t('assistant.recordWithAi')}</DialogTitle>
                 <DialogContent sx={{ pt: '12px !important' }}>
-                    <Typography sx={{ fontSize: 13, color: '#6b7f8a', mb: 1.5 }}>{t('assistant.hint')}</Typography>
+                    <Typography sx={{ fontSize: 13, color: '#5b6b75', mb: 1.5 }}>{t('assistant.hint')}</Typography>
                     <AssistantComposer
                         babyId={baby?.id}
                         selectedDate={selectedDate}
@@ -956,6 +956,13 @@ const ActivitiesPage: React.FC = () => {
                                     <MilkIcon sx={{ fontSize: 22 }} />
                                 )
                             },
+                            {
+                                label: t('activities.quick.solid'),
+                                type: 'solid',
+                                icon: (
+                                    <FoodIcon sx={{ fontSize: 22 }} />
+                                )
+                            },
                             { 
                                 label: t('activities.quick.diaper'),
                                 type: 'diaper', 
@@ -1003,7 +1010,10 @@ const ActivitiesPage: React.FC = () => {
                                     else if (actType === 'tã') normalizedType = 'diaper';
                                     else if (actType === 'số đo') normalizedType = 'measurement';
                                     else if (actType === 'ghi chú') normalizedType = 'memo';
-                                    return normalizedType === type;
+                                    if (normalizedType !== 'feeding') return normalizedType === type;
+                                    // Milk and solid food are separate tiles
+                                    const isSolid = act.details?.foodType === 'solid';
+                                    return type === 'solid' ? isSolid : type === 'feeding' && !isSolid;
                                 }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
                                 if (typeActivities.length === 0) return null;
@@ -1065,6 +1075,8 @@ const ActivitiesPage: React.FC = () => {
                                                 .filter((item) => item.type === 'feeding' && item.details?.foodType !== 'solid' && Number(item.details?.amount) > 0)
                                                 .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
                                             setFormData({ ...baseForm, foodType: 'milk', amount: lastMilk ? String(lastMilk.details.amount) : '' });
+                                        } else if (action.type === 'solid') {
+                                            setFormData({ ...baseForm, type: 'feeding', foodType: 'solid', foodItems: [], foodGrams: {}, isAllergic: false, foodPreference: 'normal' });
                                         } else if (action.type === 'diaper') {
                                             setFormData({
                                                 ...baseForm,
@@ -1118,7 +1130,7 @@ const ActivitiesPage: React.FC = () => {
                                                 <TimerIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'text-bottom' }} />{Math.floor(sleepElapsedTime / 3600)}h {Math.floor((sleepElapsedTime % 3600) / 60)}m {sleepElapsedTime % 60}s
                                             </Typography>
                                         ) : (
-                                            <Typography sx={{ fontSize: 12, color: timeSince ? '#6b7f8a' : '#b0b8bf', fontWeight: 500 }} noWrap>
+                                            <Typography sx={{ fontSize: 12, color: timeSince ? '#5b6b75' : '#7d8b94', fontWeight: 500 }} noWrap>
                                                 {timeSince || t('common.noData')}
                                             </Typography>
                                         )}
@@ -1127,7 +1139,7 @@ const ActivitiesPage: React.FC = () => {
                             </Grid>
                             );
                         })}
-                        <Grid item xs={12}>
+                        <Grid item xs={6}>
                             <Box
                                 component="button"
                                 type="button"
@@ -1138,41 +1150,31 @@ const ActivitiesPage: React.FC = () => {
                                     gap: 1.5,
                                     width: '100%',
                                     p: 1.5,
-                                    minHeight: 64,
+                                    minHeight: 72,
                                     textAlign: 'left',
                                     fontFamily: 'inherit',
-                                    bgcolor: '#fdf2f8',
+                                    bgcolor: '#ffffff',
                                     borderRadius: '20px',
-                                    border: '1px solid #fbcfe8',
+                                    border: '1px solid #e5e7eb',
                                     cursor: 'pointer',
                                     transition: 'transform 0.15s, box-shadow 0.15s',
                                     '&:hover': { boxShadow: '0 6px 16px rgba(15, 23, 42, 0.06)' },
                                     '&:active': { transform: 'scale(0.98)' }
                                 }}
                             >
-                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: MOMENT_ACCENT, bgcolor: `${MOMENT_ACCENT}1f` }}>
+                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: MOMENT_ACCENT, bgcolor: `${MOMENT_ACCENT}18` }}>
                                     <PhotoCameraIcon sx={{ fontSize: 22 }} />
                                 </Box>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Box sx={{ minWidth: 0 }}>
                                     <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#101c22', lineHeight: 1.3 }} noWrap>
                                         {t('moments.quickTitle')}
                                     </Typography>
-                                    <Typography sx={{ fontSize: 12, color: '#6b7f8a', fontWeight: 500 }} noWrap>
+                                    <Typography sx={{ fontSize: 12, color: '#5b6b75', fontWeight: 500 }} noWrap>
                                         {moments[0]
-                                            ? t('moments.quickLast', { title: moments[0].title || t('moments.untitled'), date: formatMomentDate(moments[0].date, { day: 'numeric', month: 'short' }) })
-                                            : t('moments.quickHint')}
+                                            ? formatMomentDate(moments[0].date, { day: 'numeric', month: 'short' })
+                                            : t('moments.quickHintShort')}
                                     </Typography>
                                 </Box>
-                                {moments.length > 0 && (
-                                    <Box
-                                        component="span"
-                                        role="link"
-                                        onClick={(event: React.MouseEvent) => { event.stopPropagation(); history.push('/moments'); }}
-                                        sx={{ fontSize: 13, fontWeight: 700, color: MOMENT_ACCENT, px: 1, py: 0.5 }}
-                                    >
-                                        {t('moments.seeAll')}
-                                    </Box>
-                                )}
                             </Box>
                         </Grid>
                     </Grid>
@@ -1341,7 +1343,7 @@ const ActivitiesPage: React.FC = () => {
                                 {/* Activity Type Select - Hidden when opened from quick action */}
                                 {!hideActivityType && (
                                     <FormControl fullWidth>
-                                        <InputLabel id="activity-type-label" sx={{ color: '#6b7f8a' }}>{t('activities.form.type')}</InputLabel>
+                                        <InputLabel id="activity-type-label" sx={{ color: '#5b6b75' }}>{t('activities.form.type')}</InputLabel>
                                         <Select
                                             labelId="activity-type-label"
                                             value={formData.type}
@@ -1570,7 +1572,7 @@ const ActivitiesPage: React.FC = () => {
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                 {(foodItems.length > 0 || (formData.foodItems || []).length > 0) && (
                                                     <Box>
-                                                        <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7f8a', mb: 0.75 }}>
+                                                        <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#5b6b75', mb: 0.75 }}>
                                                             {t('feeding.recentFoods')} · {t('feeding.pickSeveral')}
                                                         </Typography>
                                                         <ChoiceChips
@@ -1674,7 +1676,7 @@ const ActivitiesPage: React.FC = () => {
                                                             ))}
                                                         </Box>
                                                         {mealTotalGrams > 0 && (
-                                                            <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mt: 1, textAlign: 'right' }}>
+                                                            <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#5b6b75', mt: 1, textAlign: 'right' }}>
                                                                 {t('feeding.totalGrams', { amount: mealTotalGrams })}
                                                             </Typography>
                                                         )}
@@ -1936,7 +1938,7 @@ const ActivitiesPage: React.FC = () => {
                                                     />
                                                 </div>
                                             </Box>
-                                            <Typography variant="body2" sx={{ color: '#6b7f8a', fontSize: '13px', fontWeight: 600 }}>
+                                            <Typography variant="body2" sx={{ color: '#5b6b75', fontSize: '13px', fontWeight: 600 }}>
                                                 {Math.round((bulkProgress.completed / bulkProgress.total) * 100)}%
                                             </Typography>
                                         </Box>
@@ -2019,7 +2021,7 @@ const ActivitiesPage: React.FC = () => {
                                         },
                                         '&:disabled': {
                                             bgcolor: '#e3e8eb',
-                                            color: '#6b7f8a'
+                                            color: '#5b6b75'
                                         }
                                     }}
                                 >

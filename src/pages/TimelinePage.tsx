@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { localeTag } from '../i18n';
-import { Alert, Box, Button, Card, Chip, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardActionArea, Chip, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, Stack, TextField, Typography } from '@mui/material';
 import { DeleteIcon, EditIcon } from '../components/common/icons';
 import DayStatsCard from '../components/common/DayStatsCard';
-import { formatGap, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel } from '../components/common/activityDisplay';
+import { ACTIVITY_COLORS, formatDuration, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel, isSolidFeeding } from '../components/common/activityDisplay';
+import DayBand from '../components/common/DayBand';
 import { useAuth } from '../hooks/useAuth';
 import { useMoments } from '../hooks/useMoments';
 import { toLocalDateKey } from '../firebase/moments';
@@ -19,6 +20,32 @@ import { useSleepTimer } from '../hooks/useSleepTimer';
 import { calculateStatsForDate } from '../utils/dailyStats';
 import { formatHoursMinutes } from '../i18n/format';
 import { MAX_FOODS_PER_MEAL, foodPortionsOf } from '../domain/activitySchema.mjs';
+import PageHeader from '../components/common/PageHeader';
+
+type FilterKey = 'all' | 'milk' | 'solid' | 'sleep' | 'diaper' | 'other';
+const FILTERS: FilterKey[] = ['all', 'milk', 'solid', 'sleep', 'diaper', 'other'];
+const FILTER_COLORS: Record<Exclude<FilterKey, 'all'>, string> = {
+    milk: ACTIVITY_COLORS.feeding,
+    solid: ACTIVITY_COLORS.solid,
+    sleep: ACTIVITY_COLORS.sleep,
+    diaper: ACTIVITY_COLORS.diaper,
+    other: ACTIVITY_COLORS.memo
+};
+const filterKeyOf = (activity: Activity): Exclude<FilterKey, 'all'> => {
+    if (activity.type === 'feeding') return isSolidFeeding(activity) ? 'solid' : 'milk';
+    if (activity.type === 'sleep' || activity.type === 'diaper') return activity.type;
+    return 'other';
+};
+
+// A sleep is stored at its wake-up time; show "08:10–15:10" so it does not read as starting then.
+const sleepRangeOf = (activity: Activity): string[] => {
+    const minutes = Number((activity.details as any)?.duration);
+    if (activity.type !== 'sleep' || !(minutes > 0)) return [];
+    const end = new Date(activity.timestamp);
+    const start = new Date(end.getTime() - minutes * 60000);
+    const time = (date: Date) => date.toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' });
+    return [`${time(start)}–${time(end)}`];
+};
 
 // "cơm, chuối + bơ" typed in one go becomes three dishes.
 const splitFoodNames = (value: string) => value.split(/[,+、，]/).map((name) => name.replace(/\s+/g, ' ').trim()).filter(Boolean);
@@ -73,13 +100,21 @@ const TimelinePage: React.FC = () => {
         return date;
     }, [selectedDate]);
     const yesterdayStats = useMemo(() => calculateStatsForDate(activities as any, previousDate), [activities, previousDate]);
-    const groupedActivities = selectedActivities.reduce<Record<string, Activity[]>>((groups, activity) => {
-        const time = new Date(activity.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-        if (!groups[time]) groups[time] = [];
-        groups[time].push(activity);
-        return groups;
-    }, {});
-    const timeGroups = Object.entries(groupedActivities);
+    const [typeFilter, setTypeFilter] = useState<FilterKey>('all');
+    const visibleActivities = typeFilter === 'all'
+        ? selectedActivities
+        : selectedActivities.filter((activity) => filterKeyOf(activity) === typeFilter);
+    // Milk feeds, newest first, over everything loaded (so the first feed of the day sees last night's).
+    const milkFeeds = useMemo(() => activities
+        .filter((activity) => filterKeyOf(activity) === 'milk')
+        .map((activity) => new Date(activity.timestamp).getTime())
+        .sort((a, b) => b - a), [activities]);
+    const milkGapOf = (activity: Activity) => {
+        if (filterKeyOf(activity) !== 'milk') return '';
+        const time = new Date(activity.timestamp).getTime();
+        const previous = milkFeeds.find((other) => other < time);
+        return previous ? t('timeline.sincePreviousFeed', { gap: formatDuration((time - previous) / 60000) }) : '';
+    };
 
     // Deletes wait a few seconds so the user can undo; the write happens when the timer fires.
     const UNDO_DELAY_MS = 5000;
@@ -260,9 +295,7 @@ const TimelinePage: React.FC = () => {
 
     return (
         <Box sx={{ px: 2, pt: 2, pb: 3, width: '100%', maxWidth: 720, mx: 'auto' }}>
-            <Typography sx={{ mb: 1.5, fontSize: 20, fontWeight: 700, color: '#101c22' }}>
-                {t('timeline.title')}
-            </Typography>
+            <PageHeader title={t('timeline.title')} />
             <RecentDaysStrip
                 selectedDate={selectedDate}
                 onSelect={setSelectedDate}
@@ -289,6 +322,7 @@ const TimelinePage: React.FC = () => {
                     {t('timeline.sleeping', { duration: formatHoursMinutes(Math.floor(elapsedSeconds / 3600), Math.floor((elapsedSeconds % 3600) / 60)) })}
                 </Alert>
             )}
+            <DayBand date={selectedDate} activities={selectedActivities} ongoingSleepStart={ongoingSleep?.startTime} />
             <Box sx={{ mb: 3 }}>
                 <DayStatsCard
                     title={t('timeline.summary')}
@@ -314,54 +348,68 @@ const TimelinePage: React.FC = () => {
             {!loading && !error && selectedActivities.length === 0 && (
                 <Typography color="text.secondary">{t('timeline.empty')}</Typography>
             )}
-            <Stack spacing={2}>
-                {timeGroups.map(([time, activitiesInGroup], groupIndex) => (
-                    <Box key={time} sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, position: 'relative' }}>
-                        <Box sx={{ minWidth: { xs: 56, sm: 80 }, display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 1 }}>
-                            <Typography sx={{ fontSize: { xs: 13, sm: 16 }, fontWeight: 700, color: '#101c22', whiteSpace: 'nowrap' }}>{time}</Typography>
-                            {groupIndex < timeGroups.length - 1 && (
-                                <Box sx={{ width: 2, flexGrow: 1, bgcolor: '#e5e7eb', mt: 1.5, mb: -1.5, position: 'relative' }}>
-                                    <Typography sx={{ position: 'absolute', top: '50%', left: 6, transform: 'translateY(-50%)', px: 0.5, py: 0.25, borderRadius: 0.5, bgcolor: 'rgba(255,255,255,0.8)', color: '#a0aab4', fontSize: { xs: 9, sm: 11 }, whiteSpace: 'nowrap' }}>
-                                        {(() => {
-                                            const current = new Date(activitiesInGroup[0].timestamp).getTime();
-                                            const next = new Date(timeGroups[groupIndex + 1][1][0].timestamp).getTime();
-                                            return formatGap((current - next) / 60000);
-                                        })()}
-                                    </Typography>
+            {selectedActivities.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', mb: 1.5, pb: 0.25, mx: -2, px: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
+                    {FILTERS.map((filter) => {
+                        const count = filter === 'all' ? selectedActivities.length : selectedActivities.filter((activity) => filterKeyOf(activity) === filter).length;
+                        if (filter !== 'all' && count === 0) return null;
+                        const active = typeFilter === filter;
+                        const color = filter === 'all' ? '#13a4ec' : FILTER_COLORS[filter];
+                        return (
+                            <Chip
+                                key={filter}
+                                label={`${t(`timeline.filter.${filter}`)} ${count}`}
+                                onClick={() => setTypeFilter(filter)}
+                                aria-pressed={active}
+                                sx={{
+                                    flexShrink: 0,
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                    height: 34,
+                                    borderRadius: '999px',
+                                    color: active ? '#ffffff' : '#334155',
+                                    bgcolor: active ? color : '#ffffff',
+                                    border: `1px solid ${active ? color : '#e5e7eb'}`,
+                                    '&:hover': { bgcolor: active ? color : '#f8fafc' }
+                                }}
+                            />
+                        );
+                    })}
+                </Box>
+            )}
+            {visibleActivities.length > 0 && (
+                <Card sx={{ bgcolor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
+                    {visibleActivities.map((activity, index) => {
+                        const color = getActivityColor(activity);
+                        const details = [...sleepRangeOf(activity), ...getActivityDetails(activity)];
+                        const gap = milkGapOf(activity);
+                        return (
+                            <CardActionArea
+                                key={activity.id}
+                                onClick={() => openEdit(activity)}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1, minHeight: 52, borderRadius: 0, borderTop: index === 0 ? 'none' : '1px solid #f1f5f9' }}
+                            >
+                                <Typography sx={{ width: 44, flexShrink: 0, fontSize: 14, fontWeight: 700, color: '#101c22', fontVariantNumeric: 'tabular-nums' }}>
+                                    {new Date(activity.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                                </Typography>
+                                <Box sx={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color, bgcolor: `${color}18`, '& svg': { fontSize: 17 } }}>
+                                    {getActivityIcon(activity)}
                                 </Box>
-                            )}
-                        </Box>
-                        <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
-                            {activitiesInGroup.map((activity) => {
-                                const color = getActivityColor(activity);
-                                return (
-                                    <Card key={activity.id} sx={{ bgcolor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                                        <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                                                <Box sx={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color, bgcolor: `${color}18` }}>
-                                                    {getActivityIcon(activity)}
-                                                </Box>
-                                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
-                                                        <Typography sx={{ fontSize: 15, fontWeight: 700, color }}>{getActivityLabel(activity)}</Typography>
-                                                        <Box sx={{ display: 'flex' }}>
-                                                            <Tooltip title={t('timeline.edit')}><IconButton aria-label={t('timeline.edit')} onClick={() => openEdit(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                                                            <Tooltip title={t('timeline.delete')}><IconButton aria-label={t('timeline.delete')} onClick={() => setConfirmingDelete(activity)} sx={{ width: 40, height: 40, color: '#64748b' }}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
-                                                        </Box>
-                                                    </Box>
-                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                                                        {getActivityDetails(activity).map((detail) => <Typography key={detail} component="span" sx={{ px: 1, py: 0.35, borderRadius: 0.75, color, bgcolor: `${color}12`, fontSize: 12, fontWeight: 600 }}>{detail}</Typography>)}
-                                                    </Box>
-                                                </Box>
-                                            </Box>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </Stack>
-                    </Box>
-                ))}
-            </Stack>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography noWrap sx={{ fontSize: 15, color: '#101c22' }}>
+                                        <Box component="span" sx={{ fontWeight: 700, color }}>{getActivityLabel(activity)}</Box>
+                                        {details.length > 0 && <Box component="span" sx={{ fontWeight: 600 }}>{` · ${details.join(' · ')}`}</Box>}
+                                    </Typography>
+                                    {gap && (
+                                        <Typography noWrap sx={{ fontSize: 12, color: '#5b6b75' }}>{gap}</Typography>
+                                    )}
+                                </Box>
+                                <EditIcon aria-hidden sx={{ fontSize: 16, color: '#94a3b8', flexShrink: 0 }} />
+                            </CardActionArea>
+                        );
+                    })}
+                </Card>
+            )}
             <Dialog open={Boolean(editingActivity)} onClose={() => setEditingActivity(null)} fullWidth maxWidth="xs">
                 <DialogTitle>{t('timeline.edit')}</DialogTitle>
                 <DialogContent>
@@ -408,7 +456,7 @@ const TimelinePage: React.FC = () => {
                             />
                             {editFoods.length > 1 ? (
                                 <Box sx={{ mt: 2 }}>
-                                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mb: 1 }}>{t('feeding.gramsPerFood')}</Typography>
+                                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#5b6b75', mb: 1 }}>{t('feeding.gramsPerFood')}</Typography>
                                     <Stack spacing={1}>
                                         {editFoods.map((food) => (
                                             <Box key={food} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -430,7 +478,7 @@ const TimelinePage: React.FC = () => {
                                         ))}
                                     </Stack>
                                     {editTotalGrams > 0 && (
-                                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#6b7f8a', mt: 1, textAlign: 'right' }}>
+                                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#5b6b75', mt: 1, textAlign: 'right' }}>
                                             {t('feeding.totalGrams', { amount: editTotalGrams })}
                                         </Typography>
                                     )}
@@ -449,6 +497,14 @@ const TimelinePage: React.FC = () => {
                     <TextField label={t('common.notes')} value={editNotes} onChange={(event) => setEditNotes(event.target.value)} fullWidth multiline minRows={2} size="small" sx={{ mt: 2 }} />
                 </DialogContent>
                 <DialogActions>
+                    <Button
+                        color="error"
+                        startIcon={<DeleteIcon fontSize="small" />}
+                        onClick={() => { const activity = editingActivity; setEditingActivity(null); setConfirmingDelete(activity); }}
+                        sx={{ mr: 'auto' }}
+                    >
+                        {t('timeline.deleteShort')}
+                    </Button>
                     <Button onClick={() => setEditingActivity(null)}>{t('common.cancel')}</Button>
                     <Button variant="contained" onClick={() => void saveEdit()} disabled={savingEdit || (editingActivity?.type === 'diaper' && !editIsUrine && !editIsStool)}>
                         {savingEdit ? <CircularProgress size={16} color="inherit" /> : t('common.save')}

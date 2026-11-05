@@ -114,6 +114,7 @@
     },
     "quick": {
       "milk": "Sữa",
+      "solid": "Ăn dặm",
       "diaper": "Tã",
       "sleep": "Ngủ",
       "bath": "Tắm",
@@ -227,11 +228,21 @@
     "edit": "Sửa bản ghi",
     "delete": "Xoá bản ghi",
     "confirmDelete": "Xoá bản ghi này?",
+    "deleteShort": "Xoá",
     "deleteFailed": "Không xoá được bản ghi.",
     "updateFailed": "Không sửa được bản ghi ngoại tuyến, hoặc cập nhật thất bại.",
     "loadFailed": "Không tải được hoạt động.",
     "deleted": "Đã xoá bản ghi",
-    "undo": "Hoàn tác"
+    "undo": "Hoàn tác",
+    "sincePreviousFeed": "cách cữ trước {{gap}}",
+    "filter": {
+      "all": "Tất cả",
+      "milk": "Sữa",
+      "solid": "Ăn dặm",
+      "sleep": "Ngủ",
+      "diaper": "Tã",
+      "other": "Khác"
+    }
   },
   "foodHistory": {
     "title": "Nhật ký ăn dặm",
@@ -679,6 +690,7 @@
     "emptyHint": "Lưu lại những buổi đi chơi và lần đầu tiên của con, kèm ảnh.",
     "quickTitle": "Khoảnh khắc",
     "quickHint": "Đi chơi, lần đầu tiên… lưu kèm ảnh",
+    "quickHintShort": "Lưu kèm ảnh",
     "quickLast": "Gần nhất: {{title}} ({{date}})",
     "seeAll": "Xem hết",
     "errors": {

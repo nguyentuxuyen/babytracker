@@ -116,7 +116,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ children }) => 
                 borderRadius: '50%',
                 background: '#ffffff',
                 border: '1px solid #e5e7eb',
-                color: unread > 0 ? '#13a4ec' : '#6b7f8a',
+                color: unread > 0 ? '#13a4ec' : '#5b6b75',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -172,7 +172,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ children }) => 
                 <DialogContent sx={{ pt: '8px !important', pb: 1 }}>
                     {children}
                     {visible.length === 0 && (
-                        <Typography sx={{ fontSize: 14, color: '#6b7f8a', textAlign: 'center', py: 3 }}>
+                        <Typography sx={{ fontSize: 14, color: '#5b6b75', textAlign: 'center', py: 3 }}>
                             {t('notifications.empty')}
                         </Typography>
                     )}
