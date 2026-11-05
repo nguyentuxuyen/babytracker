@@ -15,7 +15,7 @@ import { loadReminderSettings, saveReminderSettings } from './utils/reminderSett
 import { loadCachedFeedingSettings, loadFeedingSettings, saveFeedingSettings, type FeedingSettings } from './utils/feedingSettings';
 import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTestPushNotification } from './utils/pushNotifications';
 import { ChangelogRelease } from './types';
-import { SettingsProvider, navigateTo, useAppSettings } from './contexts/SettingsContext';
+import { SettingsProvider, navigateTo } from './contexts/SettingsContext';
 import { HEADER_NOTIFICATION_SLOT_ID } from './components/common/NotificationCenter';
 import i18n from './i18n';
 
@@ -57,7 +57,6 @@ const HeaderComponent: React.FC<{
 }) => {
     const { baby } = useBaby();
     const { t } = useTranslation();
-    const appSettings = useAppSettings();
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -236,30 +235,6 @@ const HeaderComponent: React.FC<{
                                 {t('header.syncing')}
                             </div>
                         )}
-                        {appSettings?.reminderEnabled && (
-                            <div style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                backgroundColor: '#10b981',
-                                borderRadius: '999px',
-                                padding: '2px 8px'
-                            }}>
-                                {t('header.reminderEvery', { count: Math.round(appSettings.reminderIntervalMinutes / 60) })}
-                            </div>
-                        )}
-                        {appSettings?.pushEnabled && (
-                            <div style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                backgroundColor: '#0f766e',
-                                borderRadius: '999px',
-                                padding: '2px 8px'
-                            }}>
-                                {t('header.pushOn')}
-                            </div>
-                        )}
                     </div>
                 </div>
                 </div>
@@ -268,24 +243,6 @@ const HeaderComponent: React.FC<{
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {/* Filled with the notification bell by the page (NotificationCenter) */}
                         <div id={HEADER_NOTIFICATION_SLOT_ID} style={{ display: 'flex' }} />
-                        <button
-                            onClick={() => navigateTo('/settings')}
-                            aria-label={t('settingsPage.title')}
-                            style={{
-                                width: '44px',
-                                height: '44px',
-                                borderRadius: '50%',
-                                background: '#ffffff',
-                                border: '1px solid #e5e7eb',
-                                color: '#475569',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
-                        >
-                            <SettingsIcon sx={{ fontSize: '22px' }} />
-                        </button>
                         <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
