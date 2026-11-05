@@ -61,6 +61,27 @@ describe('parseAssistantCommand', () => {
     expect(parse('bú 120ml rồi ngủ').params.activityType).toBe('feeding');
   });
 
+  it('reads a milk amount written without "ml" next to a clock time', () => {
+    const { params, missingFields } = parse('Sữa 170 7:30');
+    expect(params.activityType).toBe('feeding');
+    expect(params.details.amount).toBe(170);
+    expect(missingFields).toEqual([]);
+    expect(new Date(params.timestamp)).toEqual(new Date(2026, 9, 9, 7, 30));
+  });
+
+  it('reads a bare milk amount with other time formats', () => {
+    expect(parse('bú 150 lúc 21h').params.details.amount).toBe(150);
+    expect(parse('7h30 sữa 120').params.details.amount).toBe(120);
+    expect(parse('ミルク 160 8:00').params.details.amount).toBe(160);
+  });
+
+  it('does not read a bare hour or other units as a milk amount', () => {
+    expect(parse('bú 21').params.details.amount).toBe(0);
+    expect(new Date(parse('bú 9').params.timestamp)).toEqual(new Date(2026, 9, 9, 9, 0));
+    expect(parse('bú 40 phút').params.details.amount).toBe(0);
+    expect(parse('ăn cháo 100g').params.details.amount).toBe(0);
+  });
+
   it('does not match keywords inside other words', () => {
     expect(parse('sữa nguội').params.activityType).toBe('feeding');
   });

@@ -108,6 +108,27 @@ const parseDurationMinutes = (text: string): number | undefined => {
     return total > 0 ? total : undefined;
 };
 
+// Milk volume written without "ml", e.g. "Sữa 170 7:30" or "bú 150 lúc 21h".
+// Times, durations and numbers with another unit (g, phút, tháng...) are removed first,
+// and a bare number counts only in a plausible feed range, so "bú 21" stays a time.
+const MILK_AMOUNT_KEYWORDS = ['bú', 'sữa', 'bú sữa', 'uống sữa', 'ăn sữa', 'cho bú', 'milk', 'ミルク', '授乳', '母乳'];
+const BARE_AMOUNT_MIN = 30;
+const BARE_AMOUNT_MAX = 400;
+
+const parseBareMilkAmount = (text: string): number | undefined => {
+    const stripped = text
+        .toLowerCase()
+        .replace(/\d{1,2}\s*(?::|h|\.|時)\s*\d{2}(?!\d)/gi, ' ; ')
+        .replace(/(?:lúc|luc|vào|vao|at|tai|tại)\s*\d{1,2}(?!\d)/gi, ' ; ')
+        .replace(/\d+(?:[.,]\d+)?\s*(?:giờ|gio|tiếng|tieng|phút|phut|mins?|minutes?|hours?|hrs?|h|p|g|gr|gram|grams|kg|cm|tháng|thang|ngày|ngay|tuổi|tuoi|lần|lan|cữ|cu|%|時間|時|分|ヶ月|か月|歳|回)(?![a-zà-ỹ])/gi, ' ');
+    const numbers = stripped.match(/\d+(?:[.,]\d+)?/g) || [];
+    for (const raw of numbers) {
+        const value = Number(raw.replace(',', '.'));
+        if (value >= BARE_AMOUNT_MIN && value <= BARE_AMOUNT_MAX) return value;
+    }
+    return undefined;
+};
+
 const STOOL_PATTERN = /(^|[\s,.])(ị|đi ị|phân|poop|stool)($|[\s,.])|うんち|うんこ|便/;
 const URINE_PATTERN = /(^|[\s,.])(tè|đi tè|tiểu|pee|urine)($|[\s,.])|おしっこ|尿/;
 
@@ -126,7 +147,9 @@ export const parseAssistantCommand = (
     const sleepKeywords = ['ngủ', 'sleep', 'đi ngủ', 'ngủ trưa', '寝', '睡眠', '昼寝', 'ねんね'];
 
     const amountMatch = rawText.match(/(\d+(?:[.,]\d+)?)\s*ml\b/i);
-    const amount = amountMatch ? Number(String(amountMatch[1]).replace(',', '.')) : undefined;
+    const amount = amountMatch
+        ? Number(String(amountMatch[1]).replace(',', '.'))
+        : (hasKeyword(normalized, MILK_AMOUNT_KEYWORDS) ? parseBareMilkAmount(rawText) : undefined);
     const parsedTime = parseClockTime(rawText);
 
     if (hasKeyword(normalized, foodKeywords)) {
