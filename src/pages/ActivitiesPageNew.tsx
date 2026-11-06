@@ -22,6 +22,7 @@ import { formatHoursMinutes } from '../i18n/format';
 import DayStatsCard from '../components/common/DayStatsCard';
 import YesterdayCheckCard from '../components/common/YesterdayCheckCard';
 import DailyReviewCard from '../components/common/DailyReviewCard';
+import InstallAppCard from '../components/common/InstallAppCard';
 import NotificationCenter, { useNotificationEntry } from '../components/common/NotificationCenter';
 import { suggestMilkAmounts } from '../utils/milkPresets';
 import RecentActivityList from '../components/common/RecentActivityList';
@@ -921,6 +922,8 @@ const ActivitiesPage: React.FC = () => {
                         <YesterdayCheckCard activities={activities || []} baby={baby} now={currentTime} />
                     )}
                 </NotificationCenter>
+
+                <InstallAppCard variant="banner" />
 
                 <RecentDaysStrip
                     selectedDate={selectedDate}

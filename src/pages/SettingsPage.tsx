@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDriveStatus } from '../hooks/useDriveStatus';
 import { connectDrive, disconnectDrive, driveFolderUrl } from '../firebase/googleDrive';
 import PageHeader from '../components/common/PageHeader';
+import InstallAppCard from '../components/common/InstallAppCard';
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <Box sx={{ p: 2, mb: 1.5, borderRadius: '16px', bgcolor: '#ffffff', border: '1px solid #e5e7eb' }}>
@@ -182,6 +183,9 @@ const SettingsPage: React.FC = () => {
                 >
                     {t('menu.editTranslations')}
                 </Button>
+            </Section>
+            <Section title={t('install.title')}>
+                <InstallAppCard variant="section" />
             </Section>
         </Box>
     );
