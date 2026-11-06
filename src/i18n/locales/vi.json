@@ -705,5 +705,15 @@
       "connect": "Kết nối Google Drive",
       "needConnect": "Ảnh được lưu vào Google Drive của bạn. Kết nối một lần là dùng được mãi."
     }
+  },
+  "install": {
+    "title": "Cài ứng dụng",
+    "description": "Thêm Baby Tracker vào màn hình chính để mở nhanh như app thật, toàn màn hình và nhận nhắc nhở ổn định hơn.",
+    "button": "Cài ứng dụng",
+    "hintAndroid": "Trong Chrome, bấm nút ⋮ ở góc trên bên phải rồi chọn \"Cài đặt ứng dụng\" (hoặc \"Thêm vào màn hình chính\").",
+    "hintIos": "Trong Safari, bấm nút Chia sẻ (ô vuông có mũi tên) rồi chọn \"Thêm vào MH chính\".",
+    "hintDesktop": "Trong Chrome hoặc Edge, bấm biểu tượng cài đặt ở cuối thanh địa chỉ.",
+    "installed": "Ứng dụng đã được cài trên máy này.",
+    "dismiss": "Ẩn"
   }
 }

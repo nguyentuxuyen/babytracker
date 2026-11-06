@@ -724,5 +724,15 @@
       "connect": "Connect Google Drive",
       "needConnect": "Photos are saved to your own Google Drive. Connect once and it keeps working."
     }
+  },
+  "install": {
+    "title": "Install the app",
+    "description": "Add Baby Tracker to your home screen to open it like a real app, full screen, with more reliable reminders.",
+    "button": "Install app",
+    "hintAndroid": "In Chrome, tap ⋮ at the top right and choose \"Install app\" (or \"Add to Home screen\").",
+    "hintIos": "In Safari, tap Share (the square with an arrow) and choose \"Add to Home Screen\".",
+    "hintDesktop": "In Chrome or Edge, click the install icon at the end of the address bar.",
+    "installed": "The app is installed on this device.",
+    "dismiss": "Hide"
   }
 }
