@@ -216,6 +216,7 @@
     },
     "pickSeveral": "pick several",
     "addAnotherFood": "Add another food",
+    "removeFood": "Remove {{food}}",
     "gramsPerFood": "Amount of each food",
     "gramsOf": "Amount of {{food}} (g)",
     "totalGrams": "Total {{amount}}g"

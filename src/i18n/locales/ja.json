@@ -205,6 +205,7 @@
     },
     "pickSeveral": "複数選べます",
     "addAnotherFood": "別の食品を追加",
+    "removeFood": "{{food}}を外す",
     "gramsPerFood": "食品ごとの量",
     "gramsOf": "{{food}}の量 (g)",
     "totalGrams": "合計 {{amount}}g"

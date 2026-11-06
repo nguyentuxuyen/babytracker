@@ -506,6 +506,18 @@ const ActivitiesPage: React.FC = () => {
         setFoodMenuOpen(false);
     };
 
+    // ✕ on a chosen dish: drop it and its grams.
+    const removeFood = (food: string) => {
+        setFormData(prev => {
+            const { [food]: _dropped, ...restGrams } = prev.foodGrams || {};
+            return {
+                ...prev,
+                foodItems: (prev.foodItems || []).filter((item) => item !== food),
+                foodGrams: restGrams
+            };
+        });
+    };
+
     const mealTotalGrams = Math.round((formData.foodItems || [])
         .reduce((sum, food) => sum + (Number(String(formData.foodGrams?.[food] ?? '').replace(',', '.')) || 0), 0) * 10) / 10;
 
@@ -1590,6 +1602,20 @@ const ActivitiesPage: React.FC = () => {
                                                         />
                                                     </Box>
                                                 )}
+                                                {/* One dish: a chip with ✕. Two or more: the ✕ sits on each grams row below. */}
+                                                {(formData.foodItems || []).length === 1 && (
+                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                                                        {(formData.foodItems || []).map((food) => (
+                                                            <Chip
+                                                                key={food}
+                                                                label={food}
+                                                                onDelete={() => removeFood(food)}
+                                                                deleteIcon={<CloseIcon aria-label={t('feeding.removeFood', { food })} />}
+                                                                sx={{ fontWeight: 600, bgcolor: `${ACTIVITY_COLORS.solid}1f`, color: '#101c22', '& .MuiChip-deleteIcon': { fontSize: 18, color: '#5b6b75' } }}
+                                                            />
+                                                        ))}
+                                                    </Box>
+                                                )}
                                                 <Autocomplete<string, false, false, true>
                                                     freeSolo
                                                     disablePortal={false}
@@ -1675,6 +1701,14 @@ const ActivitiesPage: React.FC = () => {
                                                                         variant="filled"
                                                                         sx={{ ...fieldSx, width: 120, flexShrink: 0 }}
                                                                     />
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        aria-label={t('feeding.removeFood', { food })}
+                                                                        onClick={() => removeFood(food)}
+                                                                        sx={{ flexShrink: 0, color: '#94a3b8' }}
+                                                                    >
+                                                                        <CloseIcon sx={{ fontSize: 20 }} />
+                                                                    </IconButton>
                                                                 </Box>
                                                             ))}
                                                         </Box>

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { localeTag } from '../i18n';
-import { Alert, Box, Button, Card, CardActionArea, Chip, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, Stack, TextField, Typography } from '@mui/material';
-import { DeleteIcon, EditIcon } from '../components/common/icons';
+import { Alert, Box, Button, Card, CardActionArea, Chip, Snackbar, CardContent, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, FormGroup, IconButton, Stack, TextField, Typography } from '@mui/material';
+import { CloseIcon, DeleteIcon, EditIcon } from '../components/common/icons';
 import DayStatsCard from '../components/common/DayStatsCard';
 import { ACTIVITY_COLORS, formatDuration, getActivityColor, getActivityDetails, getActivityIcon, getActivityLabel, isSolidFeeding } from '../components/common/activityDisplay';
 import DayBand from '../components/common/DayBand';
@@ -202,6 +202,14 @@ const TimelinePage: React.FC = () => {
         const names = splitFoodNames(text);
         if (names.length > 0) setEditFoods((current) => addUniqueFoods(current, names));
         setEditFoodInput('');
+    };
+    // ✕ on a dish: drop it and its grams.
+    const removeEditFood = (food: string) => {
+        setEditFoods((current) => current.filter((item) => item !== food));
+        setEditFoodGrams((current) => {
+            const { [food]: _dropped, ...rest } = current;
+            return rest;
+        });
     };
     const editTotalGrams = Math.round(editFoods.reduce((sum, food) => sum + gramsOf(editFoodGrams[food]), 0) * 10) / 10;
 
@@ -433,7 +441,7 @@ const TimelinePage: React.FC = () => {
                                         <Chip
                                             key={food}
                                             label={food}
-                                            onDelete={() => setEditFoods((current) => current.filter((item) => item !== food))}
+                                            onDelete={() => removeEditFood(food)}
                                             sx={{ fontWeight: 600 }}
                                         />
                                     ))}
@@ -474,6 +482,14 @@ const TimelinePage: React.FC = () => {
                                                     InputProps={{ endAdornment: <Typography sx={{ color: '#94a3b8', fontSize: 14 }}>g</Typography> }}
                                                     sx={{ width: 110, flexShrink: 0 }}
                                                 />
+                                                <IconButton
+                                                    size="small"
+                                                    aria-label={t('feeding.removeFood', { food })}
+                                                    onClick={() => removeEditFood(food)}
+                                                    sx={{ flexShrink: 0, color: '#94a3b8' }}
+                                                >
+                                                    <CloseIcon sx={{ fontSize: 20 }} />
+                                                </IconButton>
                                             </Box>
                                         ))}
                                     </Stack>
