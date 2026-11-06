@@ -101,4 +101,19 @@ describe('TimelinePage edit of a solid-food meal', () => {
             details: expect.objectContaining({ foodItems: ['Cơm', 'Bơ'], foodItem: 'Cơm, Bơ', foodGrams: [50, 20], amount: 70 })
         }));
     });
+
+    it('drops a dish and its grams with the ✕ on its grams row', async () => {
+        act(() => editButtonFor('Cơm').click());
+        const dialog = document.querySelector('[role="dialog"]') as HTMLElement;
+        const remove = dialog.querySelector('button[aria-label="Bỏ món Chuối"]') as HTMLButtonElement;
+        act(() => remove.click());
+
+        expect(dialog.querySelector('input[aria-label="Lượng Chuối (g)"]')).toBeNull();
+        await act(async () => dialogButton('Lưu').click());
+
+        const saved = (firestore.updateActivity as ReturnType<typeof vi.fn>).mock.calls[0][2].details;
+        expect(saved.foodItems).toEqual(['Cơm']);
+        expect(saved.foodItem).toBe('Cơm');
+        expect(saved.foodGrams).toBeUndefined();
+    });
 });

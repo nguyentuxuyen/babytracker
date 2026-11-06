@@ -205,6 +205,7 @@
     },
     "pickSeveral": "chọn được nhiều món",
     "addAnotherFood": "Thêm món khác",
+    "removeFood": "Bỏ món {{food}}",
     "gramsPerFood": "Lượng từng món",
     "gramsOf": "Lượng {{food}} (g)",
     "totalGrams": "Tổng {{amount}}g"
