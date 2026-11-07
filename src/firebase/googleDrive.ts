@@ -10,7 +10,7 @@ const FOLDER_MIME = 'application/vnd.google-apps.folder';
 const PHOTO_CACHE = 'moment-photos-v1';
 const TOKEN_MARGIN_MS = 2 * 60 * 1000;
 
-export type DriveErrorCode = 'not-connected' | 'not-configured' | 'failed';
+export type DriveErrorCode = 'not-connected' | 'not-configured' | 'api-disabled' | 'failed';
 
 export class DriveError extends Error {
     code: DriveErrorCode;
@@ -43,7 +43,8 @@ const callDriveApi = async (body: Record<string, unknown>) => {
     const data = await response.json().catch(() => ({}));
     if (response.status === 409) throw new DriveError('not-connected');
     if (response.status === 503) throw new DriveError('not-configured');
-    if (!response.ok) throw new DriveError('failed', data?.error || String(response.status));
+    if (data?.error === 'drive-api-disabled') throw new DriveError('api-disabled', 'server: Drive API disabled');
+    if (!response.ok) throw new DriveError('failed', `server ${response.status} ${data?.error || ''}`.trim());
     return data;
 };
 
@@ -127,6 +128,30 @@ const driveFetch = async (url: string, init: RequestInit = {}): Promise<Response
 
 // ---- Folders and files ----
 
+// Turns a failed Drive API answer into an error that says why: the Drive API not enabled
+// in Google Cloud, access withdrawn, or the status and Google's reason for anything else.
+export const driveFailure = (what: string, status: number, bodyText: string): DriveError => {
+    let reason = '';
+    let message = '';
+    try {
+        const error = JSON.parse(bodyText)?.error || {};
+        reason = error.errors?.[0]?.reason || error.status || '';
+        message = error.message || '';
+    } catch {
+        // Not JSON; keep the status only.
+    }
+    const text = `${reason} ${message}`;
+    if (status === 403 && /accessNotConfigured|SERVICE_DISABLED|has not been used|is disabled/i.test(text)) {
+        return new DriveError('api-disabled', `${what} ${status} ${reason}`.trim());
+    }
+    if (status === 403 && /insufficient|ACCESS_TOKEN_SCOPE/i.test(text)) {
+        return new DriveError('not-connected', `${what} ${status} ${reason}`.trim());
+    }
+    return new DriveError('failed', `${what} ${status} ${reason || message.slice(0, 80)}`.trim());
+};
+
+const failureOf = async (what: string, response: Response) => driveFailure(what, response.status, await response.text().catch(() => ''));
+
 const cleanName = (name: string) => name.replace(/[\\/]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120);
 
 export const momentFolderName = (date: string, title: string) => cleanName(title ? `${date} ${title}` : date);
@@ -139,7 +164,7 @@ export const createMomentFolder = async (name: string): Promise<string> => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: cleanName(name), mimeType: FOLDER_MIME, parents: [folderId] })
     });
-    if (!response.ok) throw new DriveError('failed', `folder ${response.status}`);
+    if (!response.ok) throw await failureOf('folder', response);
     return (await response.json()).id;
 };
 
@@ -149,7 +174,7 @@ export const renameDriveFile = async (fileId: string, name: string) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: cleanName(name) })
     });
-    if (!response.ok) throw new DriveError('failed', `rename ${response.status}`);
+    if (!response.ok) throw await failureOf('rename', response);
 };
 
 /** Moves a file or folder to the Drive trash (the user can still restore it for 30 days). */
@@ -159,7 +184,7 @@ export const trashDriveFile = async (fileId: string) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trashed: true })
     });
-    if (!response.ok && response.status !== 404) throw new DriveError('failed', `trash ${response.status}`);
+    if (!response.ok && response.status !== 404) throw await failureOf('trash', response);
     forgetCachedPhoto(fileId);
 };
 
@@ -188,7 +213,7 @@ export const uploadToDrive = async (
             if (event.lengthComputable) onProgress?.(event.loaded / event.total);
         };
         xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
-        xhr.onerror = () => reject(new DriveError('failed', 'network'));
+        xhr.onerror = () => reject(new DriveError('failed', 'upload network error'));
         xhr.send(body);
     });
 
@@ -197,7 +222,7 @@ export const uploadToDrive = async (
         access = null;
         result = await send((await getAccess()).accessToken);
     }
-    if (result.status < 200 || result.status >= 300) throw new DriveError('failed', `upload ${result.status}`);
+    if (result.status < 200 || result.status >= 300) throw driveFailure('upload', result.status, result.text);
     const fileId = JSON.parse(result.text).id as string;
     // What was just uploaded is shown right away, so keep it without downloading it again.
     void cachePhoto(fileId, blob);
@@ -250,7 +275,7 @@ export const loadDrivePhoto = (fileId: string): Promise<string> => {
                 blob = await hit.blob();
             } else {
                 const response = await driveFetch(`${DRIVE_FILES}/${encodeURIComponent(fileId)}?alt=media`);
-                if (!response.ok) throw new DriveError('failed', `download ${response.status}`);
+                if (!response.ok) throw await failureOf('download', response);
                 blob = await response.blob();
                 await cache?.put(cacheKey(fileId), new Response(blob, { headers: { 'Content-Type': blob.type || 'image/jpeg' } })).catch(() => undefined);
             }

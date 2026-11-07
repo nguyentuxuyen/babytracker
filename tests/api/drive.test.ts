@@ -11,7 +11,7 @@ const mockFetch = (route: Route) => {
     const fetchMock = vi.fn(async (url: string, init: any = {}) => {
         const answer = route(url, init) ?? { status: 404, body: {} };
         const status = answer.status ?? 200;
-        return { ok: status >= 200 && status < 300, status, json: async () => answer.body ?? {} };
+        return { ok: status >= 200 && status < 300, status, json: async () => answer.body ?? {}, text: async () => JSON.stringify(answer.body ?? {}) };
     });
     vi.stubGlobal('fetch', fetchMock);
     return fetchMock as Mock;
@@ -142,6 +142,18 @@ describe('drive api', () => {
         const res = await call(handler, { headers: AUTH, body: { action: 'token' } });
         expect(res.body.folderId).toBe('folder-2');
         expect(db.docs.get(DOC)!.folderId).toBe('folder-2');
+    });
+
+    it('says when the Drive API is not enabled in the Cloud project', async () => {
+        const { db, handler, internal } = setup();
+        db.docs.set(DOC, { refreshToken: internal.encrypt('rt'), folderId: null });
+        mockFetch((url) => {
+            if (url === 'https://oauth2.googleapis.com/token') return { body: { access_token: 'fresh', expires_in: 3600 } };
+            return { status: 403, body: { error: { errors: [{ reason: 'accessNotConfigured' }], message: 'Google Drive API has not been used' } } };
+        });
+        const res = await call(handler, { headers: AUTH, body: { action: 'token' } });
+        expect(res.statusCode).toBe(502);
+        expect(res.body).toEqual({ error: 'drive-api-disabled' });
     });
 
     it('forgets a revoked connection', async () => {

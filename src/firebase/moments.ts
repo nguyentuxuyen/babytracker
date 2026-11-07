@@ -61,7 +61,7 @@ export interface MomentInput {
     location?: MomentLocation | null;
 }
 
-export type MomentErrorCode = 'drive-not-connected' | 'drive-not-configured' | 'not-image' | 'too-large' | 'failed';
+export type MomentErrorCode = 'drive-not-connected' | 'drive-not-configured' | 'drive-api-disabled' | 'not-image' | 'too-large' | 'failed';
 
 export class MomentError extends Error {
     code: MomentErrorCode;
@@ -76,9 +76,13 @@ export const toMomentError = (error: unknown): MomentError => {
     if (error instanceof DriveError) {
         if (error.code === 'not-connected') return new MomentError('drive-not-connected', error.message);
         if (error.code === 'not-configured') return new MomentError('drive-not-configured', error.message);
+        if (error.code === 'api-disabled') return new MomentError('drive-api-disabled', error.message);
+        return new MomentError('failed', error.message);
     }
+    // e.g. Firestore "permission-denied" or a network error: keep it so the user can report it.
     const code = (error as { code?: string } | null)?.code || '';
-    return new MomentError('failed', code || String(error));
+    const message = (error as { message?: string } | null)?.message || String(error);
+    return new MomentError('failed', [code, message].filter(Boolean).join(': ').slice(0, 160));
 };
 
 export const toLocalDateKey = (date: Date) => {
