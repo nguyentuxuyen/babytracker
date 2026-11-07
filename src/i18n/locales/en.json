@@ -724,6 +724,22 @@
     "drive": {
       "connect": "Connect Google Drive",
       "needConnect": "Photos are saved to your own Google Drive. Connect once and it keeps working."
+    },
+    "location": {
+      "add": "Add place",
+      "searchLabel": "Search for a place",
+      "searchPlaceholder": "e.g. Ueno Park",
+      "search": "Search",
+      "searchFailed": "Search failed, please try again.",
+      "noResults": "No places found.",
+      "namePlaceholder": "Name this place",
+      "nameLabel": "Place name",
+      "resolving": "Looking up the place…",
+      "remove": "Remove place",
+      "fromPhoto": "From the photo location",
+      "picked": "Picked place",
+      "change": "Change",
+      "onMap": "View on map"
     }
   },
   "install": {

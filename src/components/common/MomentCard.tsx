@@ -67,6 +67,9 @@ const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#101c22' }} noWrap>
                     {moment.title || t('moments.untitled')}
                 </Typography>
+                {moment.location?.name && (
+                    <Typography sx={{ fontSize: 13, color: '#be185d' }} noWrap>📍 {moment.location.name}</Typography>
+                )}
                 {moment.note && (
                     <Typography sx={{ fontSize: 13, color: '#6b7f8a' }} noWrap>{moment.note}</Typography>
                 )}

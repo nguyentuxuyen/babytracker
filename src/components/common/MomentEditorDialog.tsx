@@ -8,6 +8,7 @@ import {
     MAX_PHOTOS_PER_PICK,
     Moment,
     MomentErrorCode,
+    MomentLocation,
     MomentPhoto,
     saveMoment,
     toLocalDateKey,
@@ -16,6 +17,9 @@ import {
 import { connectDrive } from '../../firebase/googleDrive';
 import { useDriveStatus } from '../../hooks/useDriveStatus';
 import DrivePhoto from './DrivePhoto';
+import MomentLocationField from './MomentLocationField';
+import { readPhotoGps } from '../../utils/exifGps';
+import { reverseGeocode } from '../../services/geocode';
 
 export const SlideUp = React.forwardRef(function SlideUp(
     props: TransitionProps & { children: React.ReactElement },
@@ -64,6 +68,14 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
     // Unknown (still loading or offline) counts as usable; the save reports a real problem.
     const driveReady = !driveStatus || (driveStatus.configured && driveStatus.connected);
     const [connecting, setConnecting] = useState(false);
+    const [location, setLocation] = useState<MomentLocation | null>(null);
+    const [resolvingPlace, setResolvingPlace] = useState(false);
+    // Once the user sets or removes the place, photos added later do not overwrite it.
+    const locationTouched = useRef(false);
+    const changeLocation = (value: MomentLocation | null) => {
+        locationTouched.current = true;
+        setLocation(value);
+    };
 
     useEffect(() => {
         if (!open) return;
@@ -72,6 +84,9 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         setNote(moment?.note || '');
         setKeptPhotos(moment?.photos || []);
         setNewFiles([]);
+        setLocation(moment?.location || null);
+        locationTouched.current = Boolean(moment?.location);
+        setResolvingPlace(false);
         setError(null);
         setProgress(null);
         // Reset only when the dialog opens.
@@ -91,6 +106,25 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         const room = Math.min(MAX_PHOTOS_PER_PICK, MAX_PHOTOS_PER_MOMENT - photoCount);
         setError(files.length > room ? 'too-many' : null);
         if (room > 0) setNewFiles((current) => [...current, ...files.slice(0, room)]);
+        if (room > 0 && !location && !locationTouched.current) void fillLocationFromPhotos(files.slice(0, room));
+    };
+
+    // The first photo carrying GPS gives the moment its place; its name is looked up after.
+    const fillLocationFromPhotos = async (files: File[]) => {
+        for (const file of files) {
+            const point = await readPhotoGps(file);
+            if (!point) continue;
+            if (locationTouched.current) return;
+            const fromPhoto: MomentLocation = { ...point, name: '', source: 'photo' };
+            setLocation(fromPhoto);
+            setResolvingPlace(true);
+            const name = await reverseGeocode(point.lat, point.lng);
+            setResolvingPlace(false);
+            if (name) {
+                setLocation((current) => (current && current.lat === point.lat && current.lng === point.lng && !current.name ? { ...current, name } : current));
+            }
+            return;
+        }
     };
 
     const handleSave = async () => {
@@ -98,7 +132,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         setSaving(true);
         setError(null);
         try {
-            const saved = await saveMoment(uid, moment || null, { title, date, note, keptPhotos, newFiles },
+            const saved = await saveMoment(uid, moment || null, { title, date, note, keptPhotos, newFiles, location },
                 (done, total, fraction) => setProgress({ done, total, fraction }));
             onSaved?.(saved);
             onClose();
@@ -147,8 +181,9 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
                     InputLabelProps={{ shrink: true }}
-                    sx={{ ...fieldSx, mb: 2 }}
+                    sx={{ ...fieldSx, mb: 1.5 }}
                 />
+                <MomentLocationField value={location} onChange={changeLocation} resolving={resolvingPlace} disabled={saving} />
 
                 <SectionLabel>{t('moments.photos', { count: photoCount, max: MAX_PHOTOS_PER_MOMENT })}</SectionLabel>
                 {!driveReady && driveStatus && (

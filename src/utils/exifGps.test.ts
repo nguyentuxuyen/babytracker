@@ -1,0 +1,72 @@
+import { gpsFromJpeg, readPhotoGps } from './exifGps';
+
+// Builds a minimal JPEG: SOI + APP1 Exif (IFD0 -> GPS IFD with lat/lng) + SOS.
+const jpegWithGps = (
+    lat: [number, number, number], latRef: string,
+    lng: [number, number, number], lngRef: string,
+    little = true
+) => {
+    const tiff = new DataView(new ArrayBuffer(200));
+    const u16 = (o: number, v: number) => tiff.setUint16(o, v, little);
+    const u32 = (o: number, v: number) => tiff.setUint32(o, v, little);
+    tiff.setUint16(0, little ? 0x4949 : 0x4d4d);
+    u16(2, 42);
+    u32(4, 8); // IFD0 at 8
+    u16(8, 1); // one entry: GPS pointer
+    u16(10, 0x8825); u16(12, 4); u32(14, 1); u32(18, 26);
+    u32(22, 0); // next IFD
+    // GPS IFD at 26 with 4 entries
+    u16(26, 4);
+    const entry = (i: number, tag: number, type: number, count: number) => {
+        const o = 28 + i * 12;
+        u16(o, tag); u16(o + 2, type); u32(o + 4, count);
+        return o + 8;
+    };
+    tiff.setUint8(entry(0, 1, 2, 2), latRef.charCodeAt(0));
+    u32(entry(1, 2, 5, 3), 80);
+    tiff.setUint8(entry(2, 3, 2, 2), lngRef.charCodeAt(0));
+    u32(entry(3, 4, 5, 3), 104);
+    [[80, lat], [104, lng]].forEach(([base, values]) => {
+        (values as number[]).forEach((value, i) => {
+            u32((base as number) + i * 8, Math.round(value * 100));
+            u32((base as number) + i * 8 + 4, 100);
+        });
+    });
+
+    const app1Length = 2 + 6 + tiff.byteLength;
+    const bytes = new Uint8Array(4 + app1Length + 4);
+    const view = new DataView(bytes.buffer);
+    view.setUint16(0, 0xffd8);
+    view.setUint16(2, 0xffe1);
+    view.setUint16(4, app1Length);
+    bytes.set([0x45, 0x78, 0x69, 0x66, 0, 0], 6);
+    bytes.set(new Uint8Array(tiff.buffer), 12);
+    view.setUint16(12 + tiff.byteLength, 0xffda);
+    return bytes.buffer;
+};
+
+describe('exif gps', () => {
+    it('reads north/east coordinates (Ueno Park)', () => {
+        const point = gpsFromJpeg(jpegWithGps([35, 42, 54.36], 'N', [139, 46, 17.4], 'E'));
+        expect(point!.lat).toBeCloseTo(35.7151, 4);
+        expect(point!.lng).toBeCloseTo(139.7715, 4);
+    });
+
+    it('applies S/W and big-endian files', () => {
+        const point = gpsFromJpeg(jpegWithGps([33, 51, 0], 'S', [70, 40, 0], 'W', false));
+        expect(point!.lat).toBeCloseTo(-33.85, 4);
+        expect(point!.lng).toBeCloseTo(-70.6667, 4);
+    });
+
+    it('returns null for photos without GPS, 0,0 and non-JPEG data', () => {
+        expect(gpsFromJpeg(jpegWithGps([0, 0, 0], 'N', [0, 0, 0], 'E'))).toBeNull();
+        expect(gpsFromJpeg(new Uint8Array([0xff, 0xd8, 0xff, 0xda, 0, 2]).buffer)).toBeNull();
+        expect(gpsFromJpeg(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer)).toBeNull();
+    });
+
+    it('reads a File', async () => {
+        const file = new File([jpegWithGps([35, 0, 0], 'N', [139, 0, 0], 'E')], 'a.jpg', { type: 'image/jpeg' });
+        expect(await readPhotoGps(file)).toEqual({ lat: 35, lng: 139 });
+        expect(await readPhotoGps(new File([new Uint8Array(10)], 'b.jpg'))).toBeNull();
+    });
+});

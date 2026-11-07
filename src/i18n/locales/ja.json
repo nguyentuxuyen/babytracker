@@ -705,6 +705,22 @@
     "drive": {
       "connect": "Google ドライブに接続",
       "needConnect": "写真はあなたの Google ドライブに保存されます。一度接続すればずっと使えます。"
+    },
+    "location": {
+      "add": "場所を追加",
+      "searchLabel": "場所を検索",
+      "searchPlaceholder": "例: 上野公園",
+      "search": "検索",
+      "searchFailed": "検索できませんでした。もう一度お試しください。",
+      "noResults": "見つかりませんでした。",
+      "namePlaceholder": "場所の名前",
+      "nameLabel": "場所の名前",
+      "resolving": "場所の名前を調べています…",
+      "remove": "場所を外す",
+      "fromPhoto": "写真の位置情報から",
+      "picked": "選んだ場所",
+      "change": "変更",
+      "onMap": "地図で見る"
     }
   },
   "install": {

@@ -1,5 +1,6 @@
 // Shrinks a picked photo before upload: longest side at most `maxSide`, re-encoded as JPEG.
-// Re-encoding through a canvas also drops EXIF metadata such as GPS location.
+// Re-encoding through a canvas also drops EXIF metadata such as GPS location (the editor
+// reads the position first, see exifGps.ts, and keeps it on the moment instead).
 
 export const MAX_PHOTO_SIDE = 1600;
 export const PHOTO_QUALITY = 0.82;

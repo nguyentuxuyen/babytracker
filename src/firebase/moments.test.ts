@@ -51,7 +51,7 @@ import {
 
 const photo = (id: string) => ({ id, driveFileId: `drive-${id}`, width: 1, height: 1, size: 1 });
 const moment = (id: string, date: string, createdAt = '2026-11-01T00:00:00Z', photos = [photo(`${id}-p`)], driveFolderId: string | null = null): Moment => ({
-    id, date, createdAt, title: id, note: '', photos, driveFolderId, updatedAt: createdAt
+    id, date, createdAt, title: id, note: '', photos, driveFolderId, location: null, updatedAt: createdAt
 });
 
 const image = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
@@ -88,6 +88,13 @@ describe('moment helpers', () => {
         expect(toMomentError(new DriveError('failed')).code).toBe('failed');
     });
 
+    it('reads a valid location and drops a broken one', () => {
+        expect(normalizeMoment('a', { date: '2026-11-05', location: { lat: 35.7, lng: 139.7, name: 'Ueno', source: 'photo' } })?.location)
+            .toEqual({ lat: 35.7, lng: 139.7, name: 'Ueno', source: 'photo' });
+        expect(normalizeMoment('a', { date: '2026-11-05', location: { lat: 'x', lng: 1 } })?.location).toBeNull();
+        expect(normalizeMoment('a', { date: '2026-11-05' })?.location).toBeNull();
+    });
+
     it('reads the Drive folder and ignores photos without a Drive file', () => {
         expect(normalizeMoment('a', { date: '2026-11-05', driveFolderId: 'f', photos: [{ id: 'old', url: 'https://x' }, photo('ok')] }))
             .toMatchObject({ driveFolderId: 'f', photos: [{ id: 'ok', driveFileId: 'drive-ok' }] });
@@ -112,6 +119,16 @@ describe('saveMoment', () => {
             expect.objectContaining({ path: `users/u/moments/${saved.id}` }),
             expect.not.objectContaining({ id: expect.anything() })
         );
+    });
+
+    it('saves the place (trimmed) and keeps the old one when not given', async () => {
+        const location = { lat: 35.71, lng: 139.77, name: '  Công viên Ueno ', source: 'photo' as const };
+        const saved = await saveMoment('u', null, { title: 'x', date: '2026-11-05', note: '', keptPhotos: [], newFiles: [], location });
+        expect(saved.location).toEqual({ ...location, name: 'Công viên Ueno' });
+        const again = await saveMoment('u', saved, { title: 'y', date: '2026-11-05', note: '', keptPhotos: [], newFiles: [] });
+        expect(again.location).toEqual(saved.location);
+        const cleared = await saveMoment('u', saved, { title: 'y', date: '2026-11-05', note: '', keptPhotos: [], newFiles: [], location: null });
+        expect(cleared.location).toBeNull();
     });
 
     it('needs no Drive at all for a moment without photos', async () => {

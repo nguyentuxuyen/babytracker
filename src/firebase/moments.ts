@@ -32,6 +32,14 @@ export interface MomentPhoto {
     size: number;
 }
 
+// Where the moment happened: from the photos' GPS or picked by hand. `name` is editable.
+export interface MomentLocation {
+    lat: number;
+    lng: number;
+    name: string;
+    source: 'photo' | 'search' | 'manual';
+}
+
 export interface Moment {
     id: string;
     title: string;
@@ -39,6 +47,7 @@ export interface Moment {
     note: string;
     photos: MomentPhoto[];
     driveFolderId: string | null;
+    location: MomentLocation | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -49,6 +58,7 @@ export interface MomentInput {
     note: string;
     keptPhotos: MomentPhoto[];
     newFiles: File[];
+    location?: MomentLocation | null;
 }
 
 export type MomentErrorCode = 'drive-not-connected' | 'drive-not-configured' | 'not-image' | 'too-large' | 'failed';
@@ -89,6 +99,19 @@ const normalizePhoto = (raw: any): MomentPhoto | null => {
     };
 };
 
+const normalizeLocation = (raw: any): MomentLocation | null => {
+    if (!raw || typeof raw !== 'object') return null;
+    const lat = Number(raw.lat);
+    const lng = Number(raw.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return {
+        lat,
+        lng,
+        name: typeof raw.name === 'string' ? raw.name : '',
+        source: raw.source === 'photo' || raw.source === 'search' ? raw.source : 'manual'
+    };
+};
+
 export const normalizeMoment = (id: string, data: Record<string, unknown>): Moment | null => {
     if (typeof data.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.date)) return null;
     return {
@@ -100,6 +123,7 @@ export const normalizeMoment = (id: string, data: Record<string, unknown>): Mome
             ? data.photos.map(normalizePhoto).filter((photo): photo is MomentPhoto => photo !== null)
             : [],
         driveFolderId: typeof data.driveFolderId === 'string' ? data.driveFolderId : null,
+        location: normalizeLocation(data.location),
         createdAt: typeof data.createdAt === 'string' ? data.createdAt : '',
         updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : ''
     };
@@ -211,6 +235,9 @@ export const saveMoment = async (
         note: input.note.trim(),
         photos: [...input.keptPhotos, ...uploaded],
         driveFolderId,
+        location: input.location === undefined
+            ? existing?.location || null
+            : input.location && { ...input.location, name: input.location.name.trim().slice(0, 120) },
         createdAt: existing?.createdAt || now,
         updatedAt: now
     };

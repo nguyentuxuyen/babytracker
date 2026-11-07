@@ -705,6 +705,22 @@
     "drive": {
       "connect": "Kết nối Google Drive",
       "needConnect": "Ảnh được lưu vào Google Drive của bạn. Kết nối một lần là dùng được mãi."
+    },
+    "location": {
+      "add": "Thêm địa điểm",
+      "searchLabel": "Tìm địa điểm",
+      "searchPlaceholder": "VD: Công viên Ueno",
+      "search": "Tìm",
+      "searchFailed": "Không tìm được, bạn thử lại nhé.",
+      "noResults": "Không thấy địa điểm nào.",
+      "namePlaceholder": "Đặt tên địa điểm",
+      "nameLabel": "Tên địa điểm",
+      "resolving": "Đang tìm tên địa điểm…",
+      "remove": "Bỏ địa điểm",
+      "fromPhoto": "Lấy từ vị trí trong ảnh",
+      "picked": "Đã chọn địa điểm",
+      "change": "Đổi",
+      "onMap": "Xem trên bản đồ"
     }
   },
   "install": {
