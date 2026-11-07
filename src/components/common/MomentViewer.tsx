@@ -5,6 +5,7 @@ import { localeTag } from '../../i18n';
 import { Moment, deleteMoment } from '../../firebase/moments';
 import { SlideUp, bottomSheetProps } from './MomentEditorDialog';
 import DrivePhoto from './DrivePhoto';
+import { mapsUrl } from '../../services/geocode';
 
 const SWIPE_THRESHOLD_PX = 50;
 
@@ -64,6 +65,18 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) =
                     <Typography sx={{ fontSize: 13, color: '#6b7f8a' }}>
                         {formatMomentDate(moment.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </Typography>
+                    {moment.location && (
+                        <Box
+                            component="a"
+                            href={mapsUrl(moment.location.lat, moment.location.lng)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.25, fontSize: 13, fontWeight: 600, color: '#be185d', textDecoration: 'none' }}
+                        >
+                            <span aria-hidden>📍</span>
+                            {moment.location.name || t('moments.location.onMap')}
+                        </Box>
+                    )}
                 </Box>
                 <IconButton onClick={onClose} aria-label={t('common.close')}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>

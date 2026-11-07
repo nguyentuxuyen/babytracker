@@ -724,6 +724,39 @@
     "drive": {
       "connect": "Connect Google Drive",
       "needConnect": "Photos are saved to your own Google Drive. Connect once and it keeps working."
+    },
+    "location": {
+      "add": "Add place",
+      "searchLabel": "Search for a place",
+      "searchPlaceholder": "e.g. Ueno Park",
+      "search": "Search",
+      "searchFailed": "Search failed, please try again.",
+      "noResults": "No places found.",
+      "namePlaceholder": "Name this place",
+      "nameLabel": "Place name",
+      "resolving": "Looking up the place…",
+      "remove": "Remove place",
+      "fromPhoto": "From the photo location",
+      "picked": "Picked place",
+      "change": "Change",
+      "onMap": "View on map"
+    },
+    "import": {
+      "button": "Import photos",
+      "title": "Import many photos",
+      "hint": "Pick a batch of photos (up to {{max}}). The app splits them by the day they were taken, one moment per day, with the place when photos have GPS.",
+      "choose": "Choose photos",
+      "chooseAgain": "Choose again",
+      "reading": "Reading capture dates {{done}}/{{total}}…",
+      "reviewHint": "Untick days you do not want, and name them if you like (empty is fine).",
+      "partlySaved": "Saved {{count}} days. The rest are below, please try again.",
+      "tooMany": "You can import up to {{max}} photos at a time; the first ones were used.",
+      "photoCount": "{{count}} photos",
+      "fileDate": "no capture date, file date used",
+      "skipped": "{{count}} photos left out (max {{max}} per day)",
+      "nameLabel": "Moment name",
+      "saving": "Saving day {{day}}/{{days}} · photo {{photo}}/{{photos}}",
+      "create": "Create {{count}} moments ({{photos}} photos)"
     }
   },
   "install": {
