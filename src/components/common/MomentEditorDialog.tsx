@@ -38,6 +38,7 @@ export const bottomSheetProps = {
 export const momentErrorKey = (code: MomentErrorCode | 'too-many') => ({
     'drive-not-connected': 'moments.errors.driveNotConnected',
     'drive-not-configured': 'moments.errors.driveNotConfigured',
+    'drive-api-disabled': 'moments.errors.driveApiDisabled',
     'not-image': 'moments.errors.notImage',
     'too-large': 'moments.errors.tooLarge',
     failed: 'moments.errors.failed',
@@ -63,6 +64,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
     const [progress, setProgress] = useState<{ done: number; total: number; fraction: number } | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<MomentErrorCode | 'too-many' | null>(null);
+    const [errorDetail, setErrorDetail] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
     const { status: driveStatus } = useDriveStatus(open);
     // Unknown (still loading or offline) counts as usable; the save reports a real problem.
@@ -140,13 +142,17 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         if (!canSave) return;
         setSaving(true);
         setError(null);
+        setErrorDetail('');
         try {
             const saved = await saveMoment(uid, moment || null, { title, date, note, keptPhotos, newFiles, location },
                 (done, total, fraction) => setProgress({ done, total, fraction }));
             onSaved?.(saved);
             onClose();
         } catch (saveError) {
-            setError(toMomentError(saveError).code);
+            const failure = toMomentError(saveError);
+            console.error('Saving moment failed', failure.code, failure.message);
+            setError(failure.code);
+            setErrorDetail(failure.code === 'failed' ? failure.message : '');
         } finally {
             setSaving(false);
             setProgress(null);
@@ -286,6 +292,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
             {error && (
                 <Alert severity={error === 'too-many' ? 'info' : 'error'} sx={{ mx: 2, mb: 1 }} onClose={() => setError(null)}>
                     {t(momentErrorKey(error), { count: MAX_PHOTOS_PER_PICK })}
+                    {errorDetail && <Box component="span" sx={{ display: 'block', fontSize: 12, opacity: 0.75, mt: 0.5, wordBreak: 'break-word' }}>{errorDetail}</Box>}
                 </Alert>
             )}
 

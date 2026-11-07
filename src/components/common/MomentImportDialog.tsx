@@ -43,6 +43,7 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
     const [tooMany, setTooMany] = useState(false);
     const [progress, setProgress] = useState({ day: 0, days: 0, photo: 0, photos: 0, fraction: 0 });
     const [error, setError] = useState<MomentErrorCode | null>(null);
+    const [errorDetail, setErrorDetail] = useState('');
     const [savedCount, setSavedCount] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const runId = useRef(0);
@@ -129,7 +130,10 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
                 }, (photo, photos, fraction) => setProgress({ day: i, days: chosen.length, photo, photos, fraction }));
             } catch (saveError) {
                 if (runId.current !== run) return;
-                setError(toMomentError(saveError).code);
+                const failure = toMomentError(saveError);
+                console.error('Import failed', failure.code, failure.message);
+                setError(failure.code);
+                setErrorDetail(failure.code === 'failed' ? failure.message : '');
                 setSavedCount(saved);
                 // Keep only the days that are not saved yet, so trying again does not duplicate.
                 setDays((current) => current.filter((item) => !chosen.slice(0, i).some((done) => done.date === item.date)));
@@ -265,7 +269,9 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
                     <LinearProgress variant="determinate" value={overall} sx={{ borderRadius: 3, height: 6 }} />
                 </Box>
             )}
-            {error && <Alert severity="error" sx={{ mx: 2, mb: 1 }} onClose={() => setError(null)}>{t(momentErrorKey(error))}</Alert>}
+            {error && <Alert severity="error" sx={{ mx: 2, mb: 1 }} onClose={() => setError(null)}>{t(momentErrorKey(error))}
+                {errorDetail && <Box component="span" sx={{ display: 'block', fontSize: 12, opacity: 0.75, mt: 0.5, wordBreak: 'break-word' }}>{errorDetail}</Box>}
+            </Alert>}
 
             {(step === 'review' || step === 'saving') && (
                 <Box sx={{ display: 'flex', gap: 1, px: 2, pt: 1, pb: 'calc(16px + env(safe-area-inset-bottom))' }}>

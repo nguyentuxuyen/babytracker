@@ -96,6 +96,17 @@ const postForm = async (url, params) => {
   return { ok: response.ok, status: response.status, body };
 };
 
+class DriveApiDisabledError extends Error {}
+
+// 403 "accessNotConfigured": the Google Drive API is not enabled in the Cloud project.
+const folderError = async (response, what) => {
+  const text = await response.text().catch(() => '');
+  if (response.status === 403 && /accessNotConfigured|SERVICE_DISABLED|has not been used|is disabled/i.test(text)) {
+    return new DriveApiDisabledError('Drive API disabled');
+  }
+  return new Error(`Drive folder ${what} failed: ${response.status} ${text.slice(0, 200)}`);
+};
+
 // The app's folder in the user's Drive: reused while it exists (the user may move or
 // rename it), created again if it was deleted.
 const ensureFolder = async (accessToken, folderId) => {
@@ -106,7 +117,7 @@ const ensureFolder = async (accessToken, folderId) => {
       const file = await response.json();
       if (!file.trashed) return folderId;
     } else if (response.status !== 404) {
-      throw new Error(`Drive folder check failed: ${response.status}`);
+      throw await folderError(response, 'check');
     }
   }
   const response = await fetch(`${DRIVE_FILES}?fields=id`, {
@@ -114,7 +125,7 @@ const ensureFolder = async (accessToken, folderId) => {
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: ROOT_FOLDER_NAME, mimeType: FOLDER_MIME })
   });
-  if (!response.ok) throw new Error(`Drive folder create failed: ${response.status}`);
+  if (!response.ok) throw await folderError(response, 'create');
   return (await response.json()).id;
 };
 
@@ -205,7 +216,13 @@ const handleToken = async (uid, res) => {
   }
 
   const accessToken = refreshed.body.access_token;
-  const folderId = await ensureFolder(accessToken, stored.folderId);
+  let folderId;
+  try {
+    folderId = await ensureFolder(accessToken, stored.folderId);
+  } catch (error) {
+    if (error instanceof DriveApiDisabledError) return res.status(502).json({ error: 'drive-api-disabled' });
+    throw error;
+  }
   if (folderId !== stored.folderId) await ref.set({ folderId }, { merge: true });
   return res.status(200).json({ accessToken, expiresIn: Number(refreshed.body.expires_in) || 3600, folderId });
 };
@@ -281,7 +298,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Unknown action' });
   } catch (error) {
     console.error('Drive action failed', action, error);
-    return res.status(500).json({ error: 'failed' });
+    return res.status(500).json({ error: `failed: ${String(error?.message || error).slice(0, 120)}` });
   }
 };
 
