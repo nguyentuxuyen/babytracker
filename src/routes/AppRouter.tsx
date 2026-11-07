@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 
@@ -6,18 +6,19 @@ import BottomNav from '../components/layout/BottomNav';
 import PrivateRoute from '../components/PrivateRoute';
 import ErrorBoundary from '../components/ErrorBoundary';
 import LoginPage from '../pages/LoginPage';
+import { lazyPage, prefetchPages } from '../utils/lazyPage';
 
 // Lazy loading large pages
-const ActivitiesPageNew = lazy(() => import('../pages/ActivitiesPageNew'));
-const BabyInfoPageNew = lazy(() => import('../pages/BabyInfoPageNew'));
-const StatsPageNewGlass = lazy(() => import('../pages/StatsPageNewGlass'));
-const MilestonesPage = lazy(() => import('../pages/MilestonesPage'));
-const WonderWeeksPage = lazy(() => import('../pages/WonderWeeksPage'));
-const FoodHistoryPage = lazy(() => import('../pages/FoodHistoryPage'));
-const TimelinePage = lazy(() => import('../pages/TimelinePage'));
-const DailyReviewsPage = lazy(() => import('../pages/DailyReviewsPage'));
-const SettingsPage = lazy(() => import('../pages/SettingsPage'));
-const MomentsPage = lazy(() => import('../pages/MomentsPage'));
+const ActivitiesPageNew = lazyPage(() => import('../pages/ActivitiesPageNew'));
+const BabyInfoPageNew = lazyPage(() => import('../pages/BabyInfoPageNew'));
+const StatsPageNewGlass = lazyPage(() => import('../pages/StatsPageNewGlass'));
+const MilestonesPage = lazyPage(() => import('../pages/MilestonesPage'));
+const WonderWeeksPage = lazyPage(() => import('../pages/WonderWeeksPage'));
+const FoodHistoryPage = lazyPage(() => import('../pages/FoodHistoryPage'));
+const TimelinePage = lazyPage(() => import('../pages/TimelinePage'));
+const DailyReviewsPage = lazyPage(() => import('../pages/DailyReviewsPage'));
+const SettingsPage = lazyPage(() => import('../pages/SettingsPage'));
+const MomentsPage = lazyPage(() => import('../pages/MomentsPage'));
 
 // Fallback loader
 const FallbackLoader = () => (
@@ -27,6 +28,9 @@ const FallbackLoader = () => (
 );
 
 const AppRouter: React.FC = () => {
+    // Load the other pages in the background so switching tabs never waits on (or fails at) the network.
+    useEffect(() => prefetchPages(), []);
+
     return (
         <Router>
             <ErrorBoundary>
