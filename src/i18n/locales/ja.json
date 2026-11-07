@@ -721,6 +721,23 @@
       "picked": "選んだ場所",
       "change": "変更",
       "onMap": "地図で見る"
+    },
+    "import": {
+      "button": "写真を取り込む",
+      "title": "まとめて取り込む",
+      "hint": "写真をまとめて選んでください（最大 {{max}} 枚）。撮影日ごとに思い出を作り、位置情報があれば場所も入れます。",
+      "choose": "写真を選ぶ",
+      "chooseAgain": "選び直す",
+      "reading": "撮影日を読み込み中 {{done}}/{{total}}…",
+      "reviewHint": "保存しない日はチェックを外し、必要なら名前を付けてください（空でも大丈夫）。",
+      "partlySaved": "{{count}} 日分を保存しました。残りの日は下にあります。もう一度お試しください。",
+      "tooMany": "一度に取り込めるのは {{max}} 枚までです。最初の写真を使いました。",
+      "photoCount": "{{count}} 枚",
+      "fileDate": "撮影日がないためファイルの日付を使用",
+      "skipped": "{{count}} 枚を除外（1日最大 {{max}} 枚）",
+      "nameLabel": "思い出の名前",
+      "saving": "{{day}}/{{days}} 日目を保存中 · 写真 {{photo}}/{{photos}}",
+      "create": "思い出を {{count}} 件作成（写真 {{photos}} 枚）"
     }
   },
   "install": {

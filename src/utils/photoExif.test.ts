@@ -1,4 +1,4 @@
-import { gpsFromJpeg, readPhotoGps } from './exifGps';
+import { gpsFromJpeg, metaFromJpeg, readPhotoGps, readPhotoMeta } from './photoExif';
 
 // Builds a minimal JPEG: SOI + APP1 Exif (IFD0 -> GPS IFD with lat/lng) + SOS.
 const jpegWithGps = (
@@ -68,5 +68,46 @@ describe('exif gps', () => {
         const file = new File([jpegWithGps([35, 0, 0], 'N', [139, 0, 0], 'E')], 'a.jpg', { type: 'image/jpeg' });
         expect(await readPhotoGps(file)).toEqual({ lat: 35, lng: 139 });
         expect(await readPhotoGps(new File([new Uint8Array(10)], 'b.jpg'))).toBeNull();
+    });
+});
+
+// JPEG whose IFD0 points to an Exif IFD holding DateTimeOriginal (or IFD0 DateTime).
+const jpegWithDate = (text: string, tag: 'original' | 'modified' = 'original') => {
+    const tiff = new DataView(new ArrayBuffer(120));
+    tiff.setUint16(0, 0x4949);
+    tiff.setUint16(2, 42, true);
+    tiff.setUint32(4, 8, true);
+    tiff.setUint16(8, 1, true);
+    if (tag === 'original') {
+        tiff.setUint16(10, 0x8769, true); tiff.setUint16(12, 4, true); tiff.setUint32(14, 1, true); tiff.setUint32(18, 26, true);
+        tiff.setUint16(26, 1, true);
+        tiff.setUint16(28, 0x9003, true); tiff.setUint16(30, 2, true); tiff.setUint32(32, 20, true); tiff.setUint32(36, 60, true);
+    } else {
+        tiff.setUint16(10, 0x0132, true); tiff.setUint16(12, 2, true); tiff.setUint32(14, 20, true); tiff.setUint32(18, 60, true);
+    }
+    [...text].forEach((c, i) => tiff.setUint8(60 + i, c.charCodeAt(0)));
+    const bytes = new Uint8Array(4 + 8 + tiff.byteLength + 2);
+    const view = new DataView(bytes.buffer);
+    view.setUint16(0, 0xffd8); view.setUint16(2, 0xffe1); view.setUint16(4, 8 + tiff.byteLength);
+    bytes.set([0x45, 0x78, 0x69, 0x66, 0, 0], 6);
+    bytes.set(new Uint8Array(tiff.buffer), 12);
+    view.setUint16(12 + tiff.byteLength, 0xffda);
+    return bytes.buffer;
+};
+
+describe('exif capture time', () => {
+    it('reads DateTimeOriginal, else DateTime', () => {
+        expect(metaFromJpeg(jpegWithDate('2026:11:05 14:03:22'))).toEqual({ gps: null, takenAt: '2026-11-05T14:03:22' });
+        expect(metaFromJpeg(jpegWithDate('2026:10:01 08:00:00', 'modified')).takenAt).toBe('2026-10-01T08:00:00');
+    });
+
+    it('ignores empty or broken dates', () => {
+        expect(metaFromJpeg(jpegWithDate('0000:00:00 00:00:00')).takenAt).toBeNull();
+        expect(metaFromJpeg(jpegWithDate('garbage')).takenAt).toBeNull();
+    });
+
+    it('returns both GPS and time through readPhotoMeta', async () => {
+        const meta = await readPhotoMeta(new File([jpegWithGps([35, 0, 0], 'N', [139, 0, 0], 'E')], 'a.jpg'));
+        expect(meta).toEqual({ gps: { lat: 35, lng: 139 }, takenAt: null });
     });
 });

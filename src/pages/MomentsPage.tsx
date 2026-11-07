@@ -7,6 +7,7 @@ import { groupMomentsByMonth } from '../firebase/moments';
 import { localeTag } from '../i18n';
 import MomentCard from '../components/common/MomentCard';
 import { useMomentSheets } from '../components/common/MomentSheets';
+import MomentImportDialog from '../components/common/MomentImportDialog';
 import PageHeader from '../components/common/PageHeader';
 
 // "Kỷ niệm": every moment, newest first, grouped by month.
@@ -15,6 +16,7 @@ const MomentsPage: React.FC = () => {
     const { user } = useAuth();
     const { moments, loading } = useMoments(user?.uid);
     const { openMoment, addMoment, sheets } = useMomentSheets(user?.uid, moments);
+    const [importOpen, setImportOpen] = React.useState(false);
     const photoCount = moments.reduce((sum, moment) => sum + moment.photos.length, 0);
 
     const monthLabel = (month: string) => {
@@ -29,13 +31,21 @@ const MomentsPage: React.FC = () => {
                     title={t('moments.pageTitle')}
                     subtitle={t('moments.summary', { count: moments.length, photos: photoCount })}
                     action={moments.length > 0 ? (
-                        <Button
-                            onClick={() => addMoment()}
-                            variant="contained"
-                            sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' } }}
-                        >
-                            + {t('moments.addShort')}
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                                onClick={() => setImportOpen(true)}
+                                sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff', whiteSpace: 'nowrap' }}
+                            >
+                                {t('moments.import.button')}
+                            </Button>
+                            <Button
+                                onClick={() => addMoment()}
+                                variant="contained"
+                                sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' }, whiteSpace: 'nowrap' }}
+                            >
+                                + {t('moments.addShort')}
+                            </Button>
+                        </Box>
                     ) : undefined}
                 />
                 {loading && <CircularProgress size={28} sx={{ color: '#13a4ec' }} />}
@@ -44,9 +54,14 @@ const MomentsPage: React.FC = () => {
                         <Typography sx={{ fontSize: 40, lineHeight: 1.2, mb: 1 }} aria-hidden>📸</Typography>
                         <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#101c22', mt: 1 }}>{t('moments.emptyTitle')}</Typography>
                         <Typography sx={{ fontSize: 14, color: '#5b6b75', mt: 0.5, mb: 2 }}>{t('moments.emptyHint')}</Typography>
-                        <Button onClick={() => addMoment()} variant="contained" sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec' }}>
-                            {t('moments.addTitle')}
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <Button onClick={() => addMoment()} variant="contained" sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec' }}>
+                                {t('moments.addTitle')}
+                            </Button>
+                            <Button onClick={() => setImportOpen(true)} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff' }}>
+                                {t('moments.import.button')}
+                            </Button>
+                        </Box>
                     </Box>
                 )}
                 {groupMomentsByMonth(moments).map(([month, items]) => (
@@ -63,6 +78,7 @@ const MomentsPage: React.FC = () => {
                 ))}
             </Box>
             {sheets}
+            {user && <MomentImportDialog open={importOpen} onClose={() => setImportOpen(false)} uid={user.uid} />}
         </Box>
     );
 };

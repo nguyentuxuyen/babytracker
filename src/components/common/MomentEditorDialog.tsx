@@ -18,7 +18,7 @@ import { connectDrive } from '../../firebase/googleDrive';
 import { useDriveStatus } from '../../hooks/useDriveStatus';
 import DrivePhoto from './DrivePhoto';
 import MomentLocationField from './MomentLocationField';
-import { readPhotoGps } from '../../utils/exifGps';
+import { readPhotoMeta } from '../../utils/photoExif';
 import { reverseGeocode } from '../../services/geocode';
 
 export const SlideUp = React.forwardRef(function SlideUp(
@@ -72,6 +72,8 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
     const [resolvingPlace, setResolvingPlace] = useState(false);
     // Once the user sets or removes the place, photos added later do not overwrite it.
     const locationTouched = useRef(false);
+    // A new moment takes the day its photos were taken, until the user picks a date.
+    const dateTouched = useRef(false);
     const changeLocation = (value: MomentLocation | null) => {
         locationTouched.current = true;
         setLocation(value);
@@ -85,6 +87,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         setKeptPhotos(moment?.photos || []);
         setNewFiles([]);
         setLocation(moment?.location || null);
+        dateTouched.current = Boolean(moment || defaultDate);
         locationTouched.current = Boolean(moment?.location);
         setResolvingPlace(false);
         setError(null);
@@ -106,13 +109,19 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         const room = Math.min(MAX_PHOTOS_PER_PICK, MAX_PHOTOS_PER_MOMENT - photoCount);
         setError(files.length > room ? 'too-many' : null);
         if (room > 0) setNewFiles((current) => [...current, ...files.slice(0, room)]);
-        if (room > 0 && !location && !locationTouched.current) void fillLocationFromPhotos(files.slice(0, room));
+        if (room > 0) void fillFromPhotos(files.slice(0, room));
+    };
+
+    const fillFromPhotos = async (files: File[]) => {
+        const metas = await Promise.all(files.map((file) => readPhotoMeta(file)));
+        const days = metas.map((meta) => meta.takenAt?.slice(0, 10)).filter((day): day is string => Boolean(day)).sort();
+        if (days.length && !dateTouched.current) setDate(days[0]);
+        if (!location && !locationTouched.current) await fillLocation(metas.map((meta) => meta.gps));
     };
 
     // The first photo carrying GPS gives the moment its place; its name is looked up after.
-    const fillLocationFromPhotos = async (files: File[]) => {
-        for (const file of files) {
-            const point = await readPhotoGps(file);
+    const fillLocation = async (points: Array<{ lat: number; lng: number } | null>) => {
+        for (const point of points) {
             if (!point) continue;
             if (locationTouched.current) return;
             const fromPhoto: MomentLocation = { ...point, name: '', source: 'photo' };
@@ -179,7 +188,10 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
                     type="date"
                     label={t('moments.date')}
                     value={date}
-                    onChange={(event) => setDate(event.target.value)}
+                    onChange={(event) => {
+                        dateTouched.current = true;
+                        setDate(event.target.value);
+                    }}
                     InputLabelProps={{ shrink: true }}
                     sx={{ ...fieldSx, mb: 1.5 }}
                 />

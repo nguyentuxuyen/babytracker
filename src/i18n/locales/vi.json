@@ -721,6 +721,23 @@
       "picked": "Đã chọn địa điểm",
       "change": "Đổi",
       "onMap": "Xem trên bản đồ"
+    },
+    "import": {
+      "button": "Nhập ảnh",
+      "title": "Nhập nhiều ảnh",
+      "hint": "Chọn một loạt ảnh (tối đa {{max}}). App tự chia theo ngày chụp, mỗi ngày thành một khoảnh khắc, kèm địa điểm nếu ảnh có GPS.",
+      "choose": "Chọn ảnh",
+      "chooseAgain": "Chọn lại",
+      "reading": "Đang đọc ngày chụp {{done}}/{{total}}…",
+      "reviewHint": "Bỏ chọn ngày không muốn lưu, đặt tên nếu thích (để trống cũng được).",
+      "partlySaved": "Đã lưu {{count}} ngày. Những ngày còn lại ở dưới, bạn thử lại nhé.",
+      "tooMany": "Mỗi lần nhập tối đa {{max}} ảnh, mình đã lấy những ảnh đầu.",
+      "photoCount": "{{count}} ảnh",
+      "fileDate": "không có ngày chụp, dùng ngày của file",
+      "skipped": "bỏ {{count}} ảnh (tối đa {{max}}/ngày)",
+      "nameLabel": "Tên khoảnh khắc",
+      "saving": "Đang lưu ngày {{day}}/{{days}} · ảnh {{photo}}/{{photos}}",
+      "create": "Tạo {{count}} khoảnh khắc ({{photos}} ảnh)"
     }
   },
   "install": {
