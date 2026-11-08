@@ -10,6 +10,7 @@ vi.mock('firebase/firestore', () => {
             return { id: `auto-${autoId}`, path: `${parent.path}/auto-${autoId}` };
         }),
         setDoc: vi.fn(async () => undefined),
+        updateDoc: vi.fn(async () => undefined),
         deleteDoc: vi.fn(async () => undefined),
         onSnapshot: vi.fn(),
         orderBy: vi.fn(),
@@ -36,7 +37,7 @@ vi.mock('../utils/imageCompress', () => ({
     compressImage: vi.fn(async () => ({ blob: { size: 300_000 }, width: 1600, height: 1200 }))
 }));
 
-import { deleteDoc, setDoc } from 'firebase/firestore';
+import { deleteDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { DriveError, createMomentFolder, renameDriveFile, trashDriveFile, uploadToDrive } from './googleDrive';
 import {
     Moment,
@@ -44,6 +45,7 @@ import {
     deleteMoment,
     groupMomentsByMonth,
     momentPlaces,
+    saveLegModes,
     normalizeMoment,
     saveMoment,
     sortMoments,
@@ -126,6 +128,20 @@ describe('photo places', () => {
         ]);
         expect(momentPlaces(m).map((p) => p.name)).toEqual(['Bệnh viện', 'Gần nhà']);
         expect(momentPlaces({ ...m, location: { ...home, source: 'photo' } }).map((p) => p.name)).toEqual(['Nhà', 'Bệnh viện']);
+    });
+});
+
+describe('leg modes', () => {
+    it('reads only known modes and keeps them when the moment is edited', async () => {
+        const read = normalizeMoment('a', { date: '2026-11-01', legModes: { 'p1>p2': 'plane', 'p2>p3': 'rocket', 'p3>p4': 'ship' } })!;
+        expect(read.legModes).toEqual({ 'p1>p2': 'plane', 'p3>p4': 'ship' });
+        const saved = await saveMoment('u', read, { title: 'x', date: '2026-11-01', note: '', keptPhotos: [], newFiles: [] });
+        expect(saved.legModes).toEqual(read.legModes);
+    });
+
+    it('saves just the modes', async () => {
+        await saveLegModes('u', 'm1', { 'a>b': 'train', bad: 'x' as never });
+        expect(updateDoc).toHaveBeenCalledWith(expect.objectContaining({ path: 'users/u/moments/m1' }), expect.objectContaining({ legModes: { 'a>b': 'train' } }));
     });
 });
 

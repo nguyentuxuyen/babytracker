@@ -4,6 +4,7 @@
 import {
     collection,
     deleteDoc,
+    updateDoc,
     doc,
     onSnapshot,
     orderBy,
@@ -67,6 +68,8 @@ export interface Moment {
     photos: MomentPhoto[];
     driveFolderId: string | null;
     location: MomentLocation | null;
+    /** How each leg of the journey was travelled, by legKey (see utils/journey.ts). */
+    legModes?: Record<string, TravelMode>;
     createdAt: string;
     updatedAt: string;
 }
@@ -104,6 +107,23 @@ export const toMomentError = (error: unknown): MomentError => {
     const code = (error as { code?: string } | null)?.code || '';
     const message = (error as { message?: string } | null)?.message || String(error);
     return new MomentError('failed', [code, message].filter(Boolean).join(': ').slice(0, 160));
+};
+
+export const TRAVEL_MODES = ['car', 'train', 'plane', 'ship', 'walk'] as const;
+export type TravelMode = typeof TRAVEL_MODES[number];
+
+const normalizeLegModes = (raw: any): Record<string, TravelMode> => {
+    if (!raw || typeof raw !== 'object') return {};
+    const modes: Record<string, TravelMode> = {};
+    Object.entries(raw).forEach(([key, mode]) => {
+        if (typeof key === 'string' && key.length <= 100 && (TRAVEL_MODES as readonly string[]).includes(mode as string)) modes[key] = mode as TravelMode;
+    });
+    return modes;
+};
+
+/** Saves how the journey's legs were travelled (only that field changes). */
+export const saveLegModes = async (uid: string, momentId: string, legModes: Record<string, TravelMode>) => {
+    await updateDoc(doc(momentsCollection(uid), momentId), { legModes: normalizeLegModes(legModes), updatedAt: new Date().toISOString() });
 };
 
 export const toLocalDateKey = (date: Date) => {
@@ -170,6 +190,7 @@ export const normalizeMoment = (id: string, data: Record<string, unknown>): Mome
             : [],
         driveFolderId: typeof data.driveFolderId === 'string' ? data.driveFolderId : null,
         location: normalizeLocation(data.location),
+        legModes: normalizeLegModes(data.legModes),
         createdAt: typeof data.createdAt === 'string' ? data.createdAt : '',
         updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : ''
     };
@@ -294,6 +315,7 @@ export const saveMoment = async (
         location: input.location === undefined
             ? existing?.location || null
             : input.location && { ...input.location, name: input.location.name.trim().slice(0, 120) },
+        legModes: existing?.legModes || {},
         createdAt: existing?.createdAt || now,
         updatedAt: now
     };

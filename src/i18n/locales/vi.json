@@ -763,7 +763,18 @@
       "play": "Xem hành trình ({{count}} điểm)",
       "stops": "{{count}} điểm dừng",
       "stopOf": "Điểm {{index}}/{{count}}",
-      "replay": "Xem lại"
+      "replay": "Xem lại",
+      "finding": "Đang tìm đường…",
+      "modes": "Phương tiện",
+      "modesTitle": "Đi bằng gì?",
+      "modesHint": "Chọn phương tiện cho từng chặng. Ô tô đi theo đường thật, máy bay bay đường cong, tàu thủy đi thẳng qua biển.",
+      "mode": {
+        "car": "Ô tô",
+        "train": "Tàu",
+        "plane": "Máy bay",
+        "ship": "Tàu thủy",
+        "walk": "Đi bộ"
+      }
     }
   },
   "install": {

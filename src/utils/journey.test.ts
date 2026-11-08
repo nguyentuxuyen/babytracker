@@ -1,4 +1,4 @@
-import { along, easeInOut, journeyStops, legDuration } from './journey';
+import { along, alongPath, easeInOut, flightArc, guessMode, journeyStops, legDuration, legKey } from './journey';
 import type { MomentPhoto } from '../firebase/moments';
 
 const A = { lat: 34.6, lng: 135.0, name: 'Cầu Akashi' };
@@ -36,5 +36,30 @@ describe('animation helpers', () => {
         expect(legDuration(stops[0], stops[1])).toBeLessThanOrEqual(4500);
         expect([easeInOut(0), easeInOut(0.5), easeInOut(1)]).toEqual([0, 0.5, 1]);
         expect(along(A, C, 0.5)).toEqual({ lat: 34.425, lng: 134.85 });
+    });
+});
+
+describe('travel modes and paths', () => {
+    const stop = (lat: number, lng: number, takenAt: string | null, id: string) => ({ lat, lng, name: '', photos: [photo(id, null, takenAt)], takenAt });
+    it('guesses walk, car and plane', () => {
+        const osaka = stop(34.69, 135.5, '2026-11-01T08:00:00', 'o');
+        expect(guessMode(osaka, stop(34.695, 135.505, null, 'n'))).toBe('walk');
+        expect(guessMode(osaka, stop(34.34, 134.9, null, 'a'))).toBe('car');
+        expect(guessMode(osaka, stop(43.06, 141.35, null, 's'))).toBe('plane'); // Sapporo
+        expect(guessMode(osaka, stop(35.68, 139.76, '2026-11-01T10:00:00', 't'))).toBe('plane'); // Tokyo in 2 h
+        expect(guessMode(osaka, stop(35.68, 139.76, '2026-11-01T16:00:00', 't'))).toBe('car');
+        expect(legKey(osaka, stop(1, 1, null, 'x'))).toBe('o>x');
+    });
+
+    it('draws a flight arc from start to end and moves along a path', () => {
+        const arc = flightArc({ lat: 0, lng: 0 }, { lat: 0, lng: 10 }, 10);
+        expect(arc[0]).toEqual({ lat: 0, lng: 0 });
+        expect(arc[10]).toEqual({ lat: 0, lng: 10 });
+        expect(Math.abs(arc[5].lat)).toBeGreaterThan(0.5);
+        const path = [{ lat: 0, lng: 0 }, { lat: 0, lng: 1 }, { lat: 1, lng: 1 }];
+        const half = alongPath(path, 0.5);
+        expect(half.point.lng).toBeCloseTo(1, 2);
+        expect(alongPath(path, 0.25).heading).toBeCloseTo(0, 0);
+        expect(alongPath(path, 0.9).heading).toBeCloseTo(90, 0);
     });
 });

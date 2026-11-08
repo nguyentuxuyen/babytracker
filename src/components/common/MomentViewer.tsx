@@ -248,7 +248,7 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
             </Box>
             {journeyOpen && (
                 <React.Suspense fallback={null}>
-                    <MomentJourneyDialog open={journeyOpen} onClose={() => setJourneyOpen(false)} moment={moment} />
+                    <MomentJourneyDialog open={journeyOpen} onClose={() => setJourneyOpen(false)} uid={uid} moment={moment} />
                 </React.Suspense>
             )}
         </Dialog>

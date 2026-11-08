@@ -763,7 +763,18 @@
       "play": "旅のルートを見る（{{count}} か所）",
       "stops": "{{count}} か所",
       "stopOf": "{{index}}/{{count}} か所目",
-      "replay": "もう一度見る"
+      "replay": "もう一度見る",
+      "finding": "ルートを検索中…",
+      "modes": "移動手段",
+      "modesTitle": "何で移動した？",
+      "modesHint": "区間ごとに移動手段を選んでください。車は実際の道路、飛行機は弧、船は海をまっすぐ進みます。",
+      "mode": {
+        "car": "車",
+        "train": "電車",
+        "plane": "飛行機",
+        "ship": "船",
+        "walk": "徒歩"
+      }
     }
   },
   "install": {

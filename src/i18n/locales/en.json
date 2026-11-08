@@ -782,7 +782,18 @@
       "play": "Play the journey ({{count}} stops)",
       "stops": "{{count}} stops",
       "stopOf": "Stop {{index}}/{{count}}",
-      "replay": "Play again"
+      "replay": "Play again",
+      "finding": "Finding the route…",
+      "modes": "Travel",
+      "modesTitle": "How did you travel?",
+      "modesHint": "Pick how each leg was travelled. Cars follow real roads, planes fly a curve, boats cross the sea in a straight line.",
+      "mode": {
+        "car": "Car",
+        "train": "Train",
+        "plane": "Plane",
+        "ship": "Boat",
+        "walk": "Walk"
+      }
     }
   },
   "install": {
