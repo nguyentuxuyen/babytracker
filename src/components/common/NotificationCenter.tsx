@@ -111,8 +111,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ children }) => 
             aria-label={unread > 0 ? t('notifications.openWithCount', { count: unread }) : t('notifications.open')}
             style={{
                 position: 'relative',
-                width: '44px',
-                height: '44px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '50%',
                 background: '#ffffff',
                 border: '1px solid #e5e7eb',

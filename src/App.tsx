@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -17,10 +17,12 @@ import { isPushSupported, subscribeUserToPush, unsubscribeUserFromPush, sendTest
 import { ChangelogRelease } from './types';
 import { SettingsProvider, navigateTo } from './contexts/SettingsContext';
 import { HEADER_NOTIFICATION_SLOT_ID } from './components/common/NotificationCenter';
+import { HeaderTitle, PageHeaderSlot, PageHeaderSlotContext } from './components/common/PageHeader';
+import BabyAvatar from './components/common/BabyAvatar';
+import type { TFunction } from 'i18next';
 import i18n from './i18n';
 
 import {
-    AccountIcon as AccountCircleIcon,
     BabyIcon as ChildCareIcon,
     FoodIcon,
     LogoutIcon,
@@ -31,7 +33,26 @@ import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiBu
 import packageJson from '../package.json';
 import { CHANGELOG_SEEN_STORAGE_KEY, fallbackChangelogReleases, formatChangelogDate } from './utils/changelog';
 
-// Header Component - New Design
+/** "7 tháng 12 ngày" style age for the top bar, or '' when the birth date is unknown. */
+const formatBabyAge = (birthDate: Date | string | undefined, t: TFunction): string => {
+    if (!birthDate) return '';
+    const birth = new Date(birthDate);
+    if (isNaN(birth.getTime())) return '';
+    birth.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+    if (now.getDate() < birth.getDate()) months--;
+    const monthStart = new Date(birth);
+    monthStart.setMonth(monthStart.getMonth() + months);
+    const days = Math.floor((now.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24));
+    if (months > 0) {
+        return days === 0 ? t('header.ageMonths', { count: months }) : t('header.ageMonthsDays', { months, days });
+    }
+    return t('header.ageDays', { count: days });
+};
+
+// The one sticky top bar: page title (or baby name + age on Home) · bell · baby avatar menu
 const HeaderComponent: React.FC<{
     currentUser: any;
     logout: () => Promise<void>;
@@ -43,6 +64,8 @@ const HeaderComponent: React.FC<{
     changelogReleases: ChangelogRelease[];
     changelogReady: boolean;
     changelogUsesFirebase: boolean;
+    onTitleSlot: (element: HTMLDivElement | null) => void;
+    hasPageTitle: boolean;
 }> = ({
     currentUser,
     logout,
@@ -53,7 +76,9 @@ const HeaderComponent: React.FC<{
     versionLabel,
     changelogReleases,
     changelogReady,
-    changelogUsesFirebase
+    changelogUsesFirebase,
+    onTitleSlot,
+    hasPageTitle
 }) => {
     const { baby } = useBaby();
     const { t } = useTranslation();
@@ -106,6 +131,20 @@ const HeaderComponent: React.FC<{
         setShowChangelog(false);
     };
 
+    const pill = (text: string, color: string) => (
+        <span style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            color: '#ffffff',
+            backgroundColor: color,
+            borderRadius: '999px',
+            padding: '2px 8px',
+            whiteSpace: 'nowrap'
+        }}>
+            {text}
+        </span>
+    );
+
     return (
         <div style={{
             position: 'sticky',
@@ -118,129 +157,30 @@ const HeaderComponent: React.FC<{
             paddingTop: 'env(safe-area-inset-top)'
         }}>
             <div style={{
-                padding: '12px 16px',
+                padding: '6px 12px 6px 16px',
+                minHeight: '52px',
+                boxSizing: 'border-box',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
+                gap: '8px',
                 maxWidth: '1200px',
                 margin: '0 auto'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                <div style={{
-                    width: '44px',
-                    height: '44px',
-                    flexShrink: 0,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #e0f2fe 0%, #fce7f3 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px'
-                }} aria-hidden="true">
-                    {baby?.gender === 'female' ? '👧' : '👶'}
-                </div>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
-                    minWidth: 0
-                }}>
-                    <div style={{
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        fontSize: '18px',
-                        fontWeight: '700',
-                        color: '#101c22',
-                        fontFamily: 'Manrope, sans-serif'
-                    }}>
-                        {(() => {
-                            return baby?.name ? t('header.babyName', { name: baby.name }) : t('common.baby');
-                        })()}
-                    </div>
-                    <div style={{
-                        fontSize: '12px',
-                        fontWeight: '400',
-                        color: '#5b6b75'
-                    }}>
-                        {(() => {
-                            try {
-                                if (baby?.birthDate) {
-                                    const birth = new Date(baby.birthDate);
-                                    if (!isNaN(birth.getTime())) {
-                                        const now = new Date();
-                                        const birthNorm = new Date(birth);
-                                        birthNorm.setHours(0,0,0,0);
-                                        const nowNorm = new Date(now);
-                                        nowNorm.setHours(0,0,0,0);
-                                        let months = (nowNorm.getFullYear() - birthNorm.getFullYear()) * 12 + (nowNorm.getMonth() - birthNorm.getMonth());
-                                        if (nowNorm.getDate() < birthNorm.getDate()) {
-                                            months--;
-                                        }
+                {/* The page's title goes here (PageHeader); Home shows the baby's name and age */}
+                <div ref={onTitleSlot} style={{ display: hasPageTitle ? 'flex' : 'none', alignItems: 'center', flex: 1, minWidth: 0 }} />
+                {!hasPageTitle && (
+                    <HeaderTitle
+                        title={baby?.name ? t('header.babyName', { name: baby.name }) : t('common.baby')}
+                        subtitle={formatBabyAge(baby?.birthDate, t) || undefined}
+                    />
+                )}
 
-                                        const tempDate = new Date(birthNorm);
-                                        tempDate.setMonth(tempDate.getMonth() + months);
-                                        const days = Math.floor((nowNorm.getTime() - tempDate.getTime()) / (1000 * 60 * 60 * 24));
-
-                                        if (months > 0) {
-                                            if (days === 0) {
-                                                return t('header.ageMonths', { count: months });
-                                            }
-                                            return t('header.ageMonthsDays', { months, days });
-                                        }
-                                        return t('header.ageDays', { count: days });
-                                    }
-                                }
-                            } catch (err) {
-                                // ignore
-                            }
-                            return '';
-                        })()}
-                    </div>
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
-                        {!isOnline && (
-                            <div style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                backgroundColor: '#ef4444',
-                                borderRadius: '999px',
-                                padding: '2px 8px'
-                            }}>
-                                {t('header.offline')}
-                            </div>
-                        )}
-                        {isOnline && pendingSyncCount > 0 && (
-                            <div style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                backgroundColor: '#f59e0b',
-                                borderRadius: '999px',
-                                padding: '2px 8px'
-                            }}>
-                                {t('header.pendingSync', { count: pendingSyncCount })}
-                            </div>
-                        )}
-                        {isSyncing && (
-                            <div style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                color: '#ffffff',
-                                backgroundColor: '#13a4ec',
-                                borderRadius: '999px',
-                                padding: '2px 8px'
-                            }}>
-                                {t('header.syncing')}
-                            </div>
-                        )}
-                    </div>
-                </div>
-                </div>
+                {!isOnline && pill(t('header.offline'), '#ef4444')}
+                {isOnline && pendingSyncCount > 0 && pill(t('header.pendingSyncShort', { count: pendingSyncCount }), '#f59e0b')}
+                {isSyncing && pill(t('header.syncing'), '#13a4ec')}
 
                 {currentUser && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                         {/* Filled with the notification bell by the page (NotificationCenter) */}
                         <div id={HEADER_NOTIFICATION_SLOT_ID} style={{ display: 'flex' }} />
                         <div ref={menuRef} style={{ position: 'relative' }}>
@@ -249,26 +189,27 @@ const HeaderComponent: React.FC<{
                                 aria-label={t('menu.account')}
                                 aria-expanded={showMenu}
                                 style={{
-                                    width: '44px',
-                                    height: '44px',
+                                    width: '40px',
+                                    height: '40px',
+                                    padding: 0,
                                     borderRadius: '50%',
                                     background: '#ffffff',
-                                    border: '1px solid #e5e7eb',
-                                    color: '#13a4ec',
+                                    border: '2px solid #ffffff',
+                                    boxShadow: '0 0 0 1px #e5e7eb',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    transition: 'all 0.2s ease'
+                                    overflow: 'hidden'
                                 }}
                             >
-                                <AccountCircleIcon sx={{ fontSize: '26px' }} />
+                                <BabyAvatar baby={baby} size={36} />
                             </button>
 
                             {showMenu && (
                                 <div style={{
                                     position: 'absolute',
-                                    top: '56px',
+                                    top: '48px',
                                     right: '0',
                                     background: '#ffffff',
                                     borderRadius: '12px',
@@ -497,6 +438,17 @@ const HeaderComponent: React.FC<{
 // Main App Component
 const MainApp: React.FC = () => {
     const { currentUser, logout, loading } = useAuth();
+    // Where pages put their title inside the top bar (see PageHeader)
+    const [titleSlot, setTitleSlot] = useState<HTMLDivElement | null>(null);
+    const [pageTitleCount, setPageTitleCount] = useState(0);
+    const registerPageTitle = useCallback(() => {
+        setPageTitleCount((count) => count + 1);
+        return () => setPageTitleCount((count) => count - 1);
+    }, []);
+    const pageHeaderSlot = useMemo<PageHeaderSlot>(
+        () => ({ element: titleSlot, register: registerPageTitle }),
+        [titleSlot, registerPageTitle]
+    );
     const { baby } = useBaby();
     const [showTranslations, setShowTranslations] = useState(false);
     const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -835,6 +787,7 @@ const MainApp: React.FC = () => {
 
     return (
         <SettingsProvider value={appSettings}>
+        <PageHeaderSlotContext.Provider value={pageHeaderSlot}>
         <Box sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -853,6 +806,8 @@ const MainApp: React.FC = () => {
                 changelogReleases={changelogReleases}
                 changelogReady={changelogReady}
                 changelogUsesFirebase={changelogUsesFirebase}
+                onTitleSlot={setTitleSlot}
+                hasPageTitle={pageTitleCount > 0}
             />
 
             {/* Main content with router and bottom nav */}
@@ -861,6 +816,7 @@ const MainApp: React.FC = () => {
             </Box>
             <DriveConnectNotice />
         </Box>
+        </PageHeaderSlotContext.Provider>
         </SettingsProvider>
     );
 };

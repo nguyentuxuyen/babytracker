@@ -54,7 +54,8 @@
     "syncing": "同期中...",
     "reminderEvery": "リマインダー {{count}}時間ごと",
     "pushOn": "プッシュ通知: オン",
-    "changelog": "変更履歴"
+    "changelog": "変更履歴",
+    "pendingSyncShort": "{{count}}件待ち"
   },
   "menu": {
     "babyInfo": "赤ちゃん情報",
@@ -341,7 +342,11 @@
     "foodMenuEmpty": "まだ料理が登録されていません。「メニュー管理」から追加してください。",
     "addDish": "新しい料理を追加",
     "editProfile": "プロフィール編集",
-    "editProfileTitle": "赤ちゃんのプロフィール編集"
+    "editProfileTitle": "赤ちゃんのプロフィール編集",
+    "changePhoto": "写真を変更",
+    "removePhoto": "写真を外す",
+    "photoSaving": "写真を保存中...",
+    "photoFailed": "写真を保存できませんでした。もう一度お試しください"
   },
   "login": {
     "subtitleLine1": "赤ちゃんの記録、成長、発達を",

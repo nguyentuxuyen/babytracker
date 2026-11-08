@@ -915,7 +915,7 @@ const ActivitiesPage: React.FC = () => {
                     <MuiButton onClick={() => setShowAiComposer(false)}>{t('common.close')}</MuiButton>
                 </DialogActions>
             </Dialog>
-            <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2, position: 'relative', zIndex: 1 }}>
+            <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2, pb: 2, position: 'relative', zIndex: 1 }}>
                 <Box>
                 {/* Wake window warning, yesterday's review and checks live behind the header bell */}
                 <NotificationCenter>

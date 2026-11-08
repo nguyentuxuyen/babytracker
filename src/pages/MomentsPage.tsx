@@ -9,6 +9,7 @@ import { localeTag } from '../i18n';
 import MomentCard from '../components/common/MomentCard';
 import { useMomentSheets } from '../components/common/MomentSheets';
 import PageHeader from '../components/common/PageHeader';
+import { AddIcon, MomentsIcon } from '../components/common/icons';
 
 // "Kỷ niệm": every moment, newest first, grouped by month.
 const MomentsPage: React.FC = () => {
@@ -31,26 +32,29 @@ const MomentsPage: React.FC = () => {
                     title={t('moments.pageTitle')}
                     subtitle={t('moments.summary', { count: moments.length, photos: photoCount })}
                     action={moments.length > 0 ? (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 0.75 }}>
                             <Button
                                 onClick={() => history.push('/moments/map')}
                                 aria-label={t('moments.map.open')}
-                                sx={{ minWidth: 0, px: 1.25, borderRadius: '12px', fontSize: 18, bgcolor: '#fdf2f8' }}
+                                sx={{ minWidth: 0, width: 36, height: 36, p: 0, borderRadius: '12px', fontSize: 18, bgcolor: '#fdf2f8' }}
                             >
                                 🗺️
                             </Button>
                             <Button
                                 onClick={importPhotos}
-                                sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff', whiteSpace: 'nowrap' }}
+                                aria-label={t('moments.import.button')}
+                                title={t('moments.import.button')}
+                                sx={{ minWidth: 0, width: 36, height: 36, p: 0, borderRadius: '12px', color: '#0369a1', bgcolor: '#f0f9ff' }}
                             >
-                                {t('moments.import.button')}
+                                <MomentsIcon sx={{ fontSize: 20 }} />
                             </Button>
                             <Button
                                 onClick={() => addMoment()}
                                 variant="contained"
-                                sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' }, whiteSpace: 'nowrap' }}
+                                aria-label={t('moments.addShort')}
+                                sx={{ minWidth: 0, width: 36, height: 36, p: 0, borderRadius: '12px', bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' }, boxShadow: 'none' }}
                             >
-                                + {t('moments.addShort')}
+                                <AddIcon sx={{ fontSize: 20 }} />
                             </Button>
                         </Box>
                     ) : undefined}

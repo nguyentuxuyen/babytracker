@@ -54,7 +54,8 @@
     "syncing": "Đang đồng bộ...",
     "reminderEvery": "Nhắc mỗi {{count}} giờ",
     "pushOn": "Thông báo đẩy: bật",
-    "changelog": "Có gì mới"
+    "changelog": "Có gì mới",
+    "pendingSyncShort": "{{count}} chờ"
   },
   "menu": {
     "babyInfo": "Thông tin bé",
@@ -341,7 +342,11 @@
     "foodMenuEmpty": "Chưa có món nào. Thêm món trong \"Quản lý thực đơn\".",
     "addDish": "Thêm món mới",
     "editProfile": "Sửa hồ sơ",
-    "editProfileTitle": "Sửa hồ sơ của bé"
+    "editProfileTitle": "Sửa hồ sơ của bé",
+    "changePhoto": "Đổi ảnh đại diện",
+    "removePhoto": "Bỏ ảnh",
+    "photoSaving": "Đang lưu ảnh...",
+    "photoFailed": "Không lưu được ảnh, thử lại nhé"
   },
   "login": {
     "subtitleLine1": "Theo dõi sinh hoạt, tăng trưởng",
