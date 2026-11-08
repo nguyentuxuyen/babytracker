@@ -744,7 +744,8 @@
       "undatedJoined": "撮影日不明 {{count}} 枚",
       "dayCount": "{{count}} 日",
       "merge": "⇅ この2つを1つのイベントにまとめる",
-      "split": "分ける"
+      "split": "分ける",
+      "mergeAll": "{{count}} 件をすべて1つのイベントにまとめる（旅行全体）"
     },
     "places": {
       "several": "写真は {{count}} か所で撮影されています。各写真に場所が保存されます：",
@@ -757,6 +758,12 @@
       "emptyTitle": "位置情報のある写真はまだありません",
       "emptyHint": "位置情報をオンにして撮った写真がここに表示されます。思い出の編集で場所を設定することもできます。",
       "momentsHere": "ここに思い出 {{count}} 件"
+    },
+    "journey": {
+      "play": "旅のルートを見る（{{count}} か所）",
+      "stops": "{{count}} か所",
+      "stopOf": "{{index}}/{{count}} か所目",
+      "replay": "もう一度見る"
     }
   },
   "install": {
