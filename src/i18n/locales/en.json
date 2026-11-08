@@ -745,19 +745,25 @@
     "import": {
       "button": "Import photos",
       "title": "Import many photos",
-      "hint": "Pick a batch of photos (up to {{max}}). The app splits them by the day they were taken, one moment per day, with the place when photos have GPS.",
+      "hint": "Pick a batch of photos (up to {{max}}). The app splits them by the day they were taken, with the place when photos have GPS. You can merge several days into one event.",
       "choose": "Choose photos",
       "chooseAgain": "Choose again",
       "reading": "Reading capture dates {{done}}/{{total}}…",
-      "reviewHint": "Untick days you do not want, and name them if you like (empty is fine).",
-      "partlySaved": "Saved {{count}} days. The rest are below, please try again.",
+      "reviewHint": "Untick what you do not want. Tap \"Merge\" to join several days into one event, then give it a shared name and note.",
+      "partlySaved": "Saved {{count}} events. The rest are below, please try again.",
       "tooMany": "You can import up to {{max}} photos at a time; the first ones were used.",
       "photoCount": "{{count}} photos",
-      "fileDate": "no capture date, file date used",
-      "skipped": "{{count}} photos left out (max {{max}} per day)",
+      "skipped": "{{count}} photos left out (max {{max}} per event)",
       "nameLabel": "Moment name",
-      "saving": "Saving day {{day}}/{{days}} · photo {{photo}}/{{photos}}",
-      "create": "Create {{count}} moments ({{photos}} photos)"
+      "saving": "Saving event {{day}}/{{days}} · photo {{photo}}/{{photos}}",
+      "create": "Create {{count}} moments ({{photos}} photos)",
+      "noDate": "Capture date unknown",
+      "noDateHint": "These photos have no capture date (often downloads or screenshots). Pick a date, or merge them into the event above.",
+      "guessed": "{{count}} photos dated from file name/date",
+      "undatedJoined": "{{count}} photos without a date",
+      "dayCount": "{{count}} days",
+      "merge": "⇅ Merge these two into one event",
+      "split": "Split"
     }
   },
   "install": {

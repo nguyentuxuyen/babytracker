@@ -18,7 +18,7 @@ import { connectDrive } from '../../firebase/googleDrive';
 import { useDriveStatus } from '../../hooks/useDriveStatus';
 import DrivePhoto from './DrivePhoto';
 import MomentLocationField from './MomentLocationField';
-import { readPhotoMeta } from '../../utils/photoExif';
+import { isImageFile, readPhotoMeta } from '../../utils/photoExif';
 import { reverseGeocode } from '../../services/geocode';
 
 export const SlideUp = React.forwardRef(function SlideUp(
@@ -105,7 +105,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
     const canSave = !saving && (title.trim().length > 0 || photoCount > 0) && /^\d{4}-\d{2}-\d{2}$/.test(date);
 
     const addFiles = (fileList: FileList | null) => {
-        const files = Array.from(fileList || []).filter((file) => file.type.startsWith('image/'));
+        const files = Array.from(fileList || []).filter(isImageFile);
         if (inputRef.current) inputRef.current.value = '';
         if (!files.length) return;
         const room = Math.min(MAX_PHOTOS_PER_PICK, MAX_PHOTOS_PER_MOMENT - photoCount);
@@ -308,7 +308,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
                 </Button>
             </Box>
 
-            <input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={(event) => addFiles(event.target.files)} />
+            <input ref={inputRef} type="file" accept="image/*,.heic,.heif" multiple hidden onChange={(event) => addFiles(event.target.files)} />
         </Dialog>
     );
 };

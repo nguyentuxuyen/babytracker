@@ -1,5 +1,6 @@
-// Reads where and when a JPEG photo was taken from its EXIF block (GPS when location was
-// on, DateTimeOriginal). Only the first part of the file is read; anything unexpected gives null.
+// Reads where and when a photo was taken from its EXIF block (GPS when location was on,
+// DateTimeOriginal). JPEG and HEIC/HEIF (iPhone) are understood. Only the parts of the
+// file that hold EXIF are read; anything unexpected gives null.
 
 export interface GpsPoint {
     lat: number;
@@ -117,6 +118,116 @@ export const metaFromJpeg = (buffer: ArrayBuffer): PhotoMeta => {
 
 export const gpsFromJpeg = (buffer: ArrayBuffer): GpsPoint | null => metaFromJpeg(buffer).gps;
 
+// ---- HEIC / HEIF (ISO base media boxes) ----
+// The EXIF block is an item of the top-level 'meta' box: 'iinf' names it ('Exif') and
+// 'iloc' says where its bytes are in the file, often after the image data.
+
+interface Box { type: string; start: number; end: number; body: number }
+
+const boxesIn = (view: DataView, start: number, end: number): Box[] => {
+    const list: Box[] = [];
+    let offset = start;
+    while (offset + 8 <= end) {
+        let size = view.getUint32(offset);
+        const type = readAscii(view, offset + 4, 4);
+        let header = 8;
+        if (size === 1) {
+            if (offset + 16 > end) break;
+            size = Number(view.getBigUint64(offset + 8));
+            header = 16;
+        } else if (size === 0) {
+            size = end - offset;
+        }
+        if (size < header) break;
+        list.push({ type, start: offset, end: Math.min(offset + size, end), body: offset + header });
+        offset += size;
+    }
+    return list;
+};
+
+export const isHeif = (buffer: ArrayBuffer) => {
+    const view = new DataView(buffer);
+    return view.byteLength >= 12 && readAscii(view, 4, 4) === 'ftyp';
+};
+
+/** Where the EXIF item of a HEIC/HEIF file is, as file offset and length. */
+export const heifExifLocation = (buffer: ArrayBuffer): { offset: number; length: number } | null => {
+    const view = new DataView(buffer);
+    try {
+        const meta = boxesIn(view, 0, view.byteLength).find((box) => box.type === 'meta');
+        if (!meta) return null;
+        const children = boxesIn(view, meta.body + 4, meta.end); // full box: skip version/flags
+        const iinf = children.find((box) => box.type === 'iinf');
+        const iloc = children.find((box) => box.type === 'iloc');
+        if (!iinf || !iloc) return null;
+
+        const infVersion = view.getUint8(iinf.body);
+        const entriesStart = iinf.body + 4 + (infVersion === 0 ? 2 : 4);
+        let exifId: number | null = null;
+        for (const infe of boxesIn(view, entriesStart, iinf.end)) {
+            if (infe.type !== 'infe') continue;
+            const version = view.getUint8(infe.body);
+            if (version < 2) continue;
+            const id = version === 2 ? view.getUint16(infe.body + 4) : view.getUint32(infe.body + 4);
+            const typeAt = infe.body + 4 + (version === 2 ? 2 : 4) + 2;
+            if (readAscii(view, typeAt, 4) === 'Exif') { exifId = id; break; }
+        }
+        if (exifId === null) return null;
+
+        const version = view.getUint8(iloc.body);
+        let at = iloc.body + 4;
+        const sizes = view.getUint8(at);
+        const sizes2 = view.getUint8(at + 1);
+        at += 2;
+        const offsetSize = sizes >> 4;
+        const lengthSize = sizes & 15;
+        const baseSize = sizes2 >> 4;
+        const indexSize = version === 1 || version === 2 ? sizes2 & 15 : 0;
+        const readN = (size: number) => {
+            const value = size === 0 ? 0 : size === 4 ? view.getUint32(at) : size === 8 ? Number(view.getBigUint64(at)) : NaN;
+            if (Number.isNaN(value)) throw new Error('bad size');
+            at += size;
+            return value;
+        };
+        const count = version < 2 ? view.getUint16(at) : view.getUint32(at);
+        at += version < 2 ? 2 : 4;
+        for (let i = 0; i < count; i += 1) {
+            const id = version < 2 ? view.getUint16(at) : view.getUint32(at);
+            at += version < 2 ? 2 : 4;
+            let method = 0;
+            if (version === 1 || version === 2) { method = view.getUint16(at) & 15; at += 2; }
+            at += 2; // data_reference_index
+            const base = readN(baseSize);
+            const extents = view.getUint16(at);
+            at += 2;
+            let first: { offset: number; length: number } | null = null;
+            for (let e = 0; e < extents; e += 1) {
+                at += indexSize;
+                const offset = readN(offsetSize);
+                const length = readN(lengthSize);
+                if (!first) first = { offset: base + offset, length };
+            }
+            // Only items stored straight in the file (construction method 0) are supported.
+            if (id === exifId) return method === 0 && first && first.length > 8 ? first : null;
+        }
+        return null;
+    } catch {
+        return null; // Truncated or unexpected boxes.
+    }
+};
+
+/** Parses the bytes of a HEIF 'Exif' item: a 4-byte offset, then the TIFF block. */
+export const metaFromHeifExif = (buffer: ArrayBuffer): PhotoMeta => {
+    const view = new DataView(buffer);
+    try {
+        const tiffStart = 4 + view.getUint32(0);
+        if (tiffStart + 8 > view.byteLength) return EMPTY_META;
+        return metaFromTiff(view, tiffStart);
+    } catch {
+        return EMPTY_META;
+    }
+};
+
 // Blob.arrayBuffer is missing on older Safari; FileReader works everywhere.
 const readBuffer = (blob: Blob) => (typeof blob.arrayBuffer === 'function'
     ? blob.arrayBuffer()
@@ -129,10 +240,19 @@ const readBuffer = (blob: Blob) => (typeof blob.arrayBuffer === 'function'
 
 export const readPhotoMeta = async (file: Blob): Promise<PhotoMeta> => {
     try {
-        return metaFromJpeg(await readBuffer(file.slice(0, EXIF_READ_BYTES)));
+        const head = await readBuffer(file.slice(0, EXIF_READ_BYTES));
+        if (!isHeif(head)) return metaFromJpeg(head);
+        const where = heifExifLocation(head);
+        if (!where || where.offset >= file.size) return EMPTY_META;
+        const length = Math.min(where.length, EXIF_READ_BYTES);
+        return metaFromHeifExif(await readBuffer(file.slice(where.offset, where.offset + length)));
     } catch {
         return EMPTY_META;
     }
 };
 
 export const readPhotoGps = async (file: Blob): Promise<GpsPoint | null> => (await readPhotoMeta(file)).gps;
+
+// Some pickers (and HEIC files on Windows/Android) give no MIME type; trust the extension then.
+const IMAGE_NAME = /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp)$/i;
+export const isImageFile = (file: File) => file.type.startsWith('image/') || (!file.type && IMAGE_NAME.test(file.name));

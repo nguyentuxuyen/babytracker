@@ -4,15 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { MAX_PHOTOS_PER_MOMENT, MomentErrorCode, saveMoment, toMomentError } from '../../firebase/moments';
 import { connectDrive } from '../../firebase/googleDrive';
 import { useDriveStatus } from '../../hooks/useDriveStatus';
-import { readPhotoMeta } from '../../utils/photoExif';
-import { ImportDay, groupPhotosByDay } from '../../utils/photoImport';
+import { isImageFile, readPhotoMeta } from '../../utils/photoExif';
+import { ImportDay, groupPhotosByDay, summarizeGroup } from '../../utils/photoImport';
 import { reverseGeocode } from '../../services/geocode';
 import { SlideUp, bottomSheetProps, momentErrorKey } from './MomentEditorDialog';
 import { formatMomentDate } from './MomentViewer';
 import { fieldSx } from './FormControls';
 
 const MAX_IMPORT_PHOTOS = 300;
-const THUMBS_PER_DAY = 4;
+const THUMBS_PER_GROUP = 4;
 // Nominatim asks for at most one request per second.
 const GEOCODE_GAP_MS = 1100;
 
@@ -23,22 +23,39 @@ interface Props {
 }
 
 interface DayDraft extends ImportDay {
-    selected: boolean;
-    title: string;
     placeName: string;
     thumbs: string[];
+}
+
+// One future moment: one day, or several days the user merged, with a shared name and note.
+interface GroupDraft {
+    key: string;
+    days: DayDraft[];
+    selected: boolean;
+    title: string;
+    note: string;
+    /** Date for a group whose photos have no date at all. */
+    pickedDate: string;
 }
 
 type Step = 'pick' | 'reading' | 'review' | 'saving';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const groupKey = (days: DayDraft[]) => days.map((day) => day.date || 'none').join('+');
+const today = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+const singleGroup = (day: DayDraft, base?: Partial<GroupDraft>): GroupDraft => ({
+    key: groupKey([day]), days: [day], selected: true, title: '', note: '', pickedDate: today(), ...base
+});
 
-// Picks many photos at once and turns them into one moment per day they were taken,
-// with the place from the photos' GPS. The days can be reviewed, named or dropped first.
+// Picks many photos at once and splits them by the day they were taken, with the place from
+// the photos' GPS. Days can be merged into one event, named, given a note, or dropped.
 const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
     const { t } = useTranslation();
     const [step, setStep] = useState<Step>('pick');
-    const [days, setDays] = useState<DayDraft[]>([]);
+    const [groups, setGroups] = useState<GroupDraft[]>([]);
     const [readCount, setReadCount] = useState({ done: 0, total: 0 });
     const [tooMany, setTooMany] = useState(false);
     const [progress, setProgress] = useState({ day: 0, days: 0, photo: 0, photos: 0, fraction: 0 });
@@ -50,13 +67,13 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
     const { status: driveStatus } = useDriveStatus(open);
     const driveReady = !driveStatus || (driveStatus.configured && driveStatus.connected);
 
-    const releaseThumbs = (list: DayDraft[]) => list.forEach((day) => day.thumbs.forEach((url) => URL.revokeObjectURL(url)));
+    const releaseThumbs = (list: GroupDraft[]) => list.forEach((group) => group.days.forEach((day) => day.thumbs.forEach((url) => URL.revokeObjectURL(url))));
 
     useEffect(() => {
         if (!open) return undefined;
         runId.current += 1;
         setStep('pick');
-        setDays([]);
+        setGroups([]);
         setError(null);
         setTooMany(false);
         setSavedCount(0);
@@ -64,30 +81,60 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
     }, [open]);
 
     // Thumbnails are object URLs: free them when the list changes or the dialog closes.
-    const daysRef = useRef<DayDraft[]>([]);
-    useEffect(() => { daysRef.current = days; }, [days]);
-    useEffect(() => () => releaseThumbs(daysRef.current), []);
+    const groupsRef = useRef<GroupDraft[]>([]);
+    useEffect(() => { groupsRef.current = groups; }, [groups]);
+    useEffect(() => () => releaseThumbs(groupsRef.current), []);
 
-    const updateDay = (date: string, patch: Partial<DayDraft>) =>
-        setDays((current) => current.map((day) => (day.date === date ? { ...day, ...patch } : day)));
+    const updateGroup = (key: string, patch: Partial<GroupDraft>) =>
+        setGroups((current) => current.map((group) => (group.key === key ? { ...group, ...patch } : group)));
+
+    // Merges a group with the one below it (the older days) into one event.
+    const mergeWithNext = (index: number) => setGroups((current) => {
+        const [a, b] = [current[index], current[index + 1]];
+        if (!a || !b) return current;
+        const days = [...a.days, ...b.days];
+        const merged: GroupDraft = {
+            key: groupKey(days),
+            days,
+            selected: true,
+            title: a.title || b.title,
+            note: [a.note, b.note].filter(Boolean).join('\n'),
+            pickedDate: a.pickedDate
+        };
+        return [...current.slice(0, index), merged, ...current.slice(index + 2)];
+    });
+
+    const splitGroup = (index: number) => setGroups((current) => {
+        const group = current[index];
+        if (!group || group.days.length < 2) return current;
+        const parts = group.days.map((day, i) => singleGroup(day, i === 0 ? { title: group.title, note: group.note } : {}));
+        return [...current.slice(0, index), ...parts, ...current.slice(index + 1)];
+    });
 
     const lookUpPlaces = async (list: DayDraft[], run: number) => {
         for (const day of list) {
-            if (!day.gps) continue;
-            const name = await reverseGeocode(day.gps.lat, day.gps.lng);
+            const gps = day.items.find((item) => item.gps)?.gps;
+            if (!gps) continue;
+            const name = await reverseGeocode(gps.lat, gps.lng);
             if (runId.current !== run) return;
-            if (name) setDays((current) => current.map((item) => (item.date === day.date && !item.placeName ? { ...item, placeName: name } : item)));
+            if (name) {
+                setGroups((current) => current.map((group) => ({
+                    ...group,
+                    days: group.days.map((item) => (item.date === day.date && !item.placeName ? { ...item, placeName: name } : item))
+                })));
+            }
             await wait(GEOCODE_GAP_MS);
         }
     };
 
     const handleFiles = async (fileList: FileList | null) => {
-        const picked = Array.from(fileList || []).filter((file) => file.type.startsWith('image/'));
+        const picked = Array.from(fileList || []).filter(isImageFile);
         if (inputRef.current) inputRef.current.value = '';
         if (!picked.length) return;
         const files = picked.slice(0, MAX_IMPORT_PHOTOS);
         setTooMany(picked.length > files.length);
         const run = ++runId.current;
+        const startedAt = Date.now();
         setStep('reading');
         setReadCount({ done: 0, total: files.length });
         const photos = [];
@@ -96,37 +143,39 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
             if (i % 10 === 9) setReadCount({ done: i + 1, total: files.length });
             if (runId.current !== run) return;
         }
-        releaseThumbs(daysRef.current);
-        const drafts: DayDraft[] = groupPhotosByDay(photos, MAX_PHOTOS_PER_MOMENT).map((day) => ({
+        releaseThumbs(groupsRef.current);
+        const days: DayDraft[] = groupPhotosByDay(photos, startedAt).map((day) => ({
             ...day,
-            selected: true,
-            title: '',
             placeName: '',
-            thumbs: day.photos.slice(0, THUMBS_PER_DAY).map((file) => URL.createObjectURL(file))
+            thumbs: day.items.slice(0, THUMBS_PER_GROUP).map((item) => URL.createObjectURL(item.file))
         }));
-        setDays(drafts);
+        setGroups(days.map((day) => singleGroup(day)));
+        setSavedCount(0);
         setStep('review');
-        void lookUpPlaces(drafts, run);
+        void lookUpPlaces(days, run);
     };
 
-    const chosen = useMemo(() => days.filter((day) => day.selected), [days]);
-    const chosenPhotos = chosen.reduce((sum, day) => sum + day.photos.length, 0);
+    const summaries = useMemo(() => new Map(groups.map((group) => [group.key, summarizeGroup(group.days, MAX_PHOTOS_PER_MOMENT)])), [groups]);
+    const chosen = useMemo(() => groups.filter((group) => group.selected), [groups]);
+    const chosenPhotos = chosen.reduce((sum, group) => sum + (summaries.get(group.key)?.photos.length || 0), 0);
 
     const handleImport = async () => {
         const run = runId.current;
         setStep('saving');
         setError(null);
-        let saved = 0;
+        let saved = savedCount;
         for (let i = 0; i < chosen.length; i += 1) {
-            const day = chosen[i];
+            const group = chosen[i];
+            const summary = summaries.get(group.key)!;
+            const placeName = group.days.find((day) => day.placeName)?.placeName || '';
             try {
                 await saveMoment(uid, null, {
-                    title: day.title,
-                    date: day.date,
-                    note: '',
+                    title: group.title,
+                    date: summary.date || group.pickedDate || today(),
+                    note: group.note.trim(),
                     keptPhotos: [],
-                    newFiles: day.photos,
-                    location: day.gps ? { ...day.gps, name: day.placeName, source: 'photo' } : null
+                    newFiles: summary.photos,
+                    location: summary.gps ? { ...summary.gps, name: placeName, source: 'photo' } : null
                 }, (photo, photos, fraction) => setProgress({ day: i, days: chosen.length, photo, photos, fraction }));
             } catch (saveError) {
                 if (runId.current !== run) return;
@@ -135,8 +184,9 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
                 setError(failure.code);
                 setErrorDetail(failure.code === 'failed' ? failure.message : '');
                 setSavedCount(saved);
-                // Keep only the days that are not saved yet, so trying again does not duplicate.
-                setDays((current) => current.filter((item) => !chosen.slice(0, i).some((done) => done.date === item.date)));
+                // Keep only the events that are not saved yet, so trying again does not duplicate.
+                const done = new Set(chosen.slice(0, i).map((item) => item.key));
+                setGroups((current) => current.filter((item) => !done.has(item.key)));
                 setStep('review');
                 return;
             }
@@ -200,62 +250,125 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
                             {savedCount > 0 ? t('moments.import.partlySaved', { count: savedCount }) : t('moments.import.reviewHint')}
                         </Typography>
                         {tooMany && <Alert severity="info" sx={{ mb: 1.5 }}>{t('moments.import.tooMany', { max: MAX_IMPORT_PHOTOS })}</Alert>}
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {days.map((day) => (
-                                <Box key={day.date} sx={{
-                                    p: 1.25, borderRadius: '14px', border: '1px solid', borderColor: day.selected ? '#fbcfe8' : '#e5e7eb',
-                                    bgcolor: day.selected ? '#fff' : '#f8fafc', opacity: day.selected ? 1 : 0.6
-                                }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <Checkbox
-                                            checked={day.selected}
-                                            disabled={step === 'saving'}
-                                            onChange={(event) => updateDay(day.date, { selected: event.target.checked })}
-                                            inputProps={{ 'aria-label': formatMomentDate(day.date) }}
-                                            sx={{ p: 0.5, color: '#ec4899', '&.Mui-checked': { color: '#ec4899' } }}
-                                        />
-                                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#101c22' }}>
-                                                {formatMomentDate(day.date)}
-                                                <Box component="span" sx={{ fontWeight: 500, color: '#6b7f8a' }}> · {t('moments.import.photoCount', { count: day.photos.length })}</Box>
-                                            </Typography>
-                                            {(day.placeName || day.fromFileDate || day.skipped > 0) && (
-                                                <Typography sx={{ fontSize: 12, color: '#9d174d' }} noWrap>
-                                                    {[
-                                                        day.placeName && `📍 ${day.placeName}`,
-                                                        day.fromFileDate && t('moments.import.fileDate'),
-                                                        day.skipped > 0 && t('moments.import.skipped', { count: day.skipped, max: MAX_PHOTOS_PER_MOMENT })
-                                                    ].filter(Boolean).join(' · ')}
-                                                </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            {groups.map((group, index) => {
+                                const summary = summaries.get(group.key)!;
+                                const thumbs = group.days.flatMap((day) => day.thumbs).slice(0, THUMBS_PER_GROUP);
+                                const placeName = group.days.find((day) => day.placeName)?.placeName;
+                                const datedDays = group.days.filter((day) => day.date).length;
+                                const saving = step === 'saving';
+                                return (
+                                    <React.Fragment key={group.key}>
+                                        <Box sx={{
+                                            p: 1.25, borderRadius: '14px', border: '1px solid', borderColor: group.selected ? '#fbcfe8' : '#e5e7eb',
+                                            bgcolor: group.selected ? '#fff' : '#f8fafc', opacity: group.selected ? 1 : 0.6
+                                        }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                <Checkbox
+                                                    checked={group.selected}
+                                                    disabled={saving}
+                                                    onChange={(event) => updateGroup(group.key, { selected: event.target.checked })}
+                                                    inputProps={{ 'aria-label': summary.date ? formatMomentDate(summary.date) : t('moments.import.noDate') }}
+                                                    sx={{ p: 0.5, color: '#ec4899', '&.Mui-checked': { color: '#ec4899' } }}
+                                                />
+                                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#101c22' }}>
+                                                        {!summary.date
+                                                            ? t('moments.import.noDate')
+                                                            : summary.endDate !== summary.date
+                                                                ? `${formatMomentDate(summary.date)} – ${formatMomentDate(summary.endDate)}`
+                                                                : formatMomentDate(summary.date)}
+                                                        <Box component="span" sx={{ fontWeight: 500, color: '#6b7f8a' }}>
+                                                            {' · '}{t('moments.import.photoCount', { count: summary.photos.length + summary.skipped })}
+                                                            {datedDays > 1 && ` · ${t('moments.import.dayCount', { count: datedDays })}`}
+                                                        </Box>
+                                                    </Typography>
+                                                    {(placeName || summary.guessed > 0 || (summary.undated > 0 && summary.date) || summary.skipped > 0) && (
+                                                        <Typography sx={{ fontSize: 12, color: '#9d174d' }}>
+                                                            {[
+                                                                placeName && `📍 ${placeName}`,
+                                                                summary.guessed > 0 && t('moments.import.guessed', { count: summary.guessed }),
+                                                                summary.undated > 0 && summary.date && t('moments.import.undatedJoined', { count: summary.undated }),
+                                                                summary.skipped > 0 && t('moments.import.skipped', { count: summary.skipped, max: MAX_PHOTOS_PER_MOMENT })
+                                                            ].filter(Boolean).join(' · ')}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                                {group.days.length > 1 && (
+                                                    <Button size="small" disabled={saving} onClick={() => splitGroup(index)}
+                                                        sx={{ textTransform: 'none', fontWeight: 600, color: '#6b7f8a', minWidth: 0, flex: '0 0 auto' }}>
+                                                        {t('moments.import.split')}
+                                                    </Button>
+                                                )}
+                                            </Box>
+                                            <Box sx={{ display: 'flex', gap: 0.75, mt: 1, pl: 4.5 }}>
+                                                {thumbs.map((url) => (
+                                                    <Box key={url} component="img" src={url} alt="" sx={{ width: 48, height: 48, borderRadius: '8px', objectFit: 'cover', bgcolor: '#f1f5f9' }} />
+                                                ))}
+                                                {summary.photos.length > thumbs.length && (
+                                                    <Box sx={{ width: 48, height: 48, borderRadius: '8px', bgcolor: '#fdf2f8', color: '#be185d', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        +{summary.photos.length - thumbs.length}
+                                                    </Box>
+                                                )}
+                                            </Box>
+                                            {!summary.date && (
+                                                <Typography sx={{ fontSize: 12, color: '#9d174d', mt: 1 }}>{t('moments.import.noDateHint')}</Typography>
+                                            )}
+                                            {group.selected && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+                                                    {!summary.date && (
+                                                        <TextField
+                                                            variant="filled"
+                                                            size="small"
+                                                            type="date"
+                                                            disabled={saving}
+                                                            label={t('moments.date')}
+                                                            value={group.pickedDate}
+                                                            onChange={(event) => updateGroup(group.key, { pickedDate: event.target.value })}
+                                                            InputLabelProps={{ shrink: true }}
+                                                            sx={fieldSx}
+                                                        />
+                                                    )}
+                                                    <TextField
+                                                        variant="filled"
+                                                        size="small"
+                                                        fullWidth
+                                                        disabled={saving}
+                                                        label={t('moments.import.nameLabel')}
+                                                        placeholder={t('moments.namePlaceholder')}
+                                                        value={group.title}
+                                                        onChange={(event) => updateGroup(group.key, { title: event.target.value })}
+                                                        inputProps={{ maxLength: 120 }}
+                                                        sx={fieldSx}
+                                                    />
+                                                    <TextField
+                                                        variant="filled"
+                                                        size="small"
+                                                        fullWidth
+                                                        multiline
+                                                        minRows={1}
+                                                        maxRows={4}
+                                                        disabled={saving}
+                                                        label={t('moments.note')}
+                                                        value={group.note}
+                                                        onChange={(event) => updateGroup(group.key, { note: event.target.value })}
+                                                        inputProps={{ maxLength: 2000 }}
+                                                        sx={fieldSx}
+                                                    />
+                                                </Box>
                                             )}
                                         </Box>
-                                    </Box>
-                                    <Box sx={{ display: 'flex', gap: 0.75, mt: 1, pl: 4.5 }}>
-                                        {day.thumbs.map((url) => (
-                                            <Box key={url} component="img" src={url} alt="" sx={{ width: 48, height: 48, borderRadius: '8px', objectFit: 'cover', bgcolor: '#f1f5f9' }} />
-                                        ))}
-                                        {day.photos.length > day.thumbs.length && (
-                                            <Box sx={{ width: 48, height: 48, borderRadius: '8px', bgcolor: '#fdf2f8', color: '#be185d', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                +{day.photos.length - day.thumbs.length}
+                                        {index < groups.length - 1 && (
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.5 }}>
+                                                <Button size="small" disabled={saving} onClick={() => mergeWithNext(index)}
+                                                    sx={{ textTransform: 'none', fontWeight: 600, fontSize: 12, color: '#be185d', borderRadius: '10px', py: 0.25 }}>
+                                                    {t('moments.import.merge')}
+                                                </Button>
                                             </Box>
                                         )}
-                                    </Box>
-                                    {day.selected && (
-                                        <TextField
-                                            variant="filled"
-                                            size="small"
-                                            fullWidth
-                                            disabled={step === 'saving'}
-                                            label={t('moments.import.nameLabel')}
-                                            placeholder={t('moments.namePlaceholder')}
-                                            value={day.title}
-                                            onChange={(event) => updateDay(day.date, { title: event.target.value })}
-                                            inputProps={{ maxLength: 120 }}
-                                            sx={{ ...fieldSx, mt: 1 }}
-                                        />
-                                    )}
-                                </Box>
-                            ))}
+                                    </React.Fragment>
+                                );
+                            })}
                         </Box>
                     </>
                 )}
@@ -279,14 +392,14 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
                         sx={{ flex: '0 0 auto', borderRadius: '14px', textTransform: 'none', fontWeight: 600, color: '#0369a1', bgcolor: '#f0f9ff' }}>
                         {t('moments.import.chooseAgain')}
                     </Button>
-                    <Button fullWidth variant="contained" disabled={step === 'saving' || !chosen.length || !driveReady} onClick={() => void handleImport()}
+                    <Button fullWidth variant="contained" disabled={step === 'saving' || !chosen.length || !driveReady || chosen.some((group) => !summaries.get(group.key)?.date && !group.pickedDate)} onClick={() => void handleImport()}
                         sx={{ borderRadius: '14px', py: 1.25, textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec', '&:hover': { bgcolor: '#0e8fd9' } }}>
                         {step === 'saving' ? t('moments.saving') : t('moments.import.create', { count: chosen.length, photos: chosenPhotos })}
                     </Button>
                 </Box>
             )}
 
-            <input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={(event) => void handleFiles(event.target.files)} />
+            <input ref={inputRef} type="file" accept="image/*,.heic,.heif" multiple hidden onChange={(event) => void handleFiles(event.target.files)} />
         </Dialog>
     );
 };
