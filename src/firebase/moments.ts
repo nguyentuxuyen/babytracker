@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { compressImage } from '../utils/imageCompress';
+import { isImageFile } from '../utils/photoExif';
 import {
     DriveError,
     createMomentFolder,
@@ -167,7 +168,7 @@ const uploadPhoto = async (
     file: File,
     onProgress?: (fraction: number) => void
 ): Promise<MomentPhoto> => {
-    if (!file.type.startsWith('image/')) throw new MomentError('not-image');
+    if (!isImageFile(file)) throw new MomentError('not-image');
     let compressed;
     try {
         compressed = await compressImage(file);

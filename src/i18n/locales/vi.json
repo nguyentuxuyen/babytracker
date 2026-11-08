@@ -726,19 +726,25 @@
     "import": {
       "button": "Nhập ảnh",
       "title": "Nhập nhiều ảnh",
-      "hint": "Chọn một loạt ảnh (tối đa {{max}}). App tự chia theo ngày chụp, mỗi ngày thành một khoảnh khắc, kèm địa điểm nếu ảnh có GPS.",
+      "hint": "Chọn một loạt ảnh (tối đa {{max}}). App tự chia theo ngày chụp, kèm địa điểm nếu ảnh có GPS. Bạn có thể gộp nhiều ngày thành một sự kiện.",
       "choose": "Chọn ảnh",
       "chooseAgain": "Chọn lại",
       "reading": "Đang đọc ngày chụp {{done}}/{{total}}…",
-      "reviewHint": "Bỏ chọn ngày không muốn lưu, đặt tên nếu thích (để trống cũng được).",
-      "partlySaved": "Đã lưu {{count}} ngày. Những ngày còn lại ở dưới, bạn thử lại nhé.",
+      "reviewHint": "Bỏ chọn mục không muốn lưu. Bấm \"Gộp\" để ghép nhiều ngày thành một sự kiện, rồi đặt tên và ghi chú chung.",
+      "partlySaved": "Đã lưu {{count}} sự kiện. Những mục còn lại ở dưới, bạn thử lại nhé.",
       "tooMany": "Mỗi lần nhập tối đa {{max}} ảnh, mình đã lấy những ảnh đầu.",
       "photoCount": "{{count}} ảnh",
-      "fileDate": "không có ngày chụp, dùng ngày của file",
-      "skipped": "bỏ {{count}} ảnh (tối đa {{max}}/ngày)",
+      "skipped": "bỏ {{count}} ảnh (tối đa {{max}} ảnh/sự kiện)",
       "nameLabel": "Tên khoảnh khắc",
-      "saving": "Đang lưu ngày {{day}}/{{days}} · ảnh {{photo}}/{{photos}}",
-      "create": "Tạo {{count}} khoảnh khắc ({{photos}} ảnh)"
+      "saving": "Đang lưu sự kiện {{day}}/{{days}} · ảnh {{photo}}/{{photos}}",
+      "create": "Tạo {{count}} khoảnh khắc ({{photos}} ảnh)",
+      "noDate": "Chưa rõ ngày chụp",
+      "noDateHint": "Những ảnh này không có ngày chụp (thường là ảnh tải về hoặc chụp màn hình). Chọn ngày, hoặc gộp vào sự kiện ở trên.",
+      "guessed": "{{count}} ảnh lấy ngày theo tên/ngày file",
+      "undatedJoined": "{{count}} ảnh chưa rõ ngày",
+      "dayCount": "{{count}} ngày",
+      "merge": "⇅ Gộp 2 mục này thành 1 sự kiện",
+      "split": "Tách ra"
     }
   },
   "install": {

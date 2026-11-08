@@ -1,4 +1,4 @@
-import { gpsFromJpeg, metaFromJpeg, readPhotoGps, readPhotoMeta } from './photoExif';
+import { gpsFromJpeg, heifExifLocation, isHeif, isImageFile, metaFromJpeg, readPhotoGps, readPhotoMeta } from './photoExif';
 
 // Builds a minimal JPEG: SOI + APP1 Exif (IFD0 -> GPS IFD with lat/lng) + SOS.
 const jpegWithGps = (
@@ -109,5 +109,63 @@ describe('exif capture time', () => {
     it('returns both GPS and time through readPhotoMeta', async () => {
         const meta = await readPhotoMeta(new File([jpegWithGps([35, 0, 0], 'N', [139, 0, 0], 'E')], 'a.jpg'));
         expect(meta).toEqual({ gps: { lat: 35, lng: 139 }, takenAt: null });
+    });
+});
+
+// Minimal HEIC: ftyp, meta (iinf with an 'Exif' item, iloc pointing at it), then mdat with
+// `filler` bytes of image data before the Exif item, like iPhone files.
+const heicWithExif = (tiff: Uint8Array, filler: number, ilocVersion = 1) => {
+    const ascii = (text: string) => [...text].map((c) => c.charCodeAt(0));
+    const u16 = (v: number) => [v >> 8, v & 255];
+    const u32 = (v: number) => [(v >>> 24) & 255, (v >> 16) & 255, (v >> 8) & 255, v & 255];
+    const box = (type: string, body: number[]) => [...u32(8 + body.length), ...ascii(type), ...body];
+    const ftyp = box('ftyp', [...ascii('heic'), 0, 0, 0, 0, ...ascii('mif1heic')]);
+    const infe = box('infe', [2, 0, 0, 0, ...u16(1), ...u16(0), ...ascii('hvc1'), 0]);
+    const infeExif = box('infe', [2, 0, 0, 0, ...u16(7), ...u16(0), ...ascii('Exif'), 0]);
+    const iinf = box('iinf', [0, 0, 0, 0, ...u16(2), ...infe, ...infeExif]);
+    const ilocFor = (exifOffset: number, exifLength: number) => {
+        const item = (id: number, offset: number, length: number) => [
+            ...u16(id), ...(ilocVersion === 1 ? u16(0) : []), ...u16(0), ...u16(1), ...u32(offset), ...u32(length)
+        ];
+        return box('iloc', [ilocVersion, 0, 0, 0, 0x44, 0x00, ...u16(2), ...item(1, 0, 10), ...item(7, exifOffset, exifLength)]);
+    };
+    const exifItem = [...u32(6), ...ascii('Exif'), 0, 0, ...tiff];
+    const metaLength = 8 + 4 + iinf.length + ilocFor(0, 0).length;
+    const mdatStart = ftyp.length + metaLength;
+    const exifOffset = mdatStart + 8 + filler;
+    const meta = box('meta', [0, 0, 0, 0, ...iinf, ...ilocFor(exifOffset, exifItem.length)]);
+    const mdatHeader = [...u32(8 + filler + exifItem.length), ...ascii('mdat')];
+    const bytes = new Uint8Array(mdatStart + 8 + filler + exifItem.length);
+    bytes.set([...ftyp, ...meta, ...mdatHeader], 0);
+    bytes.set(exifItem, exifOffset);
+    return bytes.buffer;
+};
+
+const tiffOf = (jpeg: ArrayBuffer) => new Uint8Array(jpeg.slice(12, jpeg.byteLength - 2));
+
+describe('heic exif', () => {
+    it('finds the Exif item and reads date and GPS, even far into the file', async () => {
+        const dated = new File([heicWithExif(tiffOf(jpegWithDate('2026:11:01 10:20:30')), 400 * 1024)], 'IMG_1234.HEIC');
+        expect(await readPhotoMeta(dated)).toEqual({ gps: null, takenAt: '2026-11-01T10:20:30' });
+        const located = new File([heicWithExif(tiffOf(jpegWithGps([35, 0, 0], 'N', [139, 0, 0], 'E')), 100, 0)], 'b.heic');
+        expect((await readPhotoMeta(located)).gps).toEqual({ lat: 35, lng: 139 });
+    });
+
+    it('locates the item, and gives up on files without one', () => {
+        const buffer = heicWithExif(tiffOf(jpegWithDate('2026:11:01 10:20:30')), 50);
+        const where = heifExifLocation(buffer)!;
+        expect(where.length).toBe(10 + 120);
+        expect(isHeif(buffer)).toBe(true);
+        expect(heifExifLocation(buffer.slice(0, 40))).toBeNull();
+        expect(heifExifLocation(jpegWithDate('2026:11:01 10:20:30'))).toBeNull();
+    });
+});
+
+describe('isImageFile', () => {
+    it('accepts image types, and known extensions when the type is missing', () => {
+        expect(isImageFile(new File(['x'], 'a.jpg', { type: 'image/jpeg' }))).toBe(true);
+        expect(isImageFile(new File(['x'], 'IMG_0001.HEIC'))).toBe(true);
+        expect(isImageFile(new File(['x'], 'clip.mov'))).toBe(false);
+        expect(isImageFile(new File(['x'], 'a.jpg', { type: 'video/mp4' }))).toBe(false);
     });
 });

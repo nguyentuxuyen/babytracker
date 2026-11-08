@@ -1,36 +1,79 @@
-import { groupPhotosByDay } from './photoImport';
+import { dateFromFileName, groupPhotosByDay, photoStamp, summarizeGroup } from './photoImport';
 
-const photo = (name: string, takenAt: string | null, gps: { lat: number; lng: number } | null = null, lastModified = 0) => ({
+const NOW = new Date(2026, 10, 8, 20, 0).getTime();
+
+const photo = (name: string, takenAt: string | null, gps: { lat: number; lng: number } | null = null, lastModified = NOW) => ({
     file: new File(['x'], name, { lastModified }),
     meta: { takenAt, gps }
 });
 
 describe('groupPhotosByDay', () => {
-    it('makes one group per capture day, newest day first, photos in time order', () => {
+    it('makes one entry per capture day, newest day first, photos in time order', () => {
         const days = groupPhotosByDay([
             photo('b.jpg', '2026-11-05T15:00:00'),
             photo('old.jpg', '2026-10-20T09:00:00'),
             photo('a.jpg', '2026-11-05T09:30:00', { lat: 35.7, lng: 139.7 })
-        ], 30);
-        expect(days.map((day) => [day.date, day.photos.map((file) => file.name)])).toEqual([
+        ], NOW);
+        expect(days.map((day) => [day.date, day.items.map((item) => item.file.name)])).toEqual([
             ['2026-11-05', ['a.jpg', 'b.jpg']],
             ['2026-10-20', ['old.jpg']]
         ]);
-        expect(days[0].gps).toEqual({ lat: 35.7, lng: 139.7 });
-        expect(days[1].gps).toBeNull();
-        expect(days[0].fromFileDate).toBe(false);
+        expect(days[0].items[0].source).toBe('exif');
     });
 
-    it('caps photos per day and counts the rest', () => {
-        const many = Array.from({ length: 5 }, (_, i) => photo(`${i}.jpg`, `2026-11-05T10:0${i}:00`));
-        const [day] = groupPhotosByDay(many, 3);
-        expect(day.photos.map((file) => file.name)).toEqual(['0.jpg', '1.jpg', '2.jpg']);
-        expect(day.skipped).toBe(2);
+    it('dates photos without EXIF by file name, then by an old file date, else leaves them undated', () => {
+        const days = groupPhotosByDay([
+            photo('IMG_20261103_101500.jpg', null),
+            photo('screenshot.png', null, null, new Date(2026, 9, 3, 12, 0).getTime()),
+            photo('download.jpg', null, null, NOW - 60 * 1000), // picked just now (iPhone)
+            photo('a.jpg', '2026-11-05T09:30:00')
+        ], NOW);
+        expect(days.map((day) => [day.date, day.items.map((item) => item.source)])).toEqual([
+            ['2026-11-05', ['exif']],
+            ['2026-11-03', ['name']],
+            ['2026-10-03', ['file']],
+            ['', ['none']]
+        ]);
+    });
+});
+
+describe('dateFromFileName', () => {
+    it('reads common camera and app names', () => {
+        expect(dateFromFileName('IMG_20261105_143022.jpg')).toBe('2026-11-05T14:30:22');
+        expect(dateFromFileName('PXL_20261105_143022123.jpg')).toBe('2026-11-05T14:30:22');
+        expect(dateFromFileName('Screenshot_2026-11-05-14-30-22.png')).toBe('2026-11-05T14:30:22');
+        expect(dateFromFileName('IMG-20261105-WA0001.jpg')).toBe('2026-11-05T12:00:00');
     });
 
-    it('falls back to the file date when a photo has no capture time', () => {
-        const lastModified = new Date(2026, 9, 3, 12, 0).getTime();
-        const [day] = groupPhotosByDay([photo('screenshot.png', null, null, lastModified)], 30);
-        expect(day).toMatchObject({ date: '2026-10-03', fromFileDate: true });
+    it('ignores names without a real date', () => {
+        expect(dateFromFileName('IMG_4521.HEIC')).toBeNull();
+        expect(dateFromFileName('photo_20261345.jpg')).toBeNull();
+        expect(dateFromFileName('9920261105.jpg')).toBeNull();
+    });
+});
+
+describe('photoStamp', () => {
+    it('prefers EXIF', () => {
+        expect(photoStamp(photo('IMG_20200101_000000.jpg', '2026-11-05T09:30:00'), NOW)).toEqual({ stamp: '2026-11-05T09:30:00', source: 'exif' });
+    });
+});
+
+describe('summarizeGroup', () => {
+    it('merges days into one event dated by its first day, with the range and caps', () => {
+        const days = groupPhotosByDay([
+            photo('d1.jpg', '2026-11-03T10:00:00'),
+            photo('d2.jpg', '2026-11-04T10:00:00', { lat: 1, lng: 2 }),
+            photo('d2b.jpg', '2026-11-04T11:00:00'),
+            photo('IMG_20261102_090000.jpg', null),
+            photo('nodate.jpg', null)
+        ], NOW);
+        const summary = summarizeGroup(days, 4);
+        expect(summary).toMatchObject({ date: '2026-11-02', endDate: '2026-11-04', skipped: 1, guessed: 1, undated: 1, gps: { lat: 1, lng: 2 } });
+        expect(summary.photos.map((file) => file.name)).toEqual(['IMG_20261102_090000.jpg', 'd1.jpg', 'd2.jpg', 'd2b.jpg']);
+    });
+
+    it('has no date when only undated photos are in it', () => {
+        const days = groupPhotosByDay([photo('a.jpg', null), photo('b.jpg', null)], NOW);
+        expect(summarizeGroup(days, 30)).toMatchObject({ date: '', endDate: '', undated: 2, skipped: 0 });
     });
 });
