@@ -13,6 +13,7 @@ import {
 import { db } from './config';
 import { compressImage } from '../utils/imageCompress';
 import { isImageFile } from '../utils/photoExif';
+import { distinctPlaces, samePlace } from '../utils/geo';
 import {
     DriveError,
     createMomentFolder,
@@ -25,12 +26,29 @@ import {
 export const MAX_PHOTOS_PER_MOMENT = 30;
 export const MAX_PHOTOS_PER_PICK = 10;
 
+/** Where one photo was taken (from its GPS), with the looked-up place name. */
+export interface PhotoPlace {
+    lat: number;
+    lng: number;
+    name: string;
+}
+
 export interface MomentPhoto {
     id: string;
     driveFileId: string;
     width: number;
     height: number;
     size: number;
+    /** Photos of one moment can come from different places; null when the photo had no GPS. */
+    place: PhotoPlace | null;
+    /** Local capture time "YYYY-MM-DDTHH:MM:SS" from the photo, when known. */
+    takenAt: string | null;
+}
+
+/** What is known about a new photo before it is uploaded. */
+export interface NewPhotoInfo {
+    place: PhotoPlace | null;
+    takenAt: string | null;
 }
 
 // Where the moment happened: from the photos' GPS or picked by hand. `name` is editable.
@@ -59,6 +77,8 @@ export interface MomentInput {
     note: string;
     keptPhotos: MomentPhoto[];
     newFiles: File[];
+    /** Same order as newFiles; missing entries mean nothing is known. */
+    newFileInfo?: Array<NewPhotoInfo | null | undefined>;
     location?: MomentLocation | null;
 }
 
@@ -93,6 +113,14 @@ export const toLocalDateKey = (date: Date) => {
 
 const momentsCollection = (uid: string) => collection(db, 'users', uid, 'moments');
 
+export const normalizePhotoPlace = (raw: any): PhotoPlace | null => {
+    if (!raw || typeof raw !== 'object') return null;
+    const lat = Number(raw.lat);
+    const lng = Number(raw.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return { lat, lng, name: typeof raw.name === 'string' ? raw.name.trim().slice(0, 120) : '' };
+};
+
 const normalizePhoto = (raw: any): MomentPhoto | null => {
     if (!raw || typeof raw.id !== 'string' || typeof raw.driveFileId !== 'string' || !raw.driveFileId) return null;
     return {
@@ -100,8 +128,21 @@ const normalizePhoto = (raw: any): MomentPhoto | null => {
         driveFileId: raw.driveFileId,
         width: Number(raw.width) || 0,
         height: Number(raw.height) || 0,
-        size: Number(raw.size) || 0
+        size: Number(raw.size) || 0,
+        place: normalizePhotoPlace(raw.place),
+        takenAt: typeof raw.takenAt === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(raw.takenAt) ? raw.takenAt : null
     };
+};
+
+/** Distinct named places of a moment's photos (within 1 km counts as one), in photo order. */
+export const momentPlaces = (moment: Pick<Moment, 'photos' | 'location'>): PhotoPlace[] => {
+    const places = distinctPlaces(moment.photos.map((photo) => photo.place)).filter((place) => place.name);
+    if (moment.location?.name) {
+        const main = { lat: moment.location.lat, lng: moment.location.lng, name: moment.location.name };
+        const others = places.filter((place) => !samePlace(place, main));
+        return [main, ...others];
+    }
+    return places;
 };
 
 const normalizeLocation = (raw: any): MomentLocation | null => {
@@ -166,6 +207,7 @@ const uploadPhoto = async (
     folderId: string,
     index: number,
     file: File,
+    info: NewPhotoInfo | null | undefined,
     onProgress?: (fraction: number) => void
 ): Promise<MomentPhoto> => {
     if (!isImageFile(file)) throw new MomentError('not-image');
@@ -183,7 +225,16 @@ const uploadPhoto = async (
     const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
     try {
         const driveFileId = await uploadToDrive(compressed.blob, `${stamp}-${index + 1}.jpg`, folderId, onProgress);
-        return { id: photoId, driveFileId, width: compressed.width, height: compressed.height, size: compressed.blob.size };
+        return {
+            id: photoId,
+            driveFileId,
+            width: compressed.width,
+            height: compressed.height,
+            size: compressed.blob.size,
+            // Firestore rejects undefined, so unknown is written as null.
+            place: normalizePhotoPlace(info?.place),
+            takenAt: info?.takenAt || null
+        };
     } catch (error) {
         throw toMomentError(error);
     }
@@ -228,7 +279,7 @@ export const saveMoment = async (
     const uploaded: MomentPhoto[] = [];
     for (let i = 0; i < input.newFiles.length; i += 1) {
         onProgress?.(i, input.newFiles.length, 0);
-        uploaded.push(await uploadPhoto(driveFolderId as string, input.keptPhotos.length + i, input.newFiles[i], (fraction) =>
+        uploaded.push(await uploadPhoto(driveFolderId as string, input.keptPhotos.length + i, input.newFiles[i], input.newFileInfo?.[i], (fraction) =>
             onProgress?.(i, input.newFiles.length, fraction)));
     }
 

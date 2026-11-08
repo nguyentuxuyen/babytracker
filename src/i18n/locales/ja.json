@@ -745,6 +745,10 @@
       "dayCount": "{{count}} 日",
       "merge": "⇅ この2つを1つのイベントにまとめる",
       "split": "分ける"
+    },
+    "places": {
+      "several": "写真は {{count}} か所で撮影されています。各写真に場所が保存されます：",
+      "split": "{{count}} 件の思い出に分ける"
     }
   },
   "install": {

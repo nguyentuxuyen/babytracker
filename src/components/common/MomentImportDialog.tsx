@@ -20,6 +20,8 @@ interface Props {
     open: boolean;
     onClose: () => void;
     uid: string;
+    /** Photos to start with (from the moment editor's "split" button). */
+    initialFiles?: File[] | null;
 }
 
 interface DayDraft extends ImportDay {
@@ -41,7 +43,7 @@ interface GroupDraft {
 type Step = 'pick' | 'reading' | 'review' | 'saving';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const groupKey = (days: DayDraft[]) => days.map((day) => day.date || 'none').join('+');
+const groupKey = (days: DayDraft[]) => days.map((day) => day.id).join('+');
 const today = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -52,7 +54,7 @@ const singleGroup = (day: DayDraft, base?: Partial<GroupDraft>): GroupDraft => (
 
 // Picks many photos at once and splits them by the day they were taken, with the place from
 // the photos' GPS. Days can be merged into one event, named, given a note, or dropped.
-const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
+const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid, initialFiles }) => {
     const { t } = useTranslation();
     const [step, setStep] = useState<Step>('pick');
     const [groups, setGroups] = useState<GroupDraft[]>([]);
@@ -113,21 +115,21 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
 
     const lookUpPlaces = async (list: DayDraft[], run: number) => {
         for (const day of list) {
-            const gps = day.items.find((item) => item.gps)?.gps;
+            const { gps } = day;
             if (!gps) continue;
             const name = await reverseGeocode(gps.lat, gps.lng);
             if (runId.current !== run) return;
             if (name) {
                 setGroups((current) => current.map((group) => ({
                     ...group,
-                    days: group.days.map((item) => (item.date === day.date && !item.placeName ? { ...item, placeName: name } : item))
+                    days: group.days.map((item) => (item.id === day.id && !item.placeName ? { ...item, placeName: name } : item))
                 })));
             }
             await wait(GEOCODE_GAP_MS);
         }
     };
 
-    const handleFiles = async (fileList: FileList | null) => {
+    const handleFiles = async (fileList: FileList | File[] | null) => {
         const picked = Array.from(fileList || []).filter(isImageFile);
         if (inputRef.current) inputRef.current.value = '';
         if (!picked.length) return;
@@ -155,6 +157,13 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
         void lookUpPlaces(days, run);
     };
 
+    // Opened with photos already chosen: go straight to reading them.
+    useEffect(() => {
+        if (open && initialFiles?.length) void handleFiles(initialFiles);
+        // Only when the dialog opens with a new set of photos.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, initialFiles]);
+
     const summaries = useMemo(() => new Map(groups.map((group) => [group.key, summarizeGroup(group.days, MAX_PHOTOS_PER_MOMENT)])), [groups]);
     const chosen = useMemo(() => groups.filter((group) => group.selected), [groups]);
     const chosenPhotos = chosen.reduce((sum, group) => sum + (summaries.get(group.key)?.photos.length || 0), 0);
@@ -168,6 +177,8 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
             const group = chosen[i];
             const summary = summaries.get(group.key)!;
             const placeName = group.days.find((day) => day.placeName)?.placeName || '';
+            // Each photo keeps the place of the day part it came from.
+            const nameOf = new Map(group.days.flatMap((day) => day.items.map((item) => [item.file, day.placeName] as const)));
             try {
                 await saveMoment(uid, null, {
                     title: group.title,
@@ -175,6 +186,10 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
                     note: group.note.trim(),
                     keptPhotos: [],
                     newFiles: summary.photos,
+                    newFileInfo: summary.items.map((item) => ({
+                        place: item.gps ? { ...item.gps, name: nameOf.get(item.file) || '' } : null,
+                        takenAt: item.stamp && item.source === 'exif' ? item.stamp : null
+                    })),
                     location: summary.gps ? { ...summary.gps, name: placeName, source: 'photo' } : null
                 }, (photo, photos, fraction) => setProgress({ day: i, days: chosen.length, photo, photos, fraction }));
             } catch (saveError) {
@@ -254,8 +269,8 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid }) => {
                             {groups.map((group, index) => {
                                 const summary = summaries.get(group.key)!;
                                 const thumbs = group.days.flatMap((day) => day.thumbs).slice(0, THUMBS_PER_GROUP);
-                                const placeName = group.days.find((day) => day.placeName)?.placeName;
-                                const datedDays = group.days.filter((day) => day.date).length;
+                                const placeName = [...new Set(group.days.map((day) => day.placeName).filter(Boolean))].join(' · ');
+                                const datedDays = new Set(group.days.map((day) => day.date).filter(Boolean)).size;
                                 const saving = step === 'saving';
                                 return (
                                     <React.Fragment key={group.key}>

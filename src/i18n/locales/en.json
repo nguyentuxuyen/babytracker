@@ -764,6 +764,10 @@
       "dayCount": "{{count}} days",
       "merge": "⇅ Merge these two into one event",
       "split": "Split"
+    },
+    "places": {
+      "several": "Photos from {{count}} different places; each photo keeps its own place:",
+      "split": "Split into {{count}} separate moments"
     }
   },
   "install": {

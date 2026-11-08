@@ -745,6 +745,10 @@
       "dayCount": "{{count}} ngày",
       "merge": "⇅ Gộp 2 mục này thành 1 sự kiện",
       "split": "Tách ra"
+    },
+    "places": {
+      "several": "Ảnh chụp ở {{count}} nơi khác nhau, mỗi ảnh giữ địa điểm riêng:",
+      "split": "Tách thành {{count}} khoảnh khắc riêng"
     }
   },
   "install": {

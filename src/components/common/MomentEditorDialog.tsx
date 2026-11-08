@@ -10,6 +10,7 @@ import {
     MomentErrorCode,
     MomentLocation,
     MomentPhoto,
+    PhotoPlace,
     saveMoment,
     toLocalDateKey,
     toMomentError
@@ -18,7 +19,9 @@ import { connectDrive } from '../../firebase/googleDrive';
 import { useDriveStatus } from '../../hooks/useDriveStatus';
 import DrivePhoto from './DrivePhoto';
 import MomentLocationField from './MomentLocationField';
-import { isImageFile, readPhotoMeta } from '../../utils/photoExif';
+import { PhotoMeta, isImageFile, readPhotoMeta } from '../../utils/photoExif';
+import { groupPhotosByDay } from '../../utils/photoImport';
+import { distinctPlaces, samePlace } from '../../utils/geo';
 import { reverseGeocode } from '../../services/geocode';
 
 export const SlideUp = React.forwardRef(function SlideUp(
@@ -52,15 +55,25 @@ interface Props {
     moment?: Moment | null;
     defaultDate?: Date;
     onSaved?: (moment: Moment) => void;
+    /** Opens the bulk import with these photos, to make one moment per day and place. */
+    onSplit?: (files: File[]) => void;
 }
 
-const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defaultDate, onSaved }) => {
+// A photo picked in this editor, with what its EXIF said (null while still being read).
+interface NewItem {
+    file: File;
+    meta: PhotoMeta | null;
+    placeName: string;
+}
+
+const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defaultDate, onSaved, onSplit }) => {
     const { t } = useTranslation();
     const [title, setTitle] = useState('');
     const [date, setDate] = useState('');
     const [note, setNote] = useState('');
     const [keptPhotos, setKeptPhotos] = useState<MomentPhoto[]>([]);
-    const [newFiles, setNewFiles] = useState<File[]>([]);
+    const [newItems, setNewItems] = useState<NewItem[]>([]);
+    const newFiles = useMemo(() => newItems.map((item) => item.file), [newItems]);
     const [progress, setProgress] = useState<{ done: number; total: number; fraction: number } | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<MomentErrorCode | 'too-many' | null>(null);
@@ -87,7 +100,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         setDate(moment?.date || toLocalDateKey(defaultDate || new Date()));
         setNote(moment?.note || '');
         setKeptPhotos(moment?.photos || []);
-        setNewFiles([]);
+        setNewItems([]);
         setLocation(moment?.location || null);
         dateTouched.current = Boolean(moment || defaultDate);
         locationTouched.current = Boolean(moment?.location);
@@ -110,15 +123,29 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         if (!files.length) return;
         const room = Math.min(MAX_PHOTOS_PER_PICK, MAX_PHOTOS_PER_MOMENT - photoCount);
         setError(files.length > room ? 'too-many' : null);
-        if (room > 0) setNewFiles((current) => [...current, ...files.slice(0, room)]);
-        if (room > 0) void fillFromPhotos(files.slice(0, room));
+        if (room <= 0) return;
+        const added = files.slice(0, room);
+        setNewItems((current) => [...current, ...added.map((file) => ({ file, meta: null, placeName: '' }))]);
+        void fillFromPhotos(added);
     };
 
     const fillFromPhotos = async (files: File[]) => {
         const metas = await Promise.all(files.map((file) => readPhotoMeta(file)));
+        const metaOf = new Map(files.map((file, i) => [file, metas[i]]));
+        setNewItems((current) => current.map((item) => (metaOf.has(item.file) ? { ...item, meta: metaOf.get(item.file)! } : item)));
+        void namePhotoPlaces(metas.map((meta) => meta.gps));
         const days = metas.map((meta) => meta.takenAt?.slice(0, 10)).filter((day): day is string => Boolean(day)).sort();
         if (days.length && !dateTouched.current) setDate(days[0]);
         if (!location && !locationTouched.current) await fillLocation(metas.map((meta) => meta.gps));
+    };
+
+    // Every distinct place among the new photos gets its name (one lookup per place).
+    const namePhotoPlaces = async (points: Array<{ lat: number; lng: number } | null>) => {
+        for (const point of distinctPlaces(points)) {
+            const name = await reverseGeocode(point.lat, point.lng);
+            if (!name) continue;
+            setNewItems((current) => current.map((item) => (item.meta?.gps && !item.placeName && samePlace(item.meta.gps, point) ? { ...item, placeName: name } : item)));
+        }
     };
 
     // The first photo carrying GPS gives the moment its place; its name is looked up after.
@@ -144,7 +171,11 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         setError(null);
         setErrorDetail('');
         try {
-            const saved = await saveMoment(uid, moment || null, { title, date, note, keptPhotos, newFiles, location },
+            const newFileInfo = newItems.map((item) => ({
+                place: item.meta?.gps ? { ...item.meta.gps, name: item.placeName } : null,
+                takenAt: item.meta?.takenAt || null
+            }));
+            const saved = await saveMoment(uid, moment || null, { title, date, note, keptPhotos, newFiles, newFileInfo, location },
                 (done, total, fraction) => setProgress({ done, total, fraction }));
             onSaved?.(saved);
             onClose();
@@ -158,6 +189,27 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
             setProgress(null);
         }
     };
+
+    // Places of all photos in the moment (kept and new); more than one is worth pointing out.
+    const allPlaces: PhotoPlace[] = [
+        ...keptPhotos.map((photo) => photo.place),
+        ...newItems.map((item) => (item.meta?.gps ? { ...item.meta.gps, name: item.placeName } : null))
+    ].filter((place): place is PhotoPlace => place !== null);
+    const photoPlaces = distinctPlaces(allPlaces);
+    const namedPlaces = [...new Set(photoPlaces.map((place) => allPlaces.find((item) => item.name && samePlace(item, place))?.name).filter(Boolean))].join(' · ');
+    // A new moment whose photos are from several days or places can become several moments.
+    const splitCount = !moment && newItems.every((item) => item.meta)
+        ? groupPhotosByDay(newItems.map((item) => ({ file: item.file, meta: item.meta! }))).length
+        : 0;
+    const placeLabel = (place: PhotoPlace | null) => (photoPlaces.length > 1 && place ? (
+        <Box sx={{
+            position: 'absolute', left: 0, right: 0, bottom: 0, px: 0.5, py: 0.25,
+            bgcolor: 'rgba(15,23,42,0.6)', color: '#fff', fontSize: 10, fontWeight: 600,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+        }}>
+            📍 {place.name || '…'}
+        </Box>
+    ) : null);
 
     const tileSx = { position: 'relative', width: '100%', aspectRatio: '1 / 1', borderRadius: '12px', overflow: 'hidden', bgcolor: '#f1f5f9' } as const;
     const removeSx = {
@@ -202,6 +254,24 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
                     sx={{ ...fieldSx, mb: 1.5 }}
                 />
                 <MomentLocationField value={location} onChange={changeLocation} resolving={resolvingPlace} disabled={saving} />
+                {photoPlaces.length > 1 && (
+                    <Box sx={{ mt: -0.5, mb: 1.5, p: 1.25, borderRadius: '14px', bgcolor: '#fdf2f8', border: '1px solid #fbcfe8' }}>
+                        <Typography sx={{ fontSize: 13, color: '#9d174d' }}>
+                            {t('moments.places.several', { count: photoPlaces.length })}
+                            {namedPlaces && <Box component="span" sx={{ display: 'block', fontWeight: 600, mt: 0.25 }}>{namedPlaces}</Box>}
+                        </Typography>
+                        {splitCount > 1 && onSplit && (
+                            <Button
+                                size="small"
+                                disabled={saving}
+                                onClick={() => onSplit(newFiles)}
+                                sx={{ mt: 0.75, borderRadius: '10px', textTransform: 'none', fontWeight: 700, color: '#be185d', bgcolor: '#fff', border: '1px solid #f9a8d4' }}
+                            >
+                                {t('moments.places.split', { count: splitCount })}
+                            </Button>
+                        )}
+                    </Box>
+                )}
 
                 <SectionLabel>{t('moments.photos', { count: photoCount, max: MAX_PHOTOS_PER_MOMENT })}</SectionLabel>
                 {!driveReady && driveStatus && (
@@ -231,13 +301,15 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
                             <DrivePhoto photo={photo} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             <IconButton size="small" disabled={saving} sx={removeSx} aria-label={t('moments.removePhoto')}
                                 onClick={() => setKeptPhotos((current) => current.filter((item) => item.id !== photo.id))}>×</IconButton>
+                            {placeLabel(photo.place)}
                         </Box>
                     ))}
                     {newFiles.map((file, index) => (
                         <Box key={`${file.name}-${index}`} sx={tileSx}>
                             <Box component="img" src={previews[index]} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             <IconButton size="small" disabled={saving} sx={removeSx} aria-label={t('moments.removePhoto')}
-                                onClick={() => setNewFiles((current) => current.filter((_, i) => i !== index))}>×</IconButton>
+                                onClick={() => setNewItems((current) => current.filter((_, i) => i !== index))}>×</IconButton>
+                            {placeLabel(newItems[index]?.meta?.gps ? { ...newItems[index].meta!.gps!, name: newItems[index].placeName } : null)}
                         </Box>
                     ))}
                     {photoCount < MAX_PHOTOS_PER_MOMENT && driveReady && (

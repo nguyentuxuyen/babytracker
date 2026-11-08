@@ -43,13 +43,21 @@ const getJson = async (path: string, params: Record<string, string>, signal?: Ab
     return response.json();
 };
 
-export const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
-    try {
-        const place = await getJson('reverse', { lat: String(lat), lon: String(lng), zoom: '17' });
-        return place && !place.error ? shortPlaceName(place) || null : null;
-    } catch {
-        return null;
+// Same spot (about 10 m) asked twice in a session: answer from memory, Nominatim asks for few calls.
+const reverseCache = new Map<string, Promise<string | null>>();
+
+export const reverseGeocode = (lat: number, lng: number): Promise<string | null> => {
+    const key = `${currentLanguage()}:${lat.toFixed(4)},${lng.toFixed(4)}`;
+    let answer = reverseCache.get(key);
+    if (!answer) {
+        answer = getJson('reverse', { lat: String(lat), lon: String(lng), zoom: '17' })
+            .then((place) => (place && !place.error ? shortPlaceName(place) || null : null))
+            .catch(() => null);
+        // Failures are not kept, so a later try can still succeed.
+        answer.then((name) => { if (!name) reverseCache.delete(key); });
+        reverseCache.set(key, answer);
     }
+    return answer;
 };
 
 export const searchPlaces = async (text: string, signal?: AbortSignal): Promise<PlaceResult[]> => {
