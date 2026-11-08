@@ -19,6 +19,7 @@ const TimelinePage = lazyPage(() => import('../pages/TimelinePage'));
 const DailyReviewsPage = lazyPage(() => import('../pages/DailyReviewsPage'));
 const SettingsPage = lazyPage(() => import('../pages/SettingsPage'));
 const MomentsPage = lazyPage(() => import('../pages/MomentsPage'));
+const MomentsMapPage = lazyPage(() => import('../pages/MomentsMapPage'));
 
 // Fallback loader
 const FallbackLoader = () => (
@@ -53,6 +54,7 @@ const AppRouter: React.FC = () => {
                                     <PrivateRoute path="/food-history" component={FoodHistoryPage} />
                                     <PrivateRoute path="/reviews" component={DailyReviewsPage} />
                                     <PrivateRoute path="/settings" component={SettingsPage} />
+                                    <PrivateRoute path="/moments/map" component={MomentsMapPage} />
                                     <PrivateRoute path="/moments" component={MomentsPage} />
                                 </Switch>
                             </Box>

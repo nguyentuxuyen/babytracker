@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMoments } from '../hooks/useMoments';
 import { groupMomentsByMonth } from '../firebase/moments';
@@ -12,6 +13,7 @@ import PageHeader from '../components/common/PageHeader';
 // "Kỷ niệm": every moment, newest first, grouped by month.
 const MomentsPage: React.FC = () => {
     const { t } = useTranslation();
+    const history = useHistory();
     const { user } = useAuth();
     const { moments, loading } = useMoments(user?.uid);
     const { openMoment, addMoment, importPhotos, sheets } = useMomentSheets(user?.uid, moments);
@@ -30,6 +32,13 @@ const MomentsPage: React.FC = () => {
                     subtitle={t('moments.summary', { count: moments.length, photos: photoCount })}
                     action={moments.length > 0 ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                                onClick={() => history.push('/moments/map')}
+                                aria-label={t('moments.map.open')}
+                                sx={{ minWidth: 0, px: 1.25, borderRadius: '12px', fontSize: 18, bgcolor: '#fdf2f8' }}
+                            >
+                                🗺️
+                            </Button>
                             <Button
                                 onClick={importPhotos}
                                 sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff', whiteSpace: 'nowrap' }}

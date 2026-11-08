@@ -29,7 +29,7 @@ const BottomNav: React.FC = () => {
         if (path === '/' || path === '/activities') return 0;
         if (path === '/timeline') return 1;
         if (path === '/statistics') return 3;
-        if (path === '/moments') return 4;
+        if (path.startsWith('/moments')) return 4;
         return -1;
     };
 

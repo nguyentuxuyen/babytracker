@@ -768,6 +768,14 @@
     "places": {
       "several": "Photos from {{count}} different places; each photo keeps its own place:",
       "split": "Split into {{count}} separate moments"
+    },
+    "map": {
+      "title": "Moments map",
+      "open": "Open map",
+      "summary": "{{places}} places · {{photos}} photos",
+      "emptyTitle": "No photos with a location yet",
+      "emptyHint": "Photos taken with location on are pinned here. You can also set a moment's place when editing it.",
+      "momentsHere": "{{count}} moments here"
     }
   },
   "install": {

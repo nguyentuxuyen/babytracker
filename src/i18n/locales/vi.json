@@ -749,6 +749,14 @@
     "places": {
       "several": "Ảnh chụp ở {{count}} nơi khác nhau, mỗi ảnh giữ địa điểm riêng:",
       "split": "Tách thành {{count}} khoảnh khắc riêng"
+    },
+    "map": {
+      "title": "Bản đồ kỷ niệm",
+      "open": "Xem bản đồ",
+      "summary": "{{places}} nơi · {{photos}} ảnh",
+      "emptyTitle": "Chưa có ảnh nào có vị trí",
+      "emptyHint": "Ảnh chụp khi bật vị trí sẽ tự ghim lên đây. Bạn cũng có thể đặt địa điểm cho khoảnh khắc khi sửa.",
+      "momentsHere": "{{count}} khoảnh khắc ở đây"
     }
   },
   "install": {

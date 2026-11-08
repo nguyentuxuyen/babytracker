@@ -7,11 +7,15 @@ import MomentImportDialog from './MomentImportDialog';
 // View / add / edit flow shared by every page that shows moments.
 export const useMomentSheets = (uid: string | undefined, moments: Moment[]) => {
     const [viewingId, setViewingId] = useState<string | null>(null);
+    const [startPhotoId, setStartPhotoId] = useState<string | null>(null);
     const [editor, setEditor] = useState<{ moment: Moment | null; defaultDate?: Date } | null>(null);
     // Bulk import; `files` set when the editor hands over photos from several days or places.
     const [importer, setImporter] = useState<{ files: File[] | null } | null>(null);
 
-    const openMoment = useCallback((moment: Moment) => setViewingId(moment.id), []);
+    const openMoment = useCallback((moment: Moment, photoId?: string) => {
+        setStartPhotoId(photoId || null);
+        setViewingId(moment.id);
+    }, []);
     const addMoment = useCallback((defaultDate?: Date) => setEditor({ moment: null, defaultDate }), []);
     const importPhotos = useCallback(() => setImporter({ files: null }), []);
 
@@ -25,6 +29,7 @@ export const useMomentSheets = (uid: string | undefined, moments: Moment[]) => {
                 onClose={() => setViewingId(null)}
                 uid={uid}
                 moment={viewing}
+                initialPhotoId={startPhotoId}
                 onEdit={(moment) => setEditor({ moment })}
             />
             <MomentEditorDialog

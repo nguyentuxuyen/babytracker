@@ -21,9 +21,11 @@ interface Props {
     uid: string;
     moment: Moment | null;
     onEdit: (moment: Moment) => void;
+    /** Photo to show first (from a map pin); the first photo otherwise. */
+    initialPhotoId?: string | null;
 }
 
-const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) => {
+const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, initialPhotoId }) => {
     const { t } = useTranslation();
     const [index, setIndex] = useState(0);
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -32,10 +34,12 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) =
     const photos = moment?.photos || [];
 
     useEffect(() => {
-        setIndex(0);
+        setIndex(Math.max(0, photos.findIndex((photo) => photo.id === initialPhotoId)));
         setConfirmDelete(false);
         setError(false);
-    }, [moment?.id, open]);
+        // Only when another moment opens.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [moment?.id, open, initialPhotoId]);
 
     useEffect(() => {
         setIndex((current) => Math.min(current, Math.max(0, photos.length - 1)));
