@@ -60,7 +60,8 @@
     "reminderEvery_one": "Reminder every hour",
     "reminderEvery_other": "Reminder every {{count}} hrs",
     "pushOn": "Push: on",
-    "changelog": "What's new"
+    "changelog": "What's new",
+    "pendingSyncShort": "{{count}} pending"
   },
   "menu": {
     "babyInfo": "Baby info",
@@ -357,7 +358,11 @@
     "foodMenuEmpty": "No dishes yet. Add some from \"Manage menu\".",
     "addDish": "Add a new dish",
     "editProfile": "Edit profile",
-    "editProfileTitle": "Edit baby profile"
+    "editProfileTitle": "Edit baby profile",
+    "changePhoto": "Change photo",
+    "removePhoto": "Remove photo",
+    "photoSaving": "Saving photo...",
+    "photoFailed": "Could not save the photo, please try again"
   },
   "login": {
     "subtitleLine1": "Track your baby's day, growth",

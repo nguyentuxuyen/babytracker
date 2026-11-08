@@ -75,8 +75,8 @@ const DailyReviewsPage: React.FC = () => {
                 back
                 icon={<AutoAwesomeIcon sx={{ color: '#7c3aed' }} />}
                 title={t('dailyReview.historyTitle')}
-                subtitle={t('dailyReview.historyHint')}
             />
+            <Typography sx={{ fontSize: 13, color: '#5b6b75', mb: 1.5 }}>{t('dailyReview.historyHint')}</Typography>
 
             {reviews && !hasYesterday && (
                 <Box sx={{ mb: 1.5, p: 1.5, borderRadius: '16px', bgcolor: '#f5f3ff', border: '1px dashed #c4b5fd', display: 'flex', alignItems: 'center', gap: 1 }}>

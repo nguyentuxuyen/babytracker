@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localeTag } from '../i18n';
-import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, List, ListItem, ListItemText, ListItemSecondaryAction } from '@mui/material';
-import { EditIcon, DeleteIcon, AddIcon, CheckIcon, CloseIcon, FoodIcon as RestaurantIcon } from '../components/common/icons';
+import { Box, Typography, Card, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Select, FormControl, InputLabel, List, ListItem, ListItemText, ListItemSecondaryAction, CircularProgress } from '@mui/material';
+import { EditIcon, DeleteIcon, AddIcon, CheckIcon, CloseIcon, FoodIcon as RestaurantIcon, PhotoCameraIcon } from '../components/common/icons';
+import BabyAvatar from '../components/common/BabyAvatar';
+import { avatarDataUrl } from '../utils/imageCompress';
 import { useAuth } from '../contexts/AuthContext';
 import { useBaby } from '../contexts/BabyContext';
 import { firestore } from '../firebase/firestore';
@@ -10,8 +12,42 @@ import PageHeader from '../components/common/PageHeader';
 
 const BabyInfoPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const { currentUser } = useAuth();
-    const { baby } = useBaby();
+    const { baby, setBaby } = useBaby();
     const { t } = useTranslation();
+    const photoInputRef = useRef<HTMLInputElement>(null);
+    const [photoState, setPhotoState] = useState<'idle' | 'saving' | 'failed'>('idle');
+
+    // The avatar is a small square JPEG kept on the baby profile (see avatarDataUrl).
+    const saveAvatar = async (avatarUrl: string) => {
+        if (!currentUser || !baby) return;
+        const updated = { ...baby, avatarUrl };
+        const ok = await firestore.saveBabyData(currentUser.uid, updated);
+        if (!ok) throw new Error('save failed');
+        setBaby(updated);
+    };
+
+    const handlePhotoPicked = async (file: File | undefined) => {
+        if (!file) return;
+        setPhotoState('saving');
+        try {
+            await saveAvatar(await avatarDataUrl(file));
+            setPhotoState('idle');
+        } catch (error) {
+            console.error('Error saving baby photo:', error);
+            setPhotoState('failed');
+        }
+    };
+
+    const handleRemovePhoto = async () => {
+        setPhotoState('saving');
+        try {
+            await saveAvatar('');
+            setPhotoState('idle');
+        } catch (error) {
+            console.error('Error removing baby photo:', error);
+            setPhotoState('failed');
+        }
+    };
     const locale = localeTag();
     const babyName = baby?.name || t('common.baby');
     const genderLabel = (fallbackKey: string) =>
@@ -148,46 +184,63 @@ const BabyInfoPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                     gap: 2,
                     mb: 4
                 }}>
-                    {/* Avatar */}
+                    {/* Avatar: tap to pick a photo */}
                     <Box sx={{ position: 'relative' }}>
                         <Box
-                            sx={{
-                                width: 128,
-                                height: 128,
-                                borderRadius: '50%',
-                                bgcolor: '#e5e7eb',
-                                backgroundImage: baby?.avatarUrl ? `url(${baby.avatarUrl})` : 'none',
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
+                            component="button"
+                            type="button"
+                            onClick={() => photoInputRef.current?.click()}
+                            aria-label={t('babyInfo.changePhoto')}
+                            disabled={photoState === 'saving'}
+                            sx={{ p: 0, border: 'none', background: 'none', borderRadius: '50%', cursor: 'pointer', display: 'block', opacity: photoState === 'saving' ? 0.6 : 1 }}
                         >
-                            {!baby?.avatarUrl && (
-                                <Typography sx={{ fontSize: '48px', color: '#5b6b75' }}>
-                                    👶
-                                </Typography>
-                            )}
+                            <BabyAvatar baby={baby} size={128} />
                         </Box>
                         <IconButton
+                            onClick={() => photoInputRef.current?.click()}
+                            aria-label={t('babyInfo.changePhoto')}
+                            disabled={photoState === 'saving'}
                             sx={{
                                 position: 'absolute',
                                 bottom: 0,
                                 right: 0,
-                                width: 32,
-                                height: 32,
+                                width: 36,
+                                height: 36,
                                 bgcolor: '#13a4ec',
                                 color: '#ffffff',
-                                borderRadius: '8px',
+                                border: '3px solid #f6f7f8',
                                 '&:hover': {
                                     bgcolor: '#0e8fd4'
                                 }
                             }}
                         >
-                            <EditIcon sx={{ fontSize: 16 }} />
+                            {photoState === 'saving'
+                                ? <CircularProgress size={16} sx={{ color: '#ffffff' }} />
+                                : <PhotoCameraIcon sx={{ fontSize: 18 }} />}
                         </IconButton>
+                        <input
+                            ref={photoInputRef}
+                            type="file"
+                            accept="image/*,.heic,.heif"
+                            hidden
+                            onChange={(event) => {
+                                void handlePhotoPicked(event.target.files?.[0]);
+                                event.target.value = '';
+                            }}
+                        />
                     </Box>
+                    {photoState === 'failed' && (
+                        <Typography sx={{ fontSize: 13, color: '#b91c1c', mt: -1 }}>{t('babyInfo.photoFailed')}</Typography>
+                    )}
+                    {baby?.avatarUrl && photoState !== 'saving' && (
+                        <Button
+                            size="small"
+                            onClick={() => void handleRemovePhoto()}
+                            sx={{ mt: -1.5, textTransform: 'none', color: '#5b6b75', fontWeight: 600 }}
+                        >
+                            {t('babyInfo.removePhoto')}
+                        </Button>
+                    )}
 
                     {/* Baby Info */}
                     <Box sx={{ textAlign: 'center' }}>

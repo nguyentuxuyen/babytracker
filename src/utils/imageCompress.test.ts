@@ -1,4 +1,4 @@
-import { fitWithin } from './imageCompress';
+import { centerSquare, fitWithin } from './imageCompress';
 
 describe('fitWithin', () => {
     it('keeps small photos as they are', () => {
@@ -12,5 +12,15 @@ describe('fitWithin', () => {
 
     it('ignores empty sizes', () => {
         expect(fitWithin(0, 0, 1600)).toEqual({ width: 0, height: 0 });
+    });
+});
+
+describe('centerSquare', () => {
+    it('takes the middle of a wide photo', () => {
+        expect(centerSquare(400, 300)).toEqual({ sx: 50, sy: 0, side: 300 });
+    });
+
+    it('takes the middle of a tall photo', () => {
+        expect(centerSquare(300, 500)).toEqual({ sx: 0, sy: 100, side: 300 });
     });
 });

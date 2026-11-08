@@ -59,3 +59,33 @@ export const compressImage = async (
     if (!blob) throw new Error('Could not encode the photo');
     return { blob, width, height };
 };
+
+export const AVATAR_SIZE = 192;
+
+/** The centered square of a width × height picture (the part an avatar circle shows). */
+export const centerSquare = (width: number, height: number) => {
+    const side = Math.min(width, height);
+    return { sx: Math.round((width - side) / 2), sy: Math.round((height - side) / 2), side };
+};
+
+/**
+ * Turns a picked photo into a small square JPEG data URL for the baby's avatar. It is only a
+ * few KB, so it is kept right on the baby profile and shows on every device and offline,
+ * without needing Google Drive.
+ */
+export const avatarDataUrl = async (file: Blob, size = AVATAR_SIZE, quality = 0.82): Promise<string> => {
+    const source = await loadBitmap(file);
+    const sourceWidth = 'naturalWidth' in source ? source.naturalWidth : source.width;
+    const sourceHeight = 'naturalHeight' in source ? source.naturalHeight : source.height;
+    const { sx, sy, side } = centerSquare(sourceWidth, sourceHeight);
+    const target = Math.min(size, side || size);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = target;
+    canvas.height = target;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas 2D is not available');
+    context.drawImage(source, sx, sy, side, side, 0, 0, target, target);
+    if ('close' in source) source.close();
+    return canvas.toDataURL('image/jpeg', quality);
+};
