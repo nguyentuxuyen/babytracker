@@ -1,6 +1,7 @@
 // Bulk import: many photos are split by the day they were taken; days can then be merged
 // into one event (see summarizeGroup).
 import { GpsPoint, PhotoMeta } from './photoExif';
+import { samePlace } from './geo';
 
 export interface ImportPhoto {
     file: File;
@@ -18,8 +19,11 @@ export interface ImportItem {
 }
 
 export interface ImportDay {
+    /** Unique within one import: the date, plus "#2", "#3"… for later places that day. */
+    id: string;
     date: string; // YYYY-MM-DD, or UNKNOWN_DAY for photos without any date
     items: ImportItem[]; // in the order they were taken
+    gps: GpsPoint | null; // where this part of the day was, from its first photo with GPS
 }
 
 export const UNKNOWN_DAY = '';
@@ -57,7 +61,26 @@ export const photoStamp = ({ file, meta }: ImportPhoto, now = Date.now()): { sta
     return { stamp: '', source: 'none' };
 };
 
-/** One entry per capture day, newest day first; photos without a date come last. */
+// Within a day, photos are split where the place changes (more than SAME_PLACE_KM away
+// from where that part started). Photos without GPS stay with the part they are taken in.
+const splitByPlace = (date: string, items: ImportItem[]): ImportDay[] => {
+    const parts: ImportDay[] = [];
+    items.forEach((item) => {
+        const last = parts[parts.length - 1];
+        if (last && !(item.gps && last.gps && !samePlace(item.gps, last.gps))) {
+            last.items.push(item);
+            if (!last.gps && item.gps) last.gps = item.gps;
+            return;
+        }
+        // Undated photos have no order, so going back to an earlier place joins that part.
+        const earlier = date === UNKNOWN_DAY && item.gps ? parts.find((part) => part.gps && samePlace(part.gps, item.gps!)) : undefined;
+        if (earlier) { earlier.items.push(item); return; }
+        parts.push({ id: parts.length ? `${date || 'none'}#${parts.length + 1}` : date || 'none', date, items: [item], gps: item.gps });
+    });
+    return parts;
+};
+
+/** One entry per capture day and place, newest day first; photos without a date come last. */
 export const groupPhotosByDay = (photos: ImportPhoto[], now = Date.now()): ImportDay[] => {
     const byDay = new Map<string, ImportItem[]>();
     photos.forEach((photo) => {
@@ -68,7 +91,7 @@ export const groupPhotosByDay = (photos: ImportPhoto[], now = Date.now()): Impor
     });
     return [...byDay.entries()]
         .sort(([a], [b]) => (a === UNKNOWN_DAY ? 1 : b === UNKNOWN_DAY ? -1 : b.localeCompare(a)))
-        .map(([date, items]) => ({ date, items: [...items].sort((a, b) => a.stamp.localeCompare(b.stamp)) }));
+        .flatMap(([date, items]) => splitByPlace(date, [...items].sort((a, b) => a.stamp.localeCompare(b.stamp))));
 };
 
 export interface ImportGroupSummary {
@@ -77,6 +100,7 @@ export interface ImportGroupSummary {
     /** Latest known day, for showing a range. */
     endDate: string;
     photos: File[]; // in time order, at most `max`; undated photos last
+    items: ImportItem[]; // the same photos with their time and GPS
     skipped: number; // photos beyond `max`
     gps: GpsPoint | null; // first photo with a position
     guessed: number; // photos dated from their file name or file date
@@ -92,6 +116,7 @@ export const summarizeGroup = (days: ImportDay[], max: number): ImportGroupSumma
         date: dated[0] || '',
         endDate: dated[dated.length - 1] || '',
         photos: items.slice(0, max).map((item) => item.file),
+        items: items.slice(0, max),
         skipped: Math.max(0, items.length - max),
         gps: items.find((item) => item.gps)?.gps || null,
         guessed: items.filter((item) => item.source === 'name' || item.source === 'file').length,

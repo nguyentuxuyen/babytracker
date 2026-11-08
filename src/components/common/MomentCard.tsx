@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { Moment } from '../../firebase/moments';
+import { Moment, momentPlaces } from '../../firebase/moments';
 import DrivePhoto from './DrivePhoto';
 import { formatMomentDate } from './MomentViewer';
 
@@ -17,6 +17,7 @@ interface Props {
 const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
     const { t } = useTranslation();
     const cover = moment.photos[0];
+    const places = momentPlaces(moment);
     return (
         <Box
             component="button"
@@ -67,8 +68,8 @@ const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#101c22' }} noWrap>
                     {moment.title || t('moments.untitled')}
                 </Typography>
-                {moment.location?.name && (
-                    <Typography sx={{ fontSize: 13, color: '#be185d' }} noWrap>📍 {moment.location.name}</Typography>
+                {places.length > 0 && (
+                    <Typography sx={{ fontSize: 13, color: '#be185d' }} noWrap>📍 {places.map((place) => place.name).join(' · ')}</Typography>
                 )}
                 {moment.note && (
                     <Typography sx={{ fontSize: 13, color: '#6b7f8a' }} noWrap>{moment.note}</Typography>

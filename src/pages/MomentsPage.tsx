@@ -7,7 +7,6 @@ import { groupMomentsByMonth } from '../firebase/moments';
 import { localeTag } from '../i18n';
 import MomentCard from '../components/common/MomentCard';
 import { useMomentSheets } from '../components/common/MomentSheets';
-import MomentImportDialog from '../components/common/MomentImportDialog';
 import PageHeader from '../components/common/PageHeader';
 
 // "Kỷ niệm": every moment, newest first, grouped by month.
@@ -15,8 +14,7 @@ const MomentsPage: React.FC = () => {
     const { t } = useTranslation();
     const { user } = useAuth();
     const { moments, loading } = useMoments(user?.uid);
-    const { openMoment, addMoment, sheets } = useMomentSheets(user?.uid, moments);
-    const [importOpen, setImportOpen] = React.useState(false);
+    const { openMoment, addMoment, importPhotos, sheets } = useMomentSheets(user?.uid, moments);
     const photoCount = moments.reduce((sum, moment) => sum + moment.photos.length, 0);
 
     const monthLabel = (month: string) => {
@@ -33,7 +31,7 @@ const MomentsPage: React.FC = () => {
                     action={moments.length > 0 ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
-                                onClick={() => setImportOpen(true)}
+                                onClick={importPhotos}
                                 sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff', whiteSpace: 'nowrap' }}
                             >
                                 {t('moments.import.button')}
@@ -58,7 +56,7 @@ const MomentsPage: React.FC = () => {
                             <Button onClick={() => addMoment()} variant="contained" sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, bgcolor: '#13a4ec' }}>
                                 {t('moments.addTitle')}
                             </Button>
-                            <Button onClick={() => setImportOpen(true)} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff' }}>
+                            <Button onClick={importPhotos} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff' }}>
                                 {t('moments.import.button')}
                             </Button>
                         </Box>
@@ -78,7 +76,6 @@ const MomentsPage: React.FC = () => {
                 ))}
             </Box>
             {sheets}
-            {user && <MomentImportDialog open={importOpen} onClose={() => setImportOpen(false)} uid={user.uid} />}
         </Box>
     );
 };

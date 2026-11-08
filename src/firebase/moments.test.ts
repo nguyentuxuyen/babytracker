@@ -40,8 +40,10 @@ import { deleteDoc, setDoc } from 'firebase/firestore';
 import { DriveError, createMomentFolder, renameDriveFile, trashDriveFile, uploadToDrive } from './googleDrive';
 import {
     Moment,
+    MomentPhoto,
     deleteMoment,
     groupMomentsByMonth,
+    momentPlaces,
     normalizeMoment,
     saveMoment,
     sortMoments,
@@ -49,7 +51,7 @@ import {
     toMomentError
 } from './moments';
 
-const photo = (id: string) => ({ id, driveFileId: `drive-${id}`, width: 1, height: 1, size: 1 });
+const photo = (id: string): MomentPhoto => ({ id, driveFileId: `drive-${id}`, width: 1, height: 1, size: 1, place: null, takenAt: null });
 const moment = (id: string, date: string, createdAt = '2026-11-01T00:00:00Z', photos = [photo(`${id}-p`)], driveFolderId: string | null = null): Moment => ({
     id, date, createdAt, title: id, note: '', photos, driveFolderId, location: null, updatedAt: createdAt
 });
@@ -101,7 +103,42 @@ describe('moment helpers', () => {
     });
 });
 
+describe('photo places', () => {
+    it('reads each photo place and capture time, older photos have none', () => {
+        const read = normalizeMoment('a', { date: '2026-11-05', photos: [
+            { ...photo('p1'), place: { lat: 35.5, lng: 139.6, name: ' Tsurumi ' }, takenAt: '2025-06-14T10:00:00' },
+            { id: 'old', driveFileId: 'd-old', width: 1, height: 1, size: 1 },
+            { ...photo('bad'), place: { lat: 'x' }, takenAt: 'yesterday' }
+        ] })!;
+        expect(read.photos.map((p) => [p.place, p.takenAt])).toEqual([
+            [{ lat: 35.5, lng: 139.6, name: 'Tsurumi' }, '2025-06-14T10:00:00'],
+            [null, null],
+            [null, null]
+        ]);
+    });
+
+    it('lists distinct named places, the moment place first', () => {
+        const home = { lat: 35.5, lng: 139.6, name: 'Nhà' };
+        const near = { lat: 35.501, lng: 139.601, name: 'Gần nhà' };
+        const hospital = { lat: 35.6, lng: 139.7, name: 'Bệnh viện' };
+        const m = moment('m', '2026-11-05', undefined, [
+            { ...photo('1'), place: hospital }, { ...photo('2'), place: near }, { ...photo('3'), place: home }
+        ]);
+        expect(momentPlaces(m).map((p) => p.name)).toEqual(['Bệnh viện', 'Gần nhà']);
+        expect(momentPlaces({ ...m, location: { ...home, source: 'photo' } }).map((p) => p.name)).toEqual(['Nhà', 'Bệnh viện']);
+    });
+});
+
 describe('saveMoment', () => {
+    it('stores each new photo with its own place and time', async () => {
+        const place = { lat: 35.5, lng: 139.6, name: 'Tsurumi' };
+        const saved = await saveMoment('u', null, {
+            title: 'x', date: '2025-06-14', note: '', keptPhotos: [], newFiles: [image(), image('b.jpg')],
+            newFileInfo: [{ place, takenAt: '2025-06-14T10:00:00' }]
+        });
+        expect(saved.photos.map((p) => [p.place, p.takenAt])).toEqual([[place, '2025-06-14T10:00:00'], [null, null]]);
+    });
+
     it('creates a Drive folder for the moment, uploads into it, then writes the document', async () => {
         const progress = vi.fn();
         const saved = await saveMoment('u', null, {

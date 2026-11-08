@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Dialog, IconButton, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { localeTag } from '../../i18n';
-import { Moment, deleteMoment } from '../../firebase/moments';
+import { Moment, deleteMoment, momentPlaces } from '../../firebase/moments';
+import { samePlace } from '../../utils/geo';
 import { SlideUp, bottomSheetProps } from './MomentEditorDialog';
 import DrivePhoto from './DrivePhoto';
 import { mapsUrl } from '../../services/geocode';
@@ -42,6 +43,11 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) =
 
     if (!moment) return null;
     const current = photos[index];
+    const places = momentPlaces(moment);
+    // With photos from several places, each photo shows where it was taken.
+    const currentPlace = places.length > 1 && current?.place
+        ? { ...current.place, name: current.place.name || places.find((place) => samePlace(place, current.place!))?.name || '' }
+        : null;
     const go = (step: number) => {
         if (photos.length > 1) setIndex((value) => (value + step + photos.length) % photos.length);
     };
@@ -65,7 +71,12 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) =
                     <Typography sx={{ fontSize: 13, color: '#6b7f8a' }}>
                         {formatMomentDate(moment.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </Typography>
-                    {moment.location && (
+                    {places.length > 1 && (
+                        <Typography sx={{ mt: 0.25, fontSize: 13, color: '#9d174d' }}>
+                            📍 {places.map((place) => place.name).join(' · ')}
+                        </Typography>
+                    )}
+                    {places.length <= 1 && moment.location && (
                         <Box
                             component="a"
                             href={mapsUrl(moment.location.lat, moment.location.lng)}
@@ -133,6 +144,21 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit }) =
                                     {index + 1}/{photos.length}
                                 </Box>
                             </>
+                        )}
+                        {currentPlace && (
+                            <Box
+                                component="a"
+                                href={mapsUrl(currentPlace.lat, currentPlace.lng)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{
+                                    position: 'absolute', left: 10, bottom: 10, maxWidth: 'calc(100% - 20px)', px: 1.25, py: 0.5,
+                                    borderRadius: '10px', bgcolor: 'rgba(15,23,42,0.65)', color: '#fff', fontSize: 12, fontWeight: 600,
+                                    textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                                }}
+                            >
+                                📍 {currentPlace.name || t('moments.location.onMap')}
+                            </Box>
                         )}
                     </Box>
                 )}

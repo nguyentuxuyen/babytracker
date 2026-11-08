@@ -77,3 +77,30 @@ describe('summarizeGroup', () => {
         expect(summarizeGroup(days, 30)).toMatchObject({ date: '', endDate: '', undated: 2, skipped: 0 });
     });
 });
+
+describe('places within a day', () => {
+    const home = { lat: 35.5, lng: 139.65 };
+    const park = { lat: 35.7151, lng: 139.7715 };
+    it('splits a day where the place changes; photos without GPS stay with their part', () => {
+        const days = groupPhotosByDay([
+            photo('h1.jpg', '2026-11-05T08:00:00', home),
+            photo('h2.jpg', '2026-11-05T08:30:00', { lat: 35.501, lng: 139.651 }),
+            photo('p1.jpg', '2026-11-05T11:00:00', park),
+            photo('p2.jpg', '2026-11-05T11:30:00'),
+            photo('h3.jpg', '2026-11-05T18:00:00', home)
+        ], NOW);
+        expect(days.map((day) => [day.id, day.items.map((item) => item.file.name)])).toEqual([
+            ['2026-11-05', ['h1.jpg', 'h2.jpg']],
+            ['2026-11-05#2', ['p1.jpg', 'p2.jpg']],
+            ['2026-11-05#3', ['h3.jpg']]
+        ]);
+        expect(days[1].gps).toEqual(park);
+        const merged = summarizeGroup(days.slice(0, 2), 30);
+        expect(merged.items.map((item) => item.gps)).toEqual([home, { lat: 35.501, lng: 139.651 }, park, null]);
+    });
+
+    it('keeps undated photos of the same place together', () => {
+        const days = groupPhotosByDay([photo('a.jpg', null, home), photo('b.jpg', null, park), photo('c.jpg', null, home)], NOW);
+        expect(days.map((day) => [day.id, day.items.length])).toEqual([['none', 2], ['none#2', 1]]);
+    });
+});
