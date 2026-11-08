@@ -4,6 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { localeTag } from '../../i18n';
 import { Moment, deleteMoment, momentPlaces } from '../../firebase/moments';
 import { samePlace } from '../../utils/geo';
+import { journeyStops } from '../../utils/journey';
+
+// Leaflet is only loaded when a journey is played.
+const MomentJourneyDialog = React.lazy(() => import('./MomentJourneyDialog'));
 import { SlideUp, bottomSheetProps } from './MomentEditorDialog';
 import DrivePhoto from './DrivePhoto';
 import { mapsUrl } from '../../services/geocode';
@@ -29,6 +33,7 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
     const { t } = useTranslation();
     const [index, setIndex] = useState(0);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [journeyOpen, setJourneyOpen] = useState(false);
     const [error, setError] = useState(false);
     const touchStartX = useRef<number | null>(null);
     const photos = moment?.photos || [];
@@ -36,6 +41,7 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
     useEffect(() => {
         setIndex(Math.max(0, photos.findIndex((photo) => photo.id === initialPhotoId)));
         setConfirmDelete(false);
+        setJourneyOpen(false);
         setError(false);
         // Only when another moment opens.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,6 +54,7 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
     if (!moment) return null;
     const current = photos[index];
     const places = momentPlaces(moment);
+    const journeyStopCount = journeyStops(moment).length;
     // With photos from several places, each photo shows where it was taken.
     const currentPlace = places.length > 1 && current?.place
         ? { ...current.place, name: current.place.name || places.find((place) => samePlace(place, current.place!))?.name || '' }
@@ -194,6 +201,18 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
                     </Box>
                 )}
 
+                {journeyStopCount > 1 && (
+                    <Box sx={{ px: 2, pt: 1.5 }}>
+                        <Button
+                            fullWidth
+                            onClick={() => setJourneyOpen(true)}
+                            sx={{ borderRadius: '14px', py: 1, textTransform: 'none', fontWeight: 700, color: '#be185d', bgcolor: '#fdf2f8', border: '1px solid #fbcfe8', '&:hover': { bgcolor: '#fce7f3' } }}
+                        >
+                            🚗 {t('moments.journey.play', { count: journeyStopCount })}
+                        </Button>
+                    </Box>
+                )}
+
                 {moment.note && (
                     <Typography sx={{ px: 2, pt: 2, fontSize: 15, color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                         {moment.note}
@@ -227,6 +246,11 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
                     {t('moments.edit')}
                 </Button>
             </Box>
+            {journeyOpen && (
+                <React.Suspense fallback={null}>
+                    <MomentJourneyDialog open={journeyOpen} onClose={() => setJourneyOpen(false)} uid={uid} moment={moment} />
+                </React.Suspense>
+            )}
         </Dialog>
     );
 };

@@ -763,7 +763,8 @@
       "undatedJoined": "{{count}} photos without a date",
       "dayCount": "{{count}} days",
       "merge": "⇅ Merge these two into one event",
-      "split": "Split"
+      "split": "Split",
+      "mergeAll": "Merge all {{count}} into one event (the whole trip)"
     },
     "places": {
       "several": "Photos from {{count}} different places; each photo keeps its own place:",
@@ -776,6 +777,23 @@
       "emptyTitle": "No photos with a location yet",
       "emptyHint": "Photos taken with location on are pinned here. You can also set a moment's place when editing it.",
       "momentsHere": "{{count}} moments here"
+    },
+    "journey": {
+      "play": "Play the journey ({{count}} stops)",
+      "stops": "{{count}} stops",
+      "stopOf": "Stop {{index}}/{{count}}",
+      "replay": "Play again",
+      "finding": "Finding the route…",
+      "modes": "Travel",
+      "modesTitle": "How did you travel?",
+      "modesHint": "Pick how each leg was travelled. Cars follow real roads, planes fly a curve, boats cross the sea in a straight line.",
+      "mode": {
+        "car": "Car",
+        "train": "Train",
+        "plane": "Plane",
+        "ship": "Boat",
+        "walk": "Walk"
+      }
     }
   },
   "install": {

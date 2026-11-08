@@ -744,7 +744,8 @@
       "undatedJoined": "{{count}} ảnh chưa rõ ngày",
       "dayCount": "{{count}} ngày",
       "merge": "⇅ Gộp 2 mục này thành 1 sự kiện",
-      "split": "Tách ra"
+      "split": "Tách ra",
+      "mergeAll": "Gộp cả {{count}} mục thành 1 sự kiện (cả chuyến đi)"
     },
     "places": {
       "several": "Ảnh chụp ở {{count}} nơi khác nhau, mỗi ảnh giữ địa điểm riêng:",
@@ -757,6 +758,23 @@
       "emptyTitle": "Chưa có ảnh nào có vị trí",
       "emptyHint": "Ảnh chụp khi bật vị trí sẽ tự ghim lên đây. Bạn cũng có thể đặt địa điểm cho khoảnh khắc khi sửa.",
       "momentsHere": "{{count}} khoảnh khắc ở đây"
+    },
+    "journey": {
+      "play": "Xem hành trình ({{count}} điểm)",
+      "stops": "{{count}} điểm dừng",
+      "stopOf": "Điểm {{index}}/{{count}}",
+      "replay": "Xem lại",
+      "finding": "Đang tìm đường…",
+      "modes": "Phương tiện",
+      "modesTitle": "Đi bằng gì?",
+      "modesHint": "Chọn phương tiện cho từng chặng. Ô tô đi theo đường thật, máy bay bay đường cong, tàu thủy đi thẳng qua biển.",
+      "mode": {
+        "car": "Ô tô",
+        "train": "Tàu",
+        "plane": "Máy bay",
+        "ship": "Tàu thủy",
+        "walk": "Đi bộ"
+      }
     }
   },
   "install": {

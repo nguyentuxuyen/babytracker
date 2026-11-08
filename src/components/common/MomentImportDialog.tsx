@@ -106,6 +106,20 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid, initialFiles 
         return [...current.slice(0, index), merged, ...current.slice(index + 2)];
     });
 
+    // A whole trip in one go: every entry becomes one event (photos beyond the cap are left out).
+    const mergeAll = () => setGroups((current) => {
+        if (current.length < 2) return current;
+        const days = current.flatMap((group) => group.days);
+        return [{
+            key: groupKey(days),
+            days,
+            selected: true,
+            title: current.map((group) => group.title).find(Boolean) || '',
+            note: current.map((group) => group.note).filter(Boolean).join('\n'),
+            pickedDate: current[0].pickedDate
+        }];
+    });
+
     const splitGroup = (index: number) => setGroups((current) => {
         const group = current[index];
         if (!group || group.days.length < 2) return current;
@@ -264,6 +278,12 @@ const MomentImportDialog: React.FC<Props> = ({ open, onClose, uid, initialFiles 
                         <Typography sx={{ fontSize: 13, color: '#6b7f8a', mb: 1.5 }}>
                             {savedCount > 0 ? t('moments.import.partlySaved', { count: savedCount }) : t('moments.import.reviewHint')}
                         </Typography>
+                        {groups.length > 2 && step === 'review' && (
+                            <Button fullWidth onClick={mergeAll}
+                                sx={{ mb: 1.5, borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#be185d', bgcolor: '#fdf2f8', border: '1px solid #fbcfe8' }}>
+                                {t('moments.import.mergeAll', { count: groups.length })}
+                            </Button>
+                        )}
                         {tooMany && <Alert severity="info" sx={{ mb: 1.5 }}>{t('moments.import.tooMany', { max: MAX_IMPORT_PHOTOS })}</Alert>}
                         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                             {groups.map((group, index) => {
