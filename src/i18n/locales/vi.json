@@ -164,7 +164,8 @@
       "bulkPartial": "Đã tạo {{success}}/{{total}}, {{failed}} bản lỗi.",
       "saved": "Đã lưu.",
       "savedOffline": "Đã lưu ngoại tuyến. Sẽ tự đồng bộ khi có mạng.",
-      "saveFailed": "Lưu không thành công. Vui lòng thử lại."
+      "saveFailed": "Lưu không thành công. Vui lòng thử lại.",
+      "savedBathDiaper": "Đã lưu tắm và thay tã."
     }
   },
   "diaper": {
@@ -183,7 +184,9 @@
     },
     "kind": "Loại",
     "both": "Cả hai",
-    "colorLabel": "Màu sắc"
+    "colorLabel": "Màu sắc",
+    "withBath": "Thay tã luôn",
+    "none": "Không"
   },
   "feeding": {
     "milk": "Sữa",

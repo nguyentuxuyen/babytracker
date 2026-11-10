@@ -175,7 +175,8 @@
       "bulkPartial": "Created {{success}} of {{total}}, {{failed}} failed.",
       "saved": "Saved.",
       "savedOffline": "Saved offline. It will sync when you are back online.",
-      "saveFailed": "Could not save. Please try again."
+      "saveFailed": "Could not save. Please try again.",
+      "savedBathDiaper": "Saved bath and diaper change."
     }
   },
   "diaper": {
@@ -194,7 +195,9 @@
     },
     "kind": "Type",
     "both": "Both",
-    "colorLabel": "Colour"
+    "colorLabel": "Colour",
+    "withBath": "Diaper change too",
+    "none": "No"
   },
   "feeding": {
     "milk": "Milk",

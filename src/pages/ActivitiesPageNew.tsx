@@ -125,6 +125,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
     }
 }
 
+
+const BATH_DIAPER_KEY = 'babytracker.bathDiaperKind';
+type BathDiaperKind = 'none' | 'urine' | 'stool' | 'both';
+/** Last bath's diaper choice; a diaper change is usual at bath time, so wet ("Tè") is the first default. */
+const readBathDiaperKind = (): BathDiaperKind => {
+    try {
+        const saved = localStorage.getItem(BATH_DIAPER_KEY);
+        if (saved === 'none' || saved === 'urine' || saved === 'stool' || saved === 'both') return saved;
+    } catch { /* storage may be blocked */ }
+    return 'urine';
+};
+
 const ActivitiesPage: React.FC = () => {
     const history = useHistory();
     const location = useLocation();
@@ -264,6 +276,8 @@ const ActivitiesPage: React.FC = () => {
         foodGrams?: Record<string, string>;
         isAllergic?: boolean;
         foodPreference?: 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
+        /** Bath form: also log a diaper change at the same time (kind from isUrine/isStool). */
+        withDiaper?: boolean;
     }>({
         type: 'feeding',
         time: new Date().toTimeString().slice(0, 5), // HH:MM format
@@ -572,6 +586,21 @@ const ActivitiesPage: React.FC = () => {
                 }
             }
             
+            const diaperDetailsFromForm = (time: Date, notes: string) => ({
+                time,
+                isUrine: !!formData.isUrine,
+                isStool: !!formData.isStool,
+                stoolColor: Array.isArray(formData.stoolColor) ? formData.stoolColor : (formData.stoolColor ? [formData.stoolColor] : []),
+                stoolConsistency: formData.stoolConsistency || 'bình thường',
+                notes
+            });
+
+            // Remember the bath's diaper choice so the next bath starts from it.
+            if (formData.type === 'bath' && !editingActivity && !isBulkMode) {
+                const kind = !formData.withDiaper ? 'none' : formData.isUrine && formData.isStool ? 'both' : formData.isStool ? 'stool' : 'urine';
+                try { localStorage.setItem(BATH_DIAPER_KEY, kind); } catch { /* storage may be blocked */ }
+            }
+
             // Create activity details based on type
             let details: any = {};
             switch (formData.type) {
@@ -619,14 +648,7 @@ const ActivitiesPage: React.FC = () => {
                     };
                     break;
                 case 'diaper':
-                    details = {
-                        time: timestamp,
-                        isUrine: !!formData.isUrine,
-                        isStool: !!formData.isStool,
-                        stoolColor: Array.isArray(formData.stoolColor) ? formData.stoolColor : (formData.stoolColor ? [formData.stoolColor] : []),
-                        stoolConsistency: formData.stoolConsistency || 'bình thường',
-                        notes: formData.notes || ''
-                    };
+                    details = diaperDetailsFromForm(timestamp, formData.notes || '');
                     break;
                 case 'measurement':
                     details = {
@@ -786,15 +808,32 @@ const ActivitiesPage: React.FC = () => {
                         timestamp: savedActivity.timestamp,
                         details: savedActivity.details
                     } as Activity;
-                    setActivities([localActivity, ...(activities || [])]);
+                    const created: Activity[] = [localActivity];
+                    // Bath with "diaper too": the diaper change is its own entry at the same time.
+                    if (formData.type === 'bath' && formData.withDiaper) {
+                        const savedDiaper = await firestore.saveActivity(currentUser.uid, {
+                            babyId: baby.id,
+                            type: 'diaper',
+                            timestamp,
+                            details: diaperDetailsFromForm(timestamp, '')
+                        });
+                        created.unshift({
+                            id: savedDiaper.id,
+                            type: savedDiaper.type,
+                            timestamp: savedDiaper.timestamp,
+                            details: savedDiaper.details
+                        } as Activity);
+                    }
+                    setActivities([...created, ...(activities || [])]);
                     // A short buzz confirms the save on phones that support it.
                     navigator.vibrate?.(15);
+                    const offline = created.some((item) => firestore.isPendingWrite(item.id));
                     setSnackbar({
                         open: true,
-                        message: firestore.isPendingWrite(savedActivity.id)
+                        message: offline
                             ? t('activities.snackbar.savedOffline')
-                            : t('activities.snackbar.saved'),
-                        severity: firestore.isPendingWrite(savedActivity.id) ? 'info' : 'success'
+                            : created.length > 1 ? t('activities.snackbar.savedBathDiaper') : t('activities.snackbar.saved'),
+                        severity: offline ? 'info' : 'success'
                     });
                 }
             }
@@ -1100,6 +1139,17 @@ const ActivitiesPage: React.FC = () => {
                                                 stoolColor: ['vàng'],
                                                 stoolConsistency: 'bình thường'
                                            
+                                            });
+                                        } else if (action.type === 'bath') {
+                                            // Diaper is often changed at bath time: start from the last bath's choice.
+                                            const kind = readBathDiaperKind();
+                                            setFormData({
+                                                ...baseForm,
+                                                withDiaper: kind !== 'none',
+                                                isUrine: kind !== 'stool',
+                                                isStool: kind === 'stool' || kind === 'both',
+                                                stoolColor: ['vàng'],
+                                                stoolConsistency: 'bình thường'
                                             });
                                         } else {
                                             setFormData(baseForm);
@@ -1487,29 +1537,36 @@ const ActivitiesPage: React.FC = () => {
                                     </Box>
                                 ))}
 
-                                {/* Diaper: what was in it, then stool details */}
-                                {formData.type === 'diaper' && (
+                                {/* Diaper: what was in it, then stool details.
+                                    A new bath can log a diaper change too ("Không" = bath only). */}
+                                {(formData.type === 'diaper' || (formData.type === 'bath' && !editingActivity && !isBulkMode)) && (
                                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                         <Box>
-                                            <SectionLabel>{t('diaper.kind')}</SectionLabel>
+                                            <SectionLabel>{formData.type === 'bath' ? t('diaper.withBath') : t('diaper.kind')}</SectionLabel>
                                             <SegmentedControl
                                                 color={ACTIVITY_COLORS.diaper}
-                                                value={formData.isUrine && formData.isStool ? 'both' : formData.isStool ? 'stool' : 'urine'}
+                                                value={formData.type === 'bath' && !formData.withDiaper
+                                                    ? 'none'
+                                                    : formData.isUrine && formData.isStool ? 'both' : formData.isStool ? 'stool' : 'urine'}
                                                 onChange={(kind) => setFormData({
                                                     ...formData,
-                                                    isUrine: kind !== 'stool',
-                                                    isStool: kind !== 'urine',
-                                                    stoolColor: kind !== 'urine' && !(formData.stoolColor && formData.stoolColor.length) ? ['vàng'] : formData.stoolColor
+                                                    ...(formData.type === 'bath' ? { withDiaper: kind !== 'none' } : {}),
+                                                    ...(kind === 'none' ? {} : {
+                                                        isUrine: kind !== 'stool',
+                                                        isStool: kind !== 'urine',
+                                                        stoolColor: kind !== 'urine' && !(formData.stoolColor && formData.stoolColor.length) ? ['vàng'] : formData.stoolColor
+                                                    })
                                                 })}
                                                 options={[
-                                                    { value: 'urine', label: t('diaper.urine') },
-                                                    { value: 'stool', label: t('diaper.stool') },
-                                                    { value: 'both', label: t('diaper.both') }
+                                                    ...(formData.type === 'bath' ? [{ value: 'none' as const, label: t('diaper.none') }] : []),
+                                                    { value: 'urine' as const, label: t('diaper.urine') },
+                                                    { value: 'stool' as const, label: t('diaper.stool') },
+                                                    { value: 'both' as const, label: t('diaper.both') }
                                                 ]}
                                             />
                                         </Box>
 
-                                        {formData.isStool && (
+                                        {formData.isStool && (formData.type === 'diaper' || formData.withDiaper) && (
                                             <>
                                                 <Box>
                                                     <SectionLabel>{t('diaper.colorLabel')}</SectionLabel>

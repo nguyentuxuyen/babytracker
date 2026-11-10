@@ -164,7 +164,8 @@
       "bulkPartial": "{{total}}件中 {{success}}件を作成、{{failed}}件でエラー。",
       "saved": "記録を保存しました。",
       "savedOffline": "オフライン保存しました。オンライン時に自動同期されます。",
-      "saveFailed": "保存中にエラーが発生しました。もう一度お試しください。"
+      "saveFailed": "保存中にエラーが発生しました。もう一度お試しください。",
+      "savedBathDiaper": "お風呂とおむつ替えを保存しました。"
     }
   },
   "diaper": {
@@ -183,7 +184,9 @@
     },
     "kind": "種類",
     "both": "両方",
-    "colorLabel": "色"
+    "colorLabel": "色",
+    "withBath": "おむつ替えも",
+    "none": "なし"
   },
   "feeding": {
     "milk": "ミルク",
