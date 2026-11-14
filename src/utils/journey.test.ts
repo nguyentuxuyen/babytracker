@@ -1,4 +1,4 @@
-import { along, alongPath, easeInOut, flightArc, guessMode, journeyStops, legDuration, legKey } from './journey';
+import { along, alongPath, easeInOut, flightArc, guessMode, journeyStops, legDuration, legKey, tripStops } from './journey';
 import type { MomentPhoto } from '../firebase/moments';
 
 const A = { lat: 34.6, lng: 135.0, name: 'Cầu Akashi' };
@@ -61,5 +61,31 @@ describe('travel modes and paths', () => {
         expect(half.point.lng).toBeCloseTo(1, 2);
         expect(alongPath(path, 0.25).heading).toBeCloseTo(0, 0);
         expect(alongPath(path, 0.9).heading).toBeCloseTo(90, 0);
+    });
+});
+
+describe('tripStops', () => {
+    const shot = (id: string, lat: number, lng: number, takenAt: string | null = null) => ({
+        id, driveFileId: `d-${id}`, width: 1, height: 1, size: 1, place: { lat, lng, name: id }, takenAt
+    });
+    const home = { lat: 34.7, lng: 135.5, name: 'Nhà' };
+
+    it('joins the moments by date and adds the start and end points', () => {
+        const stops = tripStops([
+            { date: '2026-11-02', photos: [shot('c', 34.3, 134.8)] },
+            { date: '2026-11-01', photos: [shot('a', 34.6, 135.0), shot('b', 34.5, 134.9)] }
+        ], home, home);
+        expect(stops.map((stop) => stop.kind || stop.photos[0].id)).toEqual(['start', 'a', 'b', 'c', 'end']);
+        expect(stops[0]).toMatchObject({ lat: 34.7, lng: 135.5, name: 'Nhà', photos: [] });
+    });
+
+    it('has no extra points when none were added', () => {
+        expect(tripStops([{ date: '2026-11-01', photos: [shot('a', 34.6, 135.0)] }]).map((stop) => stop.kind)).toEqual([undefined]);
+    });
+
+    it('names the legs to and from the added points', () => {
+        const stops = tripStops([{ date: '2026-11-01', photos: [shot('a', 34.6, 135.0)] }], home, home);
+        expect(legKey(stops[0], stops[1])).toBe('start>a');
+        expect(legKey(stops[1], stops[2])).toBe('a>end');
     });
 });

@@ -11,6 +11,8 @@ interface Props {
     /** True while the name of a position read from a photo is being looked up. */
     resolving?: boolean;
     disabled?: boolean;
+    /** Text of the button shown while there is no place (default: "add a place"). */
+    addLabel?: string;
 }
 
 const PinIcon: React.FC<{ color?: string }> = ({ color = '#ec4899' }) => (
@@ -22,7 +24,7 @@ const PinIcon: React.FC<{ color?: string }> = ({ color = '#ec4899' }) => (
 
 // Place of a moment: filled from the photos' GPS when there is one; the name can be
 // edited, and the place changed by searching or removed.
-const MomentLocationField: React.FC<Props> = ({ value, onChange, resolving = false, disabled = false }) => {
+const MomentLocationField: React.FC<Props> = ({ value, onChange, resolving = false, disabled = false, addLabel }) => {
     const { t } = useTranslation();
     const [searching, setSearching] = useState(false);
     const [query, setQuery] = useState('');
@@ -129,7 +131,7 @@ const MomentLocationField: React.FC<Props> = ({ value, onChange, resolving = fal
                 startIcon={<PinIcon color="#13a4ec" />}
                 sx={{ mb: 2, textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#f0f9ff', borderRadius: '12px', px: 1.5 }}
             >
-                {t('moments.location.add')}
+                {addLabel || t('moments.location.add')}
             </Button>
         );
     }

@@ -1,6 +1,6 @@
 // The route of a moment: its photos' places in the order they were taken, with photos
 // at the same place in a row folded into one stop (A -> B -> C, A again is a new stop).
-import type { Moment, MomentPhoto, TravelMode } from '../firebase/moments';
+import type { Moment, MomentPhoto, PhotoPlace, TravelMode } from '../firebase/moments';
 import { distanceKm, samePlace } from './geo';
 
 export interface JourneyStop {
@@ -10,6 +10,8 @@ export interface JourneyStop {
     photos: MomentPhoto[];
     /** First capture time at this stop, when known. */
     takenAt: string | null;
+    /** A point added by hand to a trip (where it starts or ends); it has no photos. */
+    kind?: 'start' | 'end';
 }
 
 export const journeyStops = (moment: Pick<Moment, 'photos'>): JourneyStop[] => {
@@ -50,7 +52,23 @@ export const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2)
 export type LatLng = { lat: number; lng: number };
 
 /** A leg is named by its two stops' first photos, so it survives photos being added elsewhere. */
-export const legKey = (from: JourneyStop, to: JourneyStop) => `${from.photos[0]?.id}>${to.photos[0]?.id}`;
+const stopKey = (stop: JourneyStop) => stop.kind || stop.photos[0]?.id;
+export const legKey = (from: JourneyStop, to: JourneyStop) => `${stopKey(from)}>${stopKey(to)}`;
+
+/**
+ * The stops of a trip made of several moments: an optional start point, the places of
+ * every moment's photos (earliest moment first), then an optional end point.
+ */
+export const tripStops = (
+    moments: Array<Pick<Moment, 'photos' | 'date'> & { createdAt?: string }>,
+    start: PhotoPlace | null = null,
+    end: PhotoPlace | null = null
+): JourneyStop[] => {
+    const ordered = [...moments].sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || '').localeCompare(b.createdAt || ''));
+    const stops = journeyStops({ photos: ordered.flatMap((moment) => moment.photos) });
+    const extra = (place: PhotoPlace, kind: 'start' | 'end'): JourneyStop => ({ lat: place.lat, lng: place.lng, name: place.name, photos: [], takenAt: null, kind });
+    return [...(start ? [extra(start, 'start')] : []), ...stops, ...(end ? [extra(end, 'end')] : [])];
+};
 
 const hoursBetween = (from: JourneyStop, to: JourneyStop) => {
     if (!from.takenAt || !to.takenAt) return null;
