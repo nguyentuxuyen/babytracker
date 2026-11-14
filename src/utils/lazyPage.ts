@@ -49,10 +49,14 @@ export const reloadForNewVersion = (now: number = Date.now()): boolean => {
 type PageModule = { default: React.ComponentType<any> };
 const loaders: Array<() => Promise<unknown>> = [];
 
-/** React.lazy for a page, with the reload-on-new-release guard. */
+/**
+ * React.lazy for a page, with the reload-on-new-release guard.
+ * React.lazy remembers a failed load forever, so after a failure the next
+ * render (for example after the user taps the tab again) starts a new load.
+ */
 export const lazyPage = (load: () => Promise<PageModule>) => {
     loaders.push(() => load().catch(() => undefined));
-    return lazy(async () => {
+    const create = (): React.ComponentType<any> => lazy(async () => {
         try {
             return await load();
         } catch (error) {
@@ -60,9 +64,13 @@ export const lazyPage = (load: () => Promise<PageModule>) => {
                 // Keep the spinner up while the page reloads.
                 return new Promise<PageModule>(() => undefined);
             }
+            current = create();
             throw error;
         }
     });
+    let current = create();
+    const Page = (props: any) => React.createElement(current, props);
+    return Page;
 };
 
 /** Fetch every page file once the browser is idle, so later navigation works offline and across releases. */

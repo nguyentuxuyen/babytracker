@@ -127,7 +127,9 @@ const TimelinePage: React.FC = () => {
         if (!user?.uid) return;
         const deleted = await firestore.deleteActivity(user.uid, activity.id);
         if (!deleted) {
-            setActivities((current) => [activity, ...current]);
+            setActivities((current) => (current.some((item) => item.id === activity.id)
+                ? current
+                : [activity, ...current].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())));
             setError(t('timeline.deleteFailed'));
         }
     };
@@ -159,7 +161,7 @@ const TimelinePage: React.FC = () => {
         window.clearTimeout(pending.timer);
         pendingDeleteRef.current = null;
         setPendingDelete(null);
-        setActivities((current) => [...current, pending.activity]
+        setActivities((current) => [...current.filter((item) => item.id !== pending.activity.id), pending.activity]
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
     };
 
@@ -279,27 +281,26 @@ const TimelinePage: React.FC = () => {
         setSavingEdit(false);
     };
 
+    // Live list: shows what this device already has right away (no wait on a slow
+    // connection), then the server's data and changes from other devices.
     useEffect(() => {
-        let cancelled = false;
-        const loadActivities = async () => {
-            if (!user?.uid) return;
-            setLoading(true);
-            setError('');
-            try {
-                const data = await firestore.getActivitiesByDateRange(user.uid, selectedDate, 2);
-                if (!cancelled) setActivities(data);
-            } catch {
-                if (!cancelled) setError(i18n.t('timeline.loadFailed'));
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-
-        void loadActivities();
-        return () => {
-            cancelled = true;
-        };
-    }, [user?.uid, selectedDate, selectedDateTime]);
+        if (!user?.uid) return undefined;
+        setLoading(true);
+        setError('');
+        return firestore.subscribeActivitiesByDateRange(
+            user.uid,
+            selectedDate,
+            2,
+            (data) => {
+                // A record waiting in the undo bar stays hidden until it is deleted or restored.
+                const hiddenId = pendingDeleteRef.current?.activity.id;
+                setActivities(hiddenId ? data.filter((activity) => activity.id !== hiddenId) : data);
+                setLoading(false);
+            },
+            () => setError(i18n.t('timeline.loadFailed'))
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.uid, selectedDateTime]);
 
     return (
         <Box sx={{ px: 2, pt: 2, pb: 3, width: '100%', maxWidth: 720, mx: 'auto' }}>

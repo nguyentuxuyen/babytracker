@@ -399,3 +399,43 @@ describe('subscribeOngoingSleep', () => {
         expect(unsubscribe).toHaveBeenCalled();
     });
 });
+
+describe('subscribeActivitiesByDateRange', () => {
+    it('reports each snapshot (cache first, then server) with records still queued on this device', () => {
+        window.localStorage.setItem(QUEUE_KEY, JSON.stringify([queued('offline-a')]));
+        let emit: (snapshot: any) => void = () => undefined;
+        const unsubscribe = vi.fn();
+        (sdk.onSnapshot as Mock).mockImplementation((_query: unknown, next: (snapshot: any) => void) => {
+            emit = next;
+            return unsubscribe;
+        });
+        const onData = vi.fn();
+
+        const stop = firestore.subscribeActivitiesByDateRange(USER, at, 2, onData);
+        const serverDoc = {
+            id: 'srv-1',
+            data: () => ({ babyId: USER, type: 'diaper', timestamp: { toDate: () => new Date(2026, 9, 9, 9, 0) }, details: { isUrine: true } })
+        };
+        emit({ docs: [serverDoc] });
+
+        expect(onData).toHaveBeenCalledTimes(1);
+        expect(onData.mock.calls[0][0].map((activity: any) => activity.id)).toEqual(['srv-1', 'offline-a']);
+        stop();
+        expect(unsubscribe).toHaveBeenCalled();
+    });
+
+    it('falls back to the queued records and reports the error when the listener fails', () => {
+        window.localStorage.setItem(QUEUE_KEY, JSON.stringify([queued('offline-a')]));
+        (sdk.onSnapshot as Mock).mockImplementation((_query: unknown, _next: unknown, fail: (error: unknown) => void) => {
+            fail(new Error('permission-denied'));
+            return () => undefined;
+        });
+        const onData = vi.fn();
+        const onError = vi.fn();
+
+        firestore.subscribeActivitiesByDateRange(USER, at, 2, onData, onError);
+
+        expect(onData.mock.calls[0][0].map((activity: any) => activity.id)).toEqual(['offline-a']);
+        expect(onError).toHaveBeenCalled();
+    });
+});
