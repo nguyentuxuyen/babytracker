@@ -3,7 +3,7 @@ import { Box, Button, ButtonBase, Dialog, IconButton, Typography } from '@mui/ma
 import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Moment, TRAVEL_MODES, TravelMode, saveLegModes } from '../../firebase/moments';
+import { TRAVEL_MODES, TravelMode } from '../../firebase/moments';
 import {
     JourneyStop,
     LatLng,
@@ -11,7 +11,6 @@ import {
     easeInOut,
     flightArc,
     guessMode,
-    journeyStops,
     legDuration,
     legKey
 } from '../../utils/journey';
@@ -19,16 +18,22 @@ import { roadRoute } from '../../services/routing';
 import { localeTag } from '../../i18n';
 import { SlideUp, bottomSheetProps } from './MomentEditorDialog';
 import DrivePhoto from './DrivePhoto';
+import { MODE_EMOJI, STOP_EMOJI } from './journeyIcons';
 
 const STOP_PAUSE_MS = 2200;
 
-export const MODE_EMOJI: Record<TravelMode, string> = { car: '🚗', train: '🚆', plane: '✈️', ship: '⛴️', walk: '🚶' };
 
 interface Props {
     open: boolean;
     onClose: () => void;
-    uid: string;
-    moment: Moment;
+    /** The moment or trip being played; another id starts over with its own choices. */
+    id: string;
+    title: string;
+    stops: JourneyStop[];
+    legModes: Record<string, TravelMode>;
+    onSaveModes: (modes: Record<string, TravelMode>) => Promise<void>;
+    /** Shows an edit button (trips: change the start, the end, the moments). */
+    onEdit?: () => void;
 }
 
 interface Leg {
@@ -40,11 +45,11 @@ interface Leg {
 }
 
 // Only numbers and fixed emoji go into marker HTML, never user text.
-const stopIcon = (number: number, reached: boolean) => L.divIcon({
+const stopIcon = (stop: JourneyStop, number: number, reached: boolean) => L.divIcon({
     className: 'bt-journey-stop',
     iconSize: [28, 28],
     iconAnchor: [14, 14],
-    html: `<div class="bt-stop${reached ? ' bt-stop-reached' : ''}">${number}</div>`
+    html: `<div class="bt-stop${reached ? ' bt-stop-reached' : ''}">${stop.kind ? STOP_EMOJI[stop.kind] : number}</div>`
 });
 
 // The emoji face left (✈️ points up-right), so they are turned to match the heading.
@@ -91,10 +96,16 @@ const planLeg = async (from: JourneyStop, to: JourneyStop, mode: TravelMode, cho
 
 // "Hành trình": a vehicle travels from where one photo was taken to the next, stopping to
 // show the photos at each place. Each leg's way of travel can be changed and is saved.
-const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) => {
+const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, id, title, stops, legModes, onSaveModes, onEdit }) => {
     const { t } = useTranslation();
-    const stops = useMemo(() => journeyStops(moment), [moment]);
-    const [chosen, setChosen] = useState<Record<string, TravelMode>>(moment.legModes || {});
+    const [chosen, setChosen] = useState<Record<string, TravelMode>>(legModes);
+    // Stops with photos are numbered 1, 2, 3…; the start and end points carry an icon instead.
+    const numbers = useMemo(() => {
+        let count = 0;
+        return stops.map((stop) => (stop.kind ? 0 : (count += 1)));
+    }, [stops]);
+    const photoStops = numbers.filter(Boolean).length;
+    const stopName = (stop: JourneyStop) => stop.name || (stop.kind ? t(`moments.trip.${stop.kind}`) : t('moments.location.onMap'));
     const [legs, setLegs] = useState<Leg[] | null>(null);
     const [mapNode, setMapNode] = useState<HTMLDivElement | null>(null);
     const [current, setCurrent] = useState<{ stop: JourneyStop; index: number } | null>(null);
@@ -103,7 +114,7 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
     const [run, setRun] = useState(0);
     const map = useRef<L.Map | null>(null);
 
-    useEffect(() => { if (open) setChosen(moment.legModes || {}); }, [open, moment.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { if (open) setChosen(legModes); }, [open, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Work out every leg's way and path (road lookups run together).
     useEffect(() => {
@@ -143,7 +154,7 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
         let frame = 0;
         const timers: number[] = [];
         const layers = L.layerGroup().addTo(target);
-        const stopMarkers = stops.map((stop, i) => L.marker([stop.lat, stop.lng], { icon: stopIcon(i + 1, i === 0), interactive: false }).addTo(layers));
+        const stopMarkers = stops.map((stop, i) => L.marker([stop.lat, stop.lng], { icon: stopIcon(stop, numbers[i], i === 0), interactive: false }).addTo(layers));
         legs.forEach((leg) => {
             L.polyline(leg.path.map((p) => [p.lat, p.lng] as [number, number]), {
                 color: '#f9a8d4', weight: 3, dashArray: leg.mode === 'plane' || leg.mode === 'ship' ? '2 8' : '6 8', opacity: 0.9
@@ -191,7 +202,7 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
                 if (cancelled) return;
                 await travel(legs[i]);
                 if (cancelled) return;
-                stopMarkers[i + 1].setIcon(stopIcon(i + 2, true));
+                stopMarkers[i + 1].setIcon(stopIcon(stops[i + 1], numbers[i + 1], true));
                 setCurrent({ stop: stops[i + 1], index: i + 1 });
                 await wait(STOP_PAUSE_MS);
             }
@@ -204,12 +215,12 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
             timers.forEach((timer) => window.clearTimeout(timer));
             layers.remove();
         };
-    }, [open, stops, legs, run, mapNode, modesOpen]);
+    }, [open, stops, legs, run, mapNode, modesOpen, numbers]);
 
     const chooseMode = (key: string, mode: TravelMode) => {
         const next = { ...chosen, [key]: mode };
         setChosen(next);
-        saveLegModes(uid, moment.id, next).catch((error) => console.warn('Could not save travel modes', error));
+        onSaveModes(next).catch((error) => console.warn('Could not save travel modes', error));
     };
 
     return (
@@ -222,9 +233,9 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
                     px: 1.5, pt: 'calc(10px + env(safe-area-inset-top))', pb: 1, background: 'linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0))'
                 }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography sx={{ fontSize: 17, fontWeight: 800, color: '#101c22' }} noWrap>{moment.title || t('moments.untitled')}</Typography>
+                        <Typography sx={{ fontSize: 17, fontWeight: 800, color: '#101c22' }} noWrap>{title || t('moments.untitled')}</Typography>
                         <Typography sx={{ fontSize: 12, color: '#475569' }}>
-                            {legs ? t('moments.journey.stops', { count: stops.length }) : t('moments.journey.finding')}
+                            {legs ? t('moments.journey.stops', { count: photoStops }) : t('moments.journey.finding')}
                         </Typography>
                     </Box>
                     <Button
@@ -235,6 +246,15 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
                     >
                         {legs ? [...new Set(legs.map((leg) => MODE_EMOJI[leg.mode]))].join('') : '…'} {t('moments.journey.modes')}
                     </Button>
+                    {onEdit && (
+                        <Button
+                            size="small"
+                            onClick={onEdit}
+                            sx={{ minWidth: 0, borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#0369a1', bgcolor: '#fff', boxShadow: '0 1px 4px rgba(15,23,42,0.2)', '&:hover': { bgcolor: '#fff' } }}
+                        >
+                            {t('moments.edit')}
+                        </Button>
+                    )}
                     <IconButton onClick={onClose} aria-label={t('common.close')} sx={{ bgcolor: '#fff', boxShadow: '0 1px 4px rgba(15,23,42,0.2)', '&:hover': { bgcolor: '#fff' } }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
                     </IconButton>
@@ -246,18 +266,22 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
                             display: 'flex', gap: 1.25, p: 1, borderRadius: '18px', bgcolor: '#fff', boxShadow: '0 4px 16px rgba(15,23,42,0.25)',
                             animation: 'journeyCardIn 0.35s ease-out', '@keyframes journeyCardIn': { from: { opacity: 0, transform: 'translateY(16px)' }, to: { opacity: 1, transform: 'none' } }
                         }}>
-                            <Box sx={{ width: 96, height: 96, borderRadius: '12px', overflow: 'hidden', flexShrink: 0, bgcolor: '#f1f5f9' }}>
-                                <DrivePhoto photo={current.stop.photos[0]} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <Box sx={{ width: 96, height: 96, borderRadius: '12px', overflow: 'hidden', flexShrink: 0, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>
+                                {current.stop.photos[0]
+                                    ? <DrivePhoto photo={current.stop.photos[0]} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                    : <span aria-hidden>{STOP_EMOJI[current.stop.kind || 'start']}</span>}
                             </Box>
                             <Box sx={{ minWidth: 0, py: 0.5 }}>
                                 <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#ec4899' }}>
-                                    {t('moments.journey.stopOf', { index: current.index + 1, count: stops.length })}
+                                    {current.stop.kind
+                                        ? t(`moments.trip.${current.stop.kind}`)
+                                        : t('moments.journey.stopOf', { index: numbers[current.index], count: photoStops })}
                                 </Typography>
                                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#101c22', lineHeight: 1.3 }}>
-                                    📍 {current.stop.name || t('moments.location.onMap')}
+                                    📍 {stopName(current.stop)}
                                 </Typography>
                                 <Typography sx={{ fontSize: 12, color: '#6b7f8a', mt: 0.25 }}>
-                                    {[timeLabel(current.stop.takenAt), t('moments.import.photoCount', { count: current.stop.photos.length })].filter(Boolean).join(' · ')}
+                                    {[timeLabel(current.stop.takenAt), current.stop.photos.length ? t('moments.import.photoCount', { count: current.stop.photos.length }) : ''].filter(Boolean).join(' · ')}
                                 </Typography>
                             </Box>
                         </Box>
@@ -283,7 +307,7 @@ const MomentJourneyDialog: React.FC<Props> = ({ open, onClose, uid, moment }) =>
                     {legs?.map((leg, i) => (
                         <Box key={leg.key} sx={{ py: 1, borderTop: i ? '1px solid #f1f5f9' : 'none' }}>
                             <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#334155', mb: 0.75 }} noWrap>
-                                {i + 1} → {i + 2} · {leg.from.name || '…'} → {leg.to.name || '…'}
+                                {stopName(leg.from)} → {stopName(leg.to)}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 0.75 }}>
                                 {TRAVEL_MODES.map((mode) => (

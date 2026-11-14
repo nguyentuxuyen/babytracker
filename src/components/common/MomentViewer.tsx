@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Dialog, IconButton, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { localeTag } from '../../i18n';
-import { Moment, deleteMoment, momentPlaces } from '../../firebase/moments';
+import { Moment, deleteMoment, momentPlaces, saveLegModes } from '../../firebase/moments';
 import { samePlace } from '../../utils/geo';
 import { journeyStops } from '../../utils/journey';
 
@@ -51,10 +51,13 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
         setIndex((current) => Math.min(current, Math.max(0, photos.length - 1)));
     }, [photos.length]);
 
+    // Kept stable between renders: the journey restarts whenever its stops change.
+    const stops = useMemo(() => (moment ? journeyStops(moment) : []), [moment]);
+
     if (!moment) return null;
     const current = photos[index];
     const places = momentPlaces(moment);
-    const journeyStopCount = journeyStops(moment).length;
+    const journeyStopCount = stops.length;
     // With photos from several places, each photo shows where it was taken.
     const currentPlace = places.length > 1 && current?.place
         ? { ...current.place, name: current.place.name || places.find((place) => samePlace(place, current.place!))?.name || '' }
@@ -248,7 +251,15 @@ const MomentViewer: React.FC<Props> = ({ open, onClose, uid, moment, onEdit, ini
             </Box>
             {journeyOpen && (
                 <React.Suspense fallback={null}>
-                    <MomentJourneyDialog open={journeyOpen} onClose={() => setJourneyOpen(false)} uid={uid} moment={moment} />
+                    <MomentJourneyDialog
+                        open={journeyOpen}
+                        onClose={() => setJourneyOpen(false)}
+                        id={moment.id}
+                        title={moment.title}
+                        stops={stops}
+                        legModes={moment.legModes || {}}
+                        onSaveModes={(modes) => saveLegModes(uid, moment.id, modes)}
+                    />
                 </React.Suspense>
             )}
         </Dialog>
