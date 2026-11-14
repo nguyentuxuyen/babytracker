@@ -10,6 +10,7 @@ import MomentCard from '../components/common/MomentCard';
 import { useMomentSheets } from '../components/common/MomentSheets';
 import PageHeader from '../components/common/PageHeader';
 import MomentMergeDialog from '../components/common/MomentMergeDialog';
+import { useJourneySheets } from '../components/common/JourneySheets';
 import { AddIcon, MomentsIcon } from '../components/common/icons';
 
 // "Kỷ niệm": every moment, newest first, grouped by month.
@@ -19,8 +20,10 @@ const MomentsPage: React.FC = () => {
     const { user } = useAuth();
     const { moments, loading } = useMoments(user?.uid);
     const { openMoment, addMoment, importPhotos, sheets } = useMomentSheets(user?.uid, moments);
+    const trips = useJourneySheets(user?.uid, moments);
     const photoCount = moments.reduce((sum, moment) => sum + moment.photos.length, 0);
-    // "Gộp": pick several moments (e.g. the days of one trip) and merge them into one.
+    // Pick several moments (e.g. the days of one trip) to make a trip out of them; they
+    // can also be merged into one moment.
     const [picking, setPicking] = useState(false);
     const [pickedIds, setPickedIds] = useState<string[]>([]);
     const [merging, setMerging] = useState(false);
@@ -49,16 +52,14 @@ const MomentsPage: React.FC = () => {
                         </Button>
                     ) : moments.length > 0 ? (
                         <Box sx={{ display: 'flex', gap: 0.75 }}>
-                            {moments.length > 1 && (
-                                <Button
-                                    onClick={() => setPicking(true)}
-                                    aria-label={t('moments.merge.start')}
-                                    title={t('moments.merge.start')}
-                                    sx={{ minWidth: 0, height: 36, px: 1.25, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontSize: 13, color: '#be185d', bgcolor: '#fdf2f8' }}
-                                >
-                                    {t('moments.merge.startShort')}
-                                </Button>
-                            )}
+                            <Button
+                                onClick={() => setPicking(true)}
+                                aria-label={t('moments.trip.create')}
+                                title={t('moments.trip.create')}
+                                sx={{ minWidth: 0, height: 36, px: 1.25, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontSize: 13, color: '#be185d', bgcolor: '#fdf2f8' }}
+                            >
+                                🧭 {t('moments.trip.createShort')}
+                            </Button>
                             <Button
                                 onClick={() => history.push('/moments/map')}
                                 aria-label={t('moments.map.open')}
@@ -86,8 +87,9 @@ const MomentsPage: React.FC = () => {
                     ) : undefined}
                 />
                 {picking && (
-                    <Typography sx={{ fontSize: 13, color: '#be185d', mb: 1.5 }}>{t('moments.merge.pickHint')}</Typography>
+                    <Typography sx={{ fontSize: 13, color: '#be185d', mb: 1.5 }}>{t('moments.trip.pickHint')}</Typography>
                 )}
+                {!picking && trips.row}
                 {loading && <CircularProgress size={28} sx={{ color: '#13a4ec' }} />}
                 {!loading && moments.length === 0 && (
                     <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
@@ -127,19 +129,35 @@ const MomentsPage: React.FC = () => {
                     position: 'fixed', left: 0, right: 0, zIndex: 1100, bottom: 'calc(72px + env(safe-area-inset-bottom))',
                     display: 'flex', justifyContent: 'center', px: 2, pointerEvents: 'none'
                 }}>
-                    <Button
-                        variant="contained"
-                        disabled={picked.length < 2}
-                        onClick={() => setMerging(true)}
-                        sx={{
-                            pointerEvents: 'auto', width: '100%', maxWidth: 528, py: 1.25, borderRadius: '14px', textTransform: 'none', fontWeight: 700,
-                            bgcolor: '#ec4899', '&:hover': { bgcolor: '#db2777' }, boxShadow: '0 6px 18px rgba(236,72,153,0.35)'
-                        }}
-                    >
-                        {picked.length < 2
-                            ? t('moments.merge.pickMore')
-                            : t('moments.merge.next', { count: picked.length, photos: pickedPhotos, max: MAX_PHOTOS_PER_MOMENT })}
-                    </Button>
+                    <Box sx={{ pointerEvents: 'auto', display: 'flex', gap: 1, width: '100%', maxWidth: 528 }}>
+                        <Button
+                            variant="contained"
+                            disabled={picked.length < 1}
+                            onClick={() => {
+                                trips.createJourney(picked.map((moment) => moment.id));
+                                stopPicking();
+                            }}
+                            sx={{
+                                flex: 1, py: 1.25, borderRadius: '14px', textTransform: 'none', fontWeight: 700,
+                                bgcolor: '#ec4899', '&:hover': { bgcolor: '#db2777' }, boxShadow: '0 6px 18px rgba(236,72,153,0.35)',
+                                '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' }
+                            }}
+                        >
+                            {picked.length < 1 ? t('moments.trip.pickOne') : t('moments.trip.next', { count: picked.length })}
+                        </Button>
+                        {picked.length > 1 && (
+                            <Button
+                                onClick={() => setMerging(true)}
+                                title={t('moments.merge.next', { count: picked.length, photos: pickedPhotos, max: MAX_PHOTOS_PER_MOMENT })}
+                                sx={{
+                                    flex: '0 0 auto', px: 1.5, borderRadius: '14px', textTransform: 'none', fontWeight: 700, color: '#be185d', bgcolor: '#fff',
+                                    border: '1px solid #fbcfe8', boxShadow: '0 6px 18px rgba(15,23,42,0.12)', '&:hover': { bgcolor: '#fdf2f8' }
+                                }}
+                            >
+                                {t('moments.trip.mergeInstead')}
+                            </Button>
+                        )}
+                    </Box>
                 </Box>
             )}
             {picking && <Box sx={{ height: 72 }} />}
@@ -156,6 +174,7 @@ const MomentsPage: React.FC = () => {
                     }}
                 />
             )}
+            {trips.sheets}
             {sheets}
         </Box>
     );
