@@ -706,7 +706,7 @@
       "notImage": "Có file không phải ảnh hoặc không đọc được.",
       "tooLarge": "Ảnh quá lớn, kể cả sau khi nén.",
       "failed": "Không lưu được, bạn thử lại nhé.",
-      "tooMany": "Mỗi lần chọn tối đa {{count}} ảnh, mình đã lấy những ảnh đầu.",
+      "tooMany": "Mỗi khoảnh khắc tối đa {{count}} ảnh, mình đã lấy những ảnh đầu.",
       "driveNotConnected": "Chưa kết nối Google Drive nên chưa lưu được ảnh. Bấm \"Kết nối Google Drive\" rồi lưu lại.",
       "driveNotConfigured": "Ứng dụng chưa được cài đặt Google Drive (thiếu cấu hình trên server), nên chưa thêm ảnh được.",
       "driveApiDisabled": "Google Drive API chưa được bật trong Google Cloud. Vào console.cloud.google.com → APIs & Services → Library → \"Google Drive API\" → Enable, đợi 1–2 phút rồi lưu lại."
