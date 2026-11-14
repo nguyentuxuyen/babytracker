@@ -9,7 +9,8 @@ import {
     onSnapshot,
     orderBy,
     query,
-    setDoc
+    setDoc,
+    writeBatch
 } from 'firebase/firestore';
 import { db } from './config';
 import { compressImage } from '../utils/imageCompress';
@@ -19,6 +20,7 @@ import {
     DriveError,
     createMomentFolder,
     momentFolderName,
+    moveDriveFile,
     renameDriveFile,
     trashDriveFile,
     uploadToDrive
@@ -332,4 +334,108 @@ export const saveMoment = async (
 export const deleteMoment = async (uid: string, moment: Moment) => {
     await deleteDoc(doc(momentsCollection(uid), moment.id));
     await trashQuietly(moment.driveFolderId ? [moment.driveFolderId] : moment.photos.map((photo) => photo.driveFileId));
+};
+
+// ---- Merging several moments into one (e.g. the days of one trip) ----
+
+export interface MergeInput {
+    title: string;
+    note: string;
+}
+
+/** Oldest first: the order the merged photos and notes follow. */
+const chronological = (moments: Moment[]) => [...moments].sort((a, b) =>
+    a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt));
+
+/** Title and note the merge form starts with: the first title, every distinct note. */
+export const mergeDefaults = (moments: Moment[]): MergeInput => {
+    const ordered = chronological(moments);
+    const notes = ordered.map((moment) => moment.note.trim()).filter(Boolean);
+    return {
+        title: ordered.find((moment) => moment.title.trim())?.title.trim() || '',
+        note: Array.from(new Set(notes)).join('\n\n')
+    };
+};
+
+export const mergedPhotoCount = (moments: Moment[]) => moments.reduce((sum, moment) => sum + moment.photos.length, 0);
+
+/**
+ * The moment that results from merging: kept under the oldest moment's id, dated on the
+ * first day, with every photo (oldest moment first, each keeping its own place and time).
+ */
+export const buildMergedMoment = (moments: Moment[], input: MergeInput, now = new Date().toISOString()): Moment => {
+    const ordered = chronological(moments);
+    const target = ordered[0];
+    const legModes: Record<string, TravelMode> = {};
+    ordered.forEach((moment) => Object.assign(legModes, moment.legModes || {}));
+    return {
+        id: target.id,
+        title: input.title.trim(),
+        date: target.date,
+        note: input.note.trim(),
+        photos: ordered.flatMap((moment) => moment.photos),
+        driveFolderId: ordered.find((moment) => moment.driveFolderId)?.driveFolderId || null,
+        location: ordered.find((moment) => moment.location)?.location || null,
+        legModes,
+        createdAt: target.createdAt || now,
+        updatedAt: now
+    };
+};
+
+/**
+ * Merges moments into one. The photos stay in Drive: they are moved into the kept moment's
+ * folder, and an old folder goes to the Drive trash only once all its photos were moved
+ * (a photo that could not be moved still works from its old folder). The merged document
+ * is written and the other documents deleted in one batch, so nothing is half-merged.
+ */
+export const mergeMoments = async (
+    uid: string,
+    moments: Moment[],
+    input: MergeInput,
+    onProgress?: (done: number, total: number) => void
+): Promise<Moment> => {
+    if (moments.length < 2) throw new MomentError('failed', 'need at least two moments');
+    if (mergedPhotoCount(moments) > MAX_PHOTOS_PER_MOMENT) throw new MomentError('failed', 'too many photos');
+    const merged = buildMergedMoment(moments, input);
+    const folderId = merged.driveFolderId;
+
+    const emptiedFolders: string[] = [];
+    if (folderId) {
+        const toMove = moments.filter((moment) => moment.driveFolderId && moment.driveFolderId !== folderId);
+        const total = toMove.reduce((sum, moment) => sum + moment.photos.length, 0);
+        let done = 0;
+        for (const moment of toMove) {
+            let allMoved = true;
+            for (const photo of moment.photos) {
+                onProgress?.(done, total);
+                try {
+                    await moveDriveFile(photo.driveFileId, folderId, moment.driveFolderId as string);
+                } catch (error) {
+                    allMoved = false;
+                    console.warn('Could not move photo to the merged folder', error);
+                }
+                done += 1;
+            }
+            if (allMoved) emptiedFolders.push(moment.driveFolderId as string);
+        }
+        onProgress?.(total, total);
+        const before = moments.find((moment) => moment.driveFolderId === folderId);
+        const name = momentFolderName(merged.date, merged.title);
+        if (before && momentFolderName(before.date, before.title) !== name) {
+            await renameDriveFile(folderId, name).catch((error) => console.warn('Could not rename Drive folder', error));
+        }
+    }
+
+    const batch = writeBatch(db);
+    const { id, ...data } = merged;
+    batch.set(doc(momentsCollection(uid), id), data);
+    moments.filter((moment) => moment.id !== id).forEach((moment) => batch.delete(doc(momentsCollection(uid), moment.id)));
+    try {
+        await batch.commit();
+    } catch (error) {
+        throw toMomentError(error);
+    }
+
+    await trashQuietly(emptiedFolders);
+    return merged;
 };

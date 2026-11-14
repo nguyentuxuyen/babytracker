@@ -177,6 +177,17 @@ export const renameDriveFile = async (fileId: string, name: string) => {
     if (!response.ok) throw await failureOf('rename', response);
 };
 
+/** Moves a file from one folder to another (both inside the app folder). */
+export const moveDriveFile = async (fileId: string, toFolderId: string, fromFolderId: string) => {
+    const params = `addParents=${encodeURIComponent(toFolderId)}&removeParents=${encodeURIComponent(fromFolderId)}&fields=id`;
+    const response = await driveFetch(`${DRIVE_FILES}/${encodeURIComponent(fileId)}?${params}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+    });
+    if (!response.ok) throw await failureOf('move', response);
+};
+
 /** Moves a file or folder to the Drive trash (the user can still restore it for 30 days). */
 export const trashDriveFile = async (fileId: string) => {
     const response = await driveFetch(`${DRIVE_FILES}/${encodeURIComponent(fileId)}?fields=id`, {

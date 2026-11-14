@@ -11,10 +11,12 @@ interface Props {
     moment: Moment;
     onClick: () => void;
     showDate?: boolean;
+    /** Set while the list is in "pick moments to merge" mode. */
+    selected?: boolean;
 }
 
 // One moment as a tappable row: cover photo (with count), title, date and the start of the note.
-const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
+const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true, selected }) => {
     const { t } = useTranslation();
     const cover = moment.photos[0];
     const places = momentPlaces(moment);
@@ -23,6 +25,7 @@ const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
             component="button"
             type="button"
             onClick={onClick}
+            aria-pressed={selected === undefined ? undefined : selected}
             sx={{
                 display: 'flex',
                 gap: 1.5,
@@ -32,8 +35,8 @@ const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
                 textAlign: 'left',
                 fontFamily: 'inherit',
                 cursor: 'pointer',
-                bgcolor: '#fff',
-                border: '1px solid #fbcfe8',
+                bgcolor: selected ? '#fdf2f8' : '#fff',
+                border: selected ? `2px solid ${MOMENT_ACCENT}` : '1px solid #fbcfe8',
                 borderLeft: `4px solid ${MOMENT_ACCENT}`,
                 borderRadius: '16px',
                 boxShadow: '0 1px 3px rgba(15,23,42,0.06)'
@@ -58,6 +61,15 @@ const MomentCard: React.FC<Props> = ({ moment, onClick, showDate = true }) => {
                 {moment.photos.length > 1 && (
                     <Box sx={{ position: 'absolute', right: 4, bottom: 4, px: 0.75, borderRadius: '8px', bgcolor: 'rgba(15,23,42,0.65)', color: '#fff', fontSize: 11, fontWeight: 700, lineHeight: '18px' }}>
                         {moment.photos.length}
+                    </Box>
+                )}
+                {selected !== undefined && (
+                    <Box aria-hidden sx={{
+                        position: 'absolute', left: 4, top: 4, width: 22, height: 22, borderRadius: '50%',
+                        border: '2px solid #fff', bgcolor: selected ? MOMENT_ACCENT : 'rgba(15,23,42,0.35)',
+                        color: '#fff', fontSize: 13, fontWeight: 700, lineHeight: '18px', textAlign: 'center'
+                    }}>
+                        {selected ? '✓' : ''}
                     </Box>
                 )}
             </Box>
