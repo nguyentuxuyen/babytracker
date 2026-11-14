@@ -17,9 +17,15 @@ vi.mock('../contexts/BabyContext', () => ({ useBaby: () => ({ baby: { id: 'u1', 
 vi.mock('../contexts/DateContext', () => ({ useDateContext: () => ({ selectedDate: day, setSelectedDate: vi.fn() }) }));
 vi.mock('../hooks/useSleepTimer', () => ({ useSleepTimer: () => ({ ongoingSleep: null, elapsedSeconds: 0 }) }));
 vi.mock('../components/common/RecentDaysStrip', () => ({ default: () => null }));
+let emitActivities: (list: unknown[]) => void = () => undefined;
 vi.mock('../firebase/firestore', () => ({
     firestore: {
-        getActivitiesByDateRange: vi.fn(async () => [milk, meal]),
+        // Live list: answers right away (from this device's cache), keeps the callback for later changes.
+        subscribeActivitiesByDateRange: vi.fn((_uid: string, _date: Date, _days: number, onData: (list: unknown[]) => void) => {
+            emitActivities = onData;
+            onData([milk, meal]);
+            return () => undefined;
+        }),
         deleteActivity: vi.fn(async () => true),
         updateActivity: vi.fn(async () => true)
     }
@@ -74,6 +80,23 @@ describe('TimelinePage delete', () => {
 
         expect(cards()).toHaveLength(1);
         expect(document.body.textContent).toContain('Hoàn tác');
+    });
+
+    it('keeps a record waiting in the undo bar hidden when the live list updates', async () => {
+        await openDelete();
+        await act(async () => dialogButton('Xoá bản ghi').click());
+        await act(async () => emitActivities([milk, meal]));
+
+        expect(cards()).toHaveLength(1);
+    });
+});
+
+describe('TimelinePage live list', () => {
+    it('shows records added on another device without reopening the page', async () => {
+        const diaper = { id: 'diaper-1', babyId: 'u1', type: 'diaper', timestamp: new Date(2026, 9, 31, 11, 30), details: { isUrine: true } };
+        expect(cards()).toHaveLength(2);
+        await act(async () => emitActivities([diaper, milk, meal]));
+        expect(cards()).toHaveLength(3);
     });
 });
 

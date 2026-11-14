@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { isChunkLoadError, reloadForNewVersion } from './lazyPage';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { act } from 'react-dom/test-utils';
+import { isChunkLoadError, lazyPage, reloadForNewVersion } from './lazyPage';
 
 describe('isChunkLoadError', () => {
     it('spots page files that could not be loaded', () => {
@@ -38,5 +41,42 @@ describe('reloadForNewVersion', () => {
         reloadForNewVersion(1_000_000);
         expect(reloadForNewVersion(1_040_000)).toBe(true);
         expect(reload).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('lazyPage', () => {
+    class Boundary extends React.Component<{ children?: React.ReactNode }, { failed: boolean }> {
+        state = { failed: false };
+        static getDerivedStateFromError() {
+            return { failed: true };
+        }
+        render() {
+            return this.state.failed ? 'failed' : this.props.children;
+        }
+    }
+
+    it('tries to load the page again after a failure instead of failing forever', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const load = vi.fn()
+            .mockRejectedValueOnce(new Error('network down'))
+            .mockResolvedValue({ default: () => React.createElement('p', null, 'page') });
+        const Page = lazyPage(load);
+        const container = document.createElement('div');
+        const show = async () => {
+            await act(async () => {
+                ReactDOM.render(
+                    React.createElement(Boundary, { key: Math.random() },
+                        React.createElement(React.Suspense, { fallback: 'loading' }, React.createElement(Page))),
+                    container
+                );
+            });
+            await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+        };
+
+        await show();
+        expect(container.textContent).toBe('failed');
+        await show();
+        expect(container.textContent).toBe('page');
+        ReactDOM.unmountComponentAtNode(container);
     });
 });

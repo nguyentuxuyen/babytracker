@@ -547,6 +547,55 @@ export const firestore = {
         }
     },
 
+    /**
+     * Follow the activities of `days` calendar days ending on `date`, newest first.
+     * Returns the unsubscribe function.
+     *
+     * getActivitiesByDateRange (getDocs) waits for the server whenever the app
+     * thinks it may be online. On a phone that just came back from the
+     * background, or on a weak connection, that wait lasts until Firestore gives
+     * up (10 s or more) and the page shows a spinner the whole time. A listener
+     * answers from this device's cache first, then with the server's data, and
+     * keeps following changes made on other devices.
+     */
+    subscribeActivitiesByDateRange: (
+        userId: string,
+        date: Date,
+        days: number,
+        onData: (activities: Activity[]) => void,
+        onError?: (error: unknown) => void
+    ): (() => void) => {
+        const startOfRange = new Date(date);
+        startOfRange.setHours(0, 0, 0, 0);
+        startOfRange.setDate(startOfRange.getDate() - (days - 1));
+        const endOfRange = new Date(date);
+        endOfRange.setHours(0, 0, 0, 0);
+        endOfRange.setDate(endOfRange.getDate() + 1);
+        const queued = () => queuedAsActivities(userId, startOfRange, endOfRange);
+        const fail = (error: unknown) => {
+            console.error('Error watching activities by date range:', error);
+            onData(queued().sort(byNewestFirst));
+            onError?.(error);
+        };
+        try {
+            const q = query(
+                collection(db, 'users', userId, 'activities'),
+                where('timestamp', '>=', Timestamp.fromDate(startOfRange)),
+                where('timestamp', '<', Timestamp.fromDate(endOfRange)),
+                orderBy('timestamp', 'desc'),
+                limit(200 * days)
+            );
+            return onSnapshot(
+                q,
+                (snapshot) => onData(withQueued(toActivities(snapshot.docs, userId), queued()).sort(byNewestFirst)),
+                fail
+            );
+        } catch (error) {
+            fail(error);
+            return () => undefined;
+        }
+    },
+
     // True while the server has not confirmed this activity yet (offline or slow network).
     isPendingWrite: (activityId: string): boolean =>
         pendingWriteIds.has(activityId) || activityId.startsWith('offline-'),
