@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { fieldSx, SectionLabel } from './FormControls';
 import {
     MAX_PHOTOS_PER_MOMENT,
-    MAX_PHOTOS_PER_PICK,
     Moment,
     MomentErrorCode,
     MomentLocation,
@@ -121,7 +120,8 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
         const files = Array.from(fileList || []).filter(isImageFile);
         if (inputRef.current) inputRef.current.value = '';
         if (!files.length) return;
-        const room = Math.min(MAX_PHOTOS_PER_PICK, MAX_PHOTOS_PER_MOMENT - photoCount);
+        // One pick may fill the whole moment; only the per-moment limit applies.
+        const room = MAX_PHOTOS_PER_MOMENT - photoCount;
         setError(files.length > room ? 'too-many' : null);
         if (room <= 0) return;
         const added = files.slice(0, room);
@@ -363,7 +363,7 @@ const MomentEditorDialog: React.FC<Props> = ({ open, onClose, uid, moment, defau
             )}
             {error && (
                 <Alert severity={error === 'too-many' ? 'info' : 'error'} sx={{ mx: 2, mb: 1 }} onClose={() => setError(null)}>
-                    {t(momentErrorKey(error), { count: MAX_PHOTOS_PER_PICK })}
+                    {t(momentErrorKey(error), { count: MAX_PHOTOS_PER_MOMENT })}
                     {errorDetail && <Box component="span" sx={{ display: 'block', fontSize: 12, opacity: 0.75, mt: 0.5, wordBreak: 'break-word' }}>{errorDetail}</Box>}
                 </Alert>
             )}

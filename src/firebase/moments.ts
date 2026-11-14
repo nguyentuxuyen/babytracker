@@ -25,7 +25,6 @@ import {
 } from './googleDrive';
 
 export const MAX_PHOTOS_PER_MOMENT = 30;
-export const MAX_PHOTOS_PER_PICK = 10;
 
 /** Where one photo was taken (from its GPS), with the looked-up place name. */
 export interface PhotoPlace {

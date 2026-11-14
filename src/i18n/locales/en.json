@@ -725,7 +725,7 @@
       "notImage": "A file is not an image or could not be read.",
       "tooLarge": "The photo is too large even after compression.",
       "failed": "Could not save, please try again.",
-      "tooMany": "You can pick up to {{count}} photos at a time; the first ones were used.",
+      "tooMany": "A moment holds up to {{count}} photos; the first ones were used.",
       "driveNotConnected": "Google Drive is not connected, so photos cannot be saved. Tap \"Connect Google Drive\" and save again.",
       "driveNotConfigured": "Google Drive is not set up on the server yet, so photos cannot be added.",
       "driveApiDisabled": "The Google Drive API is not enabled in Google Cloud. Go to console.cloud.google.com → APIs & Services → Library → \"Google Drive API\" → Enable, wait a minute or two, then save again."

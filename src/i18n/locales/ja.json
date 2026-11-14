@@ -706,7 +706,7 @@
       "notImage": "画像ではないファイルか、読み込めないファイルがあります。",
       "tooLarge": "圧縮後も画像が大きすぎます。",
       "failed": "保存できませんでした。もう一度お試しください。",
-      "tooMany": "一度に選べるのは {{count}} 枚までです。最初の写真を使いました。",
+      "tooMany": "1つの思い出に入れられるのは {{count}} 枚までです。最初の写真を使いました。",
       "driveNotConnected": "Google ドライブが未接続のため写真を保存できません。「Google ドライブに接続」を押してから保存してください。",
       "driveNotConfigured": "サーバーに Google ドライブの設定がないため、写真を追加できません。",
       "driveApiDisabled": "Google Cloud で Google Drive API が有効になっていません。console.cloud.google.com → API とサービス → ライブラリ →「Google Drive API」→ 有効にする。1〜2 分待ってから保存し直してください。"
