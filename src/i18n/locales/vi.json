@@ -783,6 +783,21 @@
         "ship": "Tàu thủy",
         "walk": "Đi bộ"
       }
+    },
+    "merge": {
+      "start": "Gộp nhiều khoảnh khắc thành một chuyến đi",
+      "startShort": "Gộp",
+      "pickHint": "Chọn các khoảnh khắc của cùng một chuyến đi (từ 2 trở lên).",
+      "pickMore": "Chọn ít nhất 2 khoảnh khắc",
+      "next": "Gộp {{count}} khoảnh khắc · {{photos}}/{{max}} ảnh",
+      "title": "Gộp {{count}} khoảnh khắc",
+      "range": "Từ {{from}} đến {{to}} · {{photos}} ảnh. Mỗi ảnh giữ nguyên địa điểm và giờ chụp.",
+      "sameDay": "{{date}} · {{photos}} ảnh. Mỗi ảnh giữ nguyên địa điểm và giờ chụp.",
+      "photoCount": "{{count}} ảnh",
+      "tooManyPhotos": "Tổng cộng {{count}} ảnh, mà mỗi khoảnh khắc chỉ chứa tối đa {{max}} ảnh. Bỏ chọn bớt hoặc xoá bớt ảnh trước khi gộp.",
+      "warning": "{{count}} khoảnh khắc sẽ thành 1, lấy ngày của khoảnh khắc sớm nhất. Không tách lại tự động được (ảnh vẫn giữ trong Google Drive).",
+      "moving": "Đang chuyển ảnh {{done}}/{{total}}…",
+      "confirm": "Gộp thành 1"
     }
   },
   "install": {

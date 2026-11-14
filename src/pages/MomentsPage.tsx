@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMoments } from '../hooks/useMoments';
-import { groupMomentsByMonth } from '../firebase/moments';
+import { MAX_PHOTOS_PER_MOMENT, groupMomentsByMonth, mergedPhotoCount } from '../firebase/moments';
 import { localeTag } from '../i18n';
 import MomentCard from '../components/common/MomentCard';
 import { useMomentSheets } from '../components/common/MomentSheets';
 import PageHeader from '../components/common/PageHeader';
+import MomentMergeDialog from '../components/common/MomentMergeDialog';
 import { AddIcon, MomentsIcon } from '../components/common/icons';
 
 // "Kỷ niệm": every moment, newest first, grouped by month.
@@ -19,6 +20,17 @@ const MomentsPage: React.FC = () => {
     const { moments, loading } = useMoments(user?.uid);
     const { openMoment, addMoment, importPhotos, sheets } = useMomentSheets(user?.uid, moments);
     const photoCount = moments.reduce((sum, moment) => sum + moment.photos.length, 0);
+    // "Gộp": pick several moments (e.g. the days of one trip) and merge them into one.
+    const [picking, setPicking] = useState(false);
+    const [pickedIds, setPickedIds] = useState<string[]>([]);
+    const [merging, setMerging] = useState(false);
+    const picked = moments.filter((moment) => pickedIds.includes(moment.id));
+    const pickedPhotos = mergedPhotoCount(picked);
+    const togglePicked = (id: string) => setPickedIds((ids) => (ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]));
+    const stopPicking = () => {
+        setPicking(false);
+        setPickedIds([]);
+    };
 
     const monthLabel = (month: string) => {
         const [year, monthIndex] = month.split('-').map(Number);
@@ -31,8 +43,22 @@ const MomentsPage: React.FC = () => {
                 <PageHeader
                     title={t('moments.pageTitle')}
                     subtitle={t('moments.summary', { count: moments.length, photos: photoCount })}
-                    action={moments.length > 0 ? (
+                    action={picking ? (
+                        <Button onClick={stopPicking} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, color: '#475569', bgcolor: '#f1f5f9' }}>
+                            {t('common.cancel')}
+                        </Button>
+                    ) : moments.length > 0 ? (
                         <Box sx={{ display: 'flex', gap: 0.75 }}>
+                            {moments.length > 1 && (
+                                <Button
+                                    onClick={() => setPicking(true)}
+                                    aria-label={t('moments.merge.start')}
+                                    title={t('moments.merge.start')}
+                                    sx={{ minWidth: 0, height: 36, px: 1.25, borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontSize: 13, color: '#be185d', bgcolor: '#fdf2f8' }}
+                                >
+                                    {t('moments.merge.startShort')}
+                                </Button>
+                            )}
                             <Button
                                 onClick={() => history.push('/moments/map')}
                                 aria-label={t('moments.map.open')}
@@ -59,6 +85,9 @@ const MomentsPage: React.FC = () => {
                         </Box>
                     ) : undefined}
                 />
+                {picking && (
+                    <Typography sx={{ fontSize: 13, color: '#be185d', mb: 1.5 }}>{t('moments.merge.pickHint')}</Typography>
+                )}
                 {loading && <CircularProgress size={28} sx={{ color: '#13a4ec' }} />}
                 {!loading && moments.length === 0 && (
                     <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
@@ -82,12 +111,51 @@ const MomentsPage: React.FC = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             {items.map((moment) => (
-                                <MomentCard key={moment.id} moment={moment} onClick={() => openMoment(moment)} />
+                                <MomentCard
+                                    key={moment.id}
+                                    moment={moment}
+                                    selected={picking ? pickedIds.includes(moment.id) : undefined}
+                                    onClick={() => (picking ? togglePicked(moment.id) : openMoment(moment))}
+                                />
                             ))}
                         </Box>
                     </Box>
                 ))}
             </Box>
+            {picking && (
+                <Box sx={{
+                    position: 'fixed', left: 0, right: 0, zIndex: 1100, bottom: 'calc(72px + env(safe-area-inset-bottom))',
+                    display: 'flex', justifyContent: 'center', px: 2, pointerEvents: 'none'
+                }}>
+                    <Button
+                        variant="contained"
+                        disabled={picked.length < 2}
+                        onClick={() => setMerging(true)}
+                        sx={{
+                            pointerEvents: 'auto', width: '100%', maxWidth: 528, py: 1.25, borderRadius: '14px', textTransform: 'none', fontWeight: 700,
+                            bgcolor: '#ec4899', '&:hover': { bgcolor: '#db2777' }, boxShadow: '0 6px 18px rgba(236,72,153,0.35)'
+                        }}
+                    >
+                        {picked.length < 2
+                            ? t('moments.merge.pickMore')
+                            : t('moments.merge.next', { count: picked.length, photos: pickedPhotos, max: MAX_PHOTOS_PER_MOMENT })}
+                    </Button>
+                </Box>
+            )}
+            {picking && <Box sx={{ height: 72 }} />}
+            {user?.uid && (
+                <MomentMergeDialog
+                    open={merging}
+                    onClose={() => setMerging(false)}
+                    uid={user.uid}
+                    moments={picked}
+                    onMerged={(merged) => {
+                        setMerging(false);
+                        stopPicking();
+                        openMoment(merged);
+                    }}
+                />
+            )}
             {sheets}
         </Box>
     );

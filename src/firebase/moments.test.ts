@@ -14,9 +14,15 @@ vi.mock('firebase/firestore', () => {
         deleteDoc: vi.fn(async () => undefined),
         onSnapshot: vi.fn(),
         orderBy: vi.fn(),
-        query: vi.fn()
+        query: vi.fn(),
+        writeBatch: vi.fn(() => {
+            const batch = { set: vi.fn(), delete: vi.fn(), commit: vi.fn(async () => undefined) };
+            batches.push(batch);
+            return batch;
+        })
     };
 });
+const batches: Array<{ set: Mock; delete: Mock; commit: Mock }> = vi.hoisted(() => []);
 vi.mock('./config', () => ({ db: {}, auth: {} }));
 vi.mock('./googleDrive', async (importOriginal) => {
     const actual = await importOriginal<typeof import('./googleDrive')>();
@@ -25,6 +31,7 @@ vi.mock('./googleDrive', async (importOriginal) => {
         ...actual,
         createMomentFolder: vi.fn(async () => 'folder-1'),
         renameDriveFile: vi.fn(async () => undefined),
+        moveDriveFile: vi.fn(async () => undefined),
         trashDriveFile: vi.fn(async () => undefined),
         uploadToDrive: vi.fn(async (_blob: unknown, _name: string, _parent: string, onProgress?: (f: number) => void) => {
             onProgress?.(0.5);
@@ -38,12 +45,15 @@ vi.mock('../utils/imageCompress', () => ({
 }));
 
 import { deleteDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { DriveError, createMomentFolder, renameDriveFile, trashDriveFile, uploadToDrive } from './googleDrive';
+import { DriveError, createMomentFolder, moveDriveFile, renameDriveFile, trashDriveFile, uploadToDrive } from './googleDrive';
 import {
     Moment,
     MomentPhoto,
+    buildMergedMoment,
     deleteMoment,
     groupMomentsByMonth,
+    mergeDefaults,
+    mergeMoments,
     momentPlaces,
     saveLegModes,
     normalizeMoment,
@@ -230,5 +240,65 @@ describe('deleteMoment', () => {
         await deleteMoment('u', moment('m1', '2026-11-05', '2026-11-05T08:00:00Z', [photo('a')]));
         expect(deleteDoc).toHaveBeenCalled();
         expect(trashDriveFile).toHaveBeenCalledWith('drive-a');
+    });
+});
+
+describe('merging moments', () => {
+    const placed = (id: string, takenAt: string) => ({ ...photo(id), takenAt, place: { lat: 35, lng: 139, name: id } });
+    const day1 = { ...moment('a', '2026-08-01', '2026-08-01T10:00:00Z', [placed('a1', '2026-08-01T09:00:00')], 'folder-a'), note: 'Ngày 1', legModes: { x: 'car' as const } };
+    const day2 = { ...moment('b', '2026-08-02', '2026-08-02T10:00:00Z', [placed('b1', '2026-08-02T09:00:00'), placed('b2', '2026-08-02T15:00:00')], 'folder-b'), title: '', note: 'Ngày 2' };
+    const day3 = { ...moment('c', '2026-08-03', '2026-08-03T10:00:00Z', [placed('c1', '2026-08-03T09:00:00')], 'folder-c'), note: 'Ngày 1' };
+
+    beforeEach(() => {
+        batches.length = 0;
+        vi.clearAllMocks();
+    });
+
+    it('starts from the first title and every distinct note', () => {
+        expect(mergeDefaults([day3, day2, day1])).toEqual({ title: 'a', note: 'Ngày 1\n\nNgày 2' });
+    });
+
+    it('keeps the oldest moment, its date and every photo in time order', () => {
+        const merged = buildMergedMoment([day3, day1, day2], { title: ' Chuyến đi Kyoto ', note: 'Vui' }, 'now');
+        expect(merged.id).toBe('a');
+        expect(merged.date).toBe('2026-08-01');
+        expect(merged.title).toBe('Chuyến đi Kyoto');
+        expect(merged.photos.map((item) => item.id)).toEqual(['a1', 'b1', 'b2', 'c1']);
+        expect(merged.photos[1].place?.name).toBe('b1');
+        expect(merged.photos[1].takenAt).toBe('2026-08-02T09:00:00');
+        expect(merged.driveFolderId).toBe('folder-a');
+        expect(merged.legModes).toEqual({ x: 'car' });
+        expect(merged.createdAt).toBe(day1.createdAt);
+    });
+
+    it('moves photos into the kept folder, writes one batch and trashes emptied folders', async () => {
+        const merged = await mergeMoments('u1', [day2, day1, day3], { title: 'Kyoto', note: '' });
+        expect(moveDriveFile).toHaveBeenCalledTimes(3);
+        expect(moveDriveFile).toHaveBeenCalledWith('drive-b1', 'folder-a', 'folder-b');
+        expect(renameDriveFile).toHaveBeenCalledWith('folder-a', '2026-08-01 Kyoto');
+        expect(batches).toHaveLength(1);
+        expect(batches[0].set).toHaveBeenCalledWith(expect.objectContaining({ id: 'a' }), expect.objectContaining({ title: 'Kyoto', date: '2026-08-01' }));
+        expect(batches[0].delete.mock.calls.map(([ref]) => ref.id)).toEqual(['b', 'c']);
+        expect(trashDriveFile).toHaveBeenCalledWith('folder-b');
+        expect(trashDriveFile).toHaveBeenCalledWith('folder-c');
+        expect(merged.photos).toHaveLength(4);
+    });
+
+    it('keeps an old folder when one of its photos could not be moved', async () => {
+        (moveDriveFile as Mock).mockImplementation(async (fileId: string) => {
+            if (fileId === 'drive-b2') throw new DriveError('failed');
+        });
+        await mergeMoments('u1', [day1, day2], { title: 'a', note: '' });
+        expect(trashDriveFile).not.toHaveBeenCalled();
+        expect(batches[0].commit).toHaveBeenCalled();
+        (moveDriveFile as Mock).mockImplementation(async () => undefined);
+    });
+
+    it('refuses more photos than one moment holds, and fewer than two moments', async () => {
+        const big = { ...day2, photos: Array.from({ length: 30 }, (_, i) => photo(`p${i}`)) };
+        await expect(mergeMoments('u1', [day1, big], { title: '', note: '' })).rejects.toThrow('too many photos');
+        await expect(mergeMoments('u1', [day1], { title: '', note: '' })).rejects.toThrow();
+        expect(batches).toHaveLength(0);
+        expect(moveDriveFile).not.toHaveBeenCalled();
     });
 });

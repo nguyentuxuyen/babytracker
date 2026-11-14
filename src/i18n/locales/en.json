@@ -802,6 +802,21 @@
         "ship": "Boat",
         "walk": "Walk"
       }
+    },
+    "merge": {
+      "start": "Merge several moments into one trip",
+      "startShort": "Merge",
+      "pickHint": "Pick the moments of one trip (2 or more).",
+      "pickMore": "Pick at least 2 moments",
+      "next": "Merge {{count}} moments · {{photos}}/{{max}} photos",
+      "title": "Merge {{count}} moments",
+      "range": "{{from}} to {{to}} · {{photos}} photos. Each photo keeps its own place and time.",
+      "sameDay": "{{date}} · {{photos}} photos. Each photo keeps its own place and time.",
+      "photoCount": "{{count}} photos",
+      "tooManyPhotos": "That is {{count}} photos, but one moment holds at most {{max}}. Unpick some moments or remove photos before merging.",
+      "warning": "{{count}} moments become 1, dated on the earliest one. This cannot be split back automatically (photos stay in Google Drive).",
+      "moving": "Moving photos {{done}}/{{total}}…",
+      "confirm": "Merge into 1"
     }
   },
   "install": {
