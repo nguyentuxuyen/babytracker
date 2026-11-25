@@ -7,7 +7,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 import { DailyReview, fetchDailyReview } from '../../services/assistantApi';
 import { loadTargetSettings } from '../../utils/dailyTargets';
 import DailyReviewDetails from './DailyReviewDetails';
-import { useNotificationEntry } from './NotificationCenter';
+import { useNotificationDay, useNotificationEntry } from './NotificationCenter';
 
 type DailyReviewCardProps = {
     activities: Array<{ type: string; timestamp: Date }>;
@@ -20,9 +20,10 @@ const WAKE_FROM_HOUR = 5;
 const FALLBACK_HOUR = 9;
 
 const CACHE_KEY = 'babytracker.dailyReview';
-const DISMISSED_KEY = 'babytracker.dailyReviewDismissed';
-// Day of the last review shown as a popup on this device, so it pops up once.
-const SEEN_KEY = 'babytracker.dailyReviewSeen';
+// Day the card was closed for, and day of the last review shown as a popup. Shared by all of
+// the account's devices (NotificationCenter), so the review pops up once, not once per phone.
+const DISMISSED_DAY = 'dailyReviewDismissed';
+const SEEN_DAY = 'dailyReviewSeen';
 // Tapping the morning push opens /activities?review=1 (api/_dailyReview.js).
 export const REVIEW_QUERY = 'review';
 
@@ -79,7 +80,8 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
     const [review, setReview] = useState<DailyReview | null>(() => readCached(yesterday));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [dismissedDay, setDismissedDay] = useState(() => readStorage(DISMISSED_KEY));
+    const [dismissedDay, setDismissedDay] = useNotificationDay(DISMISSED_DAY);
+    const [seenDay, setSeenDay, seenReady] = useNotificationDay(SEEN_DAY);
     const askedFor = useRef<string | null>(null);
     const [open, setOpen] = useState(false);
     const history = useHistory();
@@ -121,9 +123,10 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
     }, [yesterday, autoGenerate, review?.day, load]);
 
     const ready = review?.day === yesterday && review.status === 'done';
+    // Wait for the account copy of "seen" so a review closed on another device stays closed.
     useEffect(() => {
-        if (ready && (fromPush || readStorage(SEEN_KEY) !== yesterday)) setOpen(true);
-    }, [ready, fromPush, yesterday]);
+        if (ready && (fromPush || (seenReady && seenDay !== yesterday))) setOpen(true);
+    }, [ready, fromPush, seenReady, seenDay, yesterday]);
 
     // In the header bell: counts as new once the review is written, and stays listed
     // until it is dismissed for the day.
@@ -134,7 +137,7 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
 
     const closePopup = () => {
         setOpen(false);
-        writeStorage(SEEN_KEY, yesterday);
+        setSeenDay(yesterday);
         markSeen?.(`dailyReview:${yesterday}`);
         if (fromPush) history.replace(location.pathname);
     };
@@ -142,10 +145,7 @@ const DailyReviewCard: React.FC<DailyReviewCardProps> = ({ activities, now }) =>
     if (dismissedDay === today && !open) return null;
     if (review?.day === yesterday && review.status === 'empty') return null;
 
-    const dismiss = () => {
-        writeStorage(DISMISSED_KEY, today);
-        setDismissedDay(today);
-    };
+    const dismiss = () => setDismissedDay(today);
 
     const current = review?.day === yesterday && review.status === 'done' ? review : null;
 
