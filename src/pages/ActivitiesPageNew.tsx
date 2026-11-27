@@ -22,6 +22,7 @@ import { formatHoursMinutes } from '../i18n/format';
 import DayStatsCard from '../components/common/DayStatsCard';
 import YesterdayCheckCard from '../components/common/YesterdayCheckCard';
 import DailyReviewCard from '../components/common/DailyReviewCard';
+import SpecialDayCelebration from '../components/common/SpecialDayCelebration';
 import InstallAppCard from '../components/common/InstallAppCard';
 import NotificationCenter, { useNotificationEntry } from '../components/common/NotificationCenter';
 import { suggestMilkAmounts } from '../utils/milkPresets';
@@ -963,6 +964,10 @@ const ActivitiesPage: React.FC = () => {
                             noticeKey={wakeWindowWarning.key}
                             text={wakeWindowWarning.text}
                         />
+                    )}
+
+                    {baby && (
+                        <SpecialDayCelebration baby={baby} now={currentTime} onAddMoment={() => addMoment(new Date())} />
                     )}
 
                     {baby && isSameLocalDay(selectedDate, currentTime) && (

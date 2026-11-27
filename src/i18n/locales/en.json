@@ -856,5 +856,20 @@
     "hintDesktop": "In Chrome or Edge, click the install icon at the end of the address bar.",
     "installed": "The app is installed on this device.",
     "dismiss": "Hide"
+  },
+  "celebration": {
+    "firstMonth": "Happy 1 month, {{name}}!",
+    "monthly": "Happy {{n}} months, {{name}}!",
+    "firstBirthday": "Happy 1st birthday, {{name}}!",
+    "birthday": "Happy birthday, {{name}}! {{n}} years old today",
+    "monthlyShort": "{{name}} is {{n}} months old today",
+    "birthdayShort": "{{name}} turns {{n}} today",
+    "yearsMonths": "{{years}} y {{months}} m",
+    "days": "{{n}} days with {{name}}",
+    "wish": "Wishing you health, good meals, sweet sleep and lots of joy!",
+    "addMoment": "📸 Save today's moment",
+    "close": "Thank you!",
+    "replay": "See again",
+    "babyFallback": "baby"
   }
 }
