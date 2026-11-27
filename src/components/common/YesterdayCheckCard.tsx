@@ -16,7 +16,7 @@ import {
 } from '../../utils/dailyTargets';
 import { ACTIVITY_COLORS, formatDuration } from './activityDisplay';
 import { MilkIcon, SleepIcon } from './icons';
-import { useNotificationEntry } from './NotificationCenter';
+import { useNotificationDay, useNotificationEntry } from './NotificationCenter';
 
 type YesterdayCheckCardProps = {
     activities: Array<{ type: string; timestamp: Date; details?: any }>;
@@ -24,11 +24,13 @@ type YesterdayCheckCardProps = {
     now: Date;
 };
 
-const DISMISSED_KEY = 'babytracker.yesterdayCheckDismissed';
+// Day the card was closed for, shared by all of the account's devices (NotificationCenter).
+const DISMISSED_DAY = 'yesterdayCheckDismissed';
 // Last AI reading, kept for the day so reopening Home does not call the AI again.
 const INSIGHT_KEY = 'babytracker.yesterdayInsight';
 
-const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+const dayKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const readInsight = (day: string) => {
     try {
@@ -39,19 +41,11 @@ const readInsight = (day: string) => {
     }
 };
 
-const readDismissed = () => {
-    try {
-        return window.localStorage.getItem(DISMISSED_KEY);
-    } catch {
-        return null;
-    }
-};
-
 // Gentle note in the header's notification list when yesterday's milk or sleep was below the baby's daily minimum.
 const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, baby, now }) => {
     const { t, i18n } = useTranslation();
     const [settings, setSettings] = useState<DailyTargetSettings>(loadTargetSettings);
-    const [dismissedDay, setDismissedDay] = useState(readDismissed);
+    const [dismissedDay, setDismissedDay] = useNotificationDay(DISMISSED_DAY);
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState({ milk: '', sleep: '' });
 
@@ -110,14 +104,7 @@ const YesterdayCheckCard: React.FC<YesterdayCheckCardProps> = ({ activities, bab
         }
     };
 
-    const dismiss = () => {
-        try {
-            window.localStorage.setItem(DISMISSED_KEY, today);
-        } catch {
-            // Storage unavailable: hide it for this visit only.
-        }
-        setDismissedDay(today);
-    };
+    const dismiss = () => setDismissedDay(today);
 
     const describe = (item: ShortfallCheck) => {
         if (item.kind === 'milk') {

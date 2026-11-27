@@ -1,16 +1,28 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Box, Dialog, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CloseIcon, NotificationsIcon } from './icons';
+import {
+    MAX_SEEN,
+    laterDay,
+    mergeSeen,
+    saveNotificationDay,
+    saveSeenNotifications,
+    subscribeNotificationState
+} from '../../firebase/notificationState';
 
 // The header (src/App.tsx) leaves this empty spot next to the account button; the page
 // that owns the notifications fills it with the bell.
 export const HEADER_NOTIFICATION_SLOT_ID = 'header-notification-slot';
 
-// Notifications already opened on this device, so the badge only counts new ones.
+// Notifications already opened, so the badge only counts new ones. Kept on the account
+// (src/firebase/notificationState.ts) so every device agrees; this copy is for offline starts.
 const SEEN_KEY = 'babytracker.notificationsSeen';
-const MAX_SEEN = 30;
+// "Done for this day" flags (popup seen, card dismissed) are cached under babytracker.<name>.
+const dayStorageKey = (name: string) => `babytracker.${name}`;
+// How long to wait for the account copy before falling back to this device's copy.
+const REMOTE_WAIT_MS = 4000;
 
 // `visible`: the item shows in the panel. `key`: what makes it new (changes when the
 // content does); null shows it without counting it on the badge, e.g. while loading.
@@ -19,6 +31,10 @@ export type NotificationEntry = { visible: boolean; key: string | null };
 type NotificationContextValue = {
     report: (slot: string, entry: NotificationEntry | null) => void;
     markSeen: (key: string) => void;
+    getDay: (name: string) => string | null;
+    setDay: (name: string, day: string) => void;
+    // The account copy has loaded (or could not be reached), so flags are final.
+    ready: boolean;
 };
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
@@ -40,6 +56,37 @@ const writeSeen = (keys: string[]) => {
     }
 };
 
+const readDay = (name: string) => {
+    try {
+        return window.localStorage.getItem(dayStorageKey(name));
+    } catch {
+        return null;
+    }
+};
+
+const writeDay = (name: string, day: string) => {
+    try {
+        window.localStorage.setItem(dayStorageKey(name), day);
+    } catch {
+        // Storage unavailable: the account copy still has it.
+    }
+};
+
+// A "done for this day" flag shared by all devices, e.g. the day whose review already popped
+// up. Returns [day, setDay, ready]; outside a NotificationCenter it only uses this device.
+export const useNotificationDay = (name: string): [string | null, (day: string) => void, boolean] => {
+    const context = useContext(NotificationContext);
+    const [localDay, setLocalDay] = useState(() => readDay(name));
+    const setLocal = useCallback((day: string) => {
+        writeDay(name, day);
+        setLocalDay(day);
+    }, [name]);
+    if (context) {
+        return [context.getDay(name), (day: string) => context.setDay(name, day), context.ready];
+    }
+    return [localDay, setLocal, true];
+};
+
 // Lets a notification inside the panel tell the bell whether it is showing. Outside a
 // NotificationCenter (tests, other pages) it does nothing.
 export const useNotificationEntry = (slot: string, entry: NotificationEntry) => {
@@ -54,16 +101,64 @@ export const useNotificationEntry = (slot: string, entry: NotificationEntry) => 
 
 type NotificationCenterProps = {
     children: React.ReactNode;
+    // Signed-in account: what was seen is shared with the user's other devices.
+    userId?: string | null;
 };
 
 // Bell in the header with a badge for new notifications; tapping it opens the list.
 // The items stay mounted while the list is closed so they keep loading and can pop up.
-const NotificationCenter: React.FC<NotificationCenterProps> = ({ children }) => {
+const NotificationCenter: React.FC<NotificationCenterProps> = ({ children, userId }) => {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [entries, setEntries] = useState<Record<string, NotificationEntry>>({});
     const [seen, setSeen] = useState<string[]>(readSeen);
+    const [days, setDays] = useState<Record<string, string>>({});
+    const daysRef = useRef(days);
+    const [remoteReady, setRemoteReady] = useState(false);
     const [slot, setSlot] = useState<HTMLElement | null>(null);
+    const ready = !userId || remoteReady;
+
+    // Follow the account copy: other devices' "seen" marks arrive here, and anything this
+    // device marked while offline is sent up once it is newer than the account copy.
+    useEffect(() => {
+        setRemoteReady(false);
+        if (!userId) return undefined;
+        const timer = window.setTimeout(() => setRemoteReady(true), REMOTE_WAIT_MS);
+        const unsubscribe = subscribeNotificationState(
+            userId,
+            (remote) => {
+                window.clearTimeout(timer);
+                const local = readSeen();
+                const mergedSeen = mergeSeen(remote.seen, local);
+                writeSeen(mergedSeen);
+                setSeen(mergedSeen);
+                if (mergedSeen.length !== remote.seen.length || mergedSeen.some((key, index) => key !== remote.seen[index])) {
+                    saveSeenNotifications(userId, mergedSeen).catch(() => undefined);
+                }
+                const current = daysRef.current;
+                const next: Record<string, string> = { ...current };
+                new Set([...Object.keys(current), ...Object.keys(remote.days)]).forEach((name) => {
+                    const day = laterDay(laterDay(remote.days[name], current[name]), readDay(name));
+                    if (!day) return;
+                    next[name] = day;
+                    writeDay(name, day);
+                    if (day !== remote.days[name]) saveNotificationDay(userId, name, day).catch(() => undefined);
+                });
+                daysRef.current = next;
+                setDays(next);
+                setRemoteReady(true);
+            },
+            () => {
+                // Offline or not allowed: keep going with this device's copy.
+                window.clearTimeout(timer);
+                setRemoteReady(true);
+            }
+        );
+        return () => {
+            window.clearTimeout(timer);
+            unsubscribe();
+        };
+    }, [userId]);
 
     useEffect(() => {
         setSlot(document.getElementById(HEADER_NOTIFICATION_SLOT_ID));
@@ -87,14 +182,29 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ children }) => 
             if (current.includes(key)) return current;
             const next = [...current, key].slice(-MAX_SEEN);
             writeSeen(next);
+            if (userId) saveSeenNotifications(userId, next).catch(() => undefined);
             return next;
         });
-    }, []);
+    }, [userId]);
 
-    const context = useMemo(() => ({ report, markSeen }), [report, markSeen]);
+    const setDay = useCallback((name: string, day: string) => {
+        writeDay(name, day);
+        daysRef.current = { ...daysRef.current, [name]: day };
+        setDays(daysRef.current);
+        if (userId) saveNotificationDay(userId, name, day).catch(() => undefined);
+    }, [userId]);
+
+    // Flags this device already knows, before (or without) the account copy.
+    const getDay = useCallback((name: string) => days[name] ?? readDay(name), [days]);
+
+    const context = useMemo(
+        () => ({ report, markSeen, getDay, setDay, ready }),
+        [report, markSeen, getDay, setDay, ready]
+    );
 
     const visible = Object.values(entries).filter((entry) => entry.visible);
-    const unread = visible.filter((entry) => entry.key && !seen.includes(entry.key)).length;
+    // Until the account copy arrives, do not count what another device may have opened.
+    const unread = ready ? visible.filter((entry) => entry.key && !seen.includes(entry.key)).length : 0;
 
     // Everything in the list counts as read once it is open.
     useEffect(() => {
