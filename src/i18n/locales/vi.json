@@ -837,5 +837,20 @@
     "hintDesktop": "Trong Chrome hoặc Edge, bấm biểu tượng cài đặt ở cuối thanh địa chỉ.",
     "installed": "Ứng dụng đã được cài trên máy này.",
     "dismiss": "Ẩn"
+  },
+  "celebration": {
+    "firstMonth": "Chúc mừng {{name}} đầy tháng!",
+    "monthly": "Chúc mừng {{name}} tròn {{n}} tháng!",
+    "firstBirthday": "Chúc mừng {{name}} thôi nôi, tròn 1 tuổi!",
+    "birthday": "Chúc mừng sinh nhật {{name}} {{n}} tuổi!",
+    "monthlyShort": "Hôm nay {{name}} tròn {{n}} tháng",
+    "birthdayShort": "Hôm nay {{name}} tròn {{n}} tuổi 🎂",
+    "yearsMonths": "{{years}} tuổi {{months}} tháng",
+    "days": "{{n}} ngày {{name}} ở bên bố mẹ",
+    "wish": "Chúc con luôn khỏe mạnh, ăn ngoan, ngủ ngon và thật nhiều niềm vui!",
+    "addMoment": "📸 Lưu khoảnh khắc hôm nay",
+    "close": "Cảm ơn!",
+    "replay": "Xem lại",
+    "babyFallback": "bé"
   }
 }

@@ -837,5 +837,20 @@
     "hintDesktop": "Chrome または Edge のアドレスバー右端のインストールアイコンをクリックしてください。",
     "installed": "この端末にインストール済みです。",
     "dismiss": "閉じる"
+  },
+  "celebration": {
+    "firstMonth": "{{name}}、生後1か月おめでとう！",
+    "monthly": "{{name}}、生後{{n}}か月おめでとう！",
+    "firstBirthday": "{{name}}、1歳のお誕生日おめでとう！",
+    "birthday": "{{name}}、{{n}}歳のお誕生日おめでとう！",
+    "monthlyShort": "今日で{{name}}は生後{{n}}か月",
+    "birthdayShort": "今日は{{name}}の{{n}}歳の誕生日",
+    "yearsMonths": "{{years}}歳{{months}}か月",
+    "days": "{{name}}と過ごして{{n}}日",
+    "wish": "元気に、よく食べ、よく眠り、毎日たくさん笑えますように！",
+    "addMoment": "📸 今日の思い出を残す",
+    "close": "ありがとう！",
+    "replay": "もう一度見る",
+    "babyFallback": "赤ちゃん"
   }
 }
