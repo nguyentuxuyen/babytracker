@@ -1,7 +1,7 @@
 import React from 'react';
 import i18n from '../../i18n';
 import { formatHoursMinutes } from '../../i18n/format';
-import { BabyIcon, BathIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon } from './icons';
+import { BabyIcon, BathIcon, FoodIcon, JuiceIcon, MeasurementIcon, MemoIcon, MilkIcon, SleepIcon } from './icons';
 
 type DisplayActivity = {
     type: string;
@@ -12,6 +12,7 @@ type DisplayActivity = {
 export const ACTIVITY_COLORS: Record<string, string> = {
     feeding: '#13a4ec',
     solid: '#ec4899',
+    juice: '#f97316',
     sleep: '#8b5cf6',
     diaper: '#f59e0b',
     measurement: '#10b981',
@@ -32,6 +33,7 @@ export const getActivityColor = (activity: DisplayActivity) => (
 
 export const getActivityIcon = (activity: DisplayActivity, props: { fontSize?: 'small' | 'medium' | 'inherit' } = {}) => {
     if (activity.type === 'feeding') return isSolidFeeding(activity) ? <FoodIcon {...props} /> : <MilkIcon {...props} />;
+    if (activity.type === 'juice') return <JuiceIcon {...props} />;
     if (activity.type === 'sleep') return <SleepIcon {...props} />;
     if (activity.type === 'diaper') return <BabyIcon {...props} />;
     if (activity.type === 'measurement') return <MeasurementIcon {...props} />;
@@ -60,6 +62,9 @@ export const getActivityDetails = (activity: DisplayActivity): string[] => {
             ? i18n.t(`feeding.milkType.${details.milkType}`)
             : '';
         return [food, milk, amount].filter(Boolean);
+    }
+    if (activity.type === 'juice') {
+        return [details.fruit ? String(details.fruit) : '', details.amount ? `${details.amount}ml` : ''].filter(Boolean);
     }
     if (activity.type === 'sleep') return details.duration ? [formatDuration(Number(details.duration))] : [];
     if (activity.type === 'measurement') {

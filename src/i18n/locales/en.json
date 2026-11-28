@@ -100,6 +100,7 @@
   },
   "activityTypes": {
     "feeding": "Feeding",
+    "juice": "Juice",
     "sleep": "Sleep",
     "diaper": "Diaper",
     "measurement": "Measurement",
@@ -112,6 +113,7 @@
     "editTitle": "Edit activity",
     "addTitle": {
       "feeding": "Add feeding",
+      "juice": "Add juice",
       "sleep": "Add sleep",
       "diaper": "Add diaper",
       "measurement": "Add measurement",
@@ -122,6 +124,7 @@
     "quick": {
       "milk": "Milk",
       "solid": "Solids",
+      "juice": "Juice",
       "diaper": "Diaper",
       "sleep": "Sleep",
       "bath": "Bath",
@@ -225,6 +228,14 @@
     "gramsOf": "Amount of {{food}} (g)",
     "totalGrams": "Total {{amount}}g"
   },
+  "juice": {
+    "fruit": "Fruit",
+    "fruitPlaceholder": "e.g. orange, apple, pear",
+    "recent": "Recent",
+    "amountMl": "Amount (ml)",
+    "summary": "{{count}}× · {{fruits}}",
+    "defaultFruits": "Orange, Apple, Pear, Watermelon, Grape"
+  },
   "sleep": {
     "startTime": "Start time",
     "endTime": "End time",
@@ -255,6 +266,7 @@
       "all": "All",
       "milk": "Milk",
       "solid": "Solids",
+      "juice": "Juice",
       "sleep": "Sleep",
       "diaper": "Diaper",
       "other": "Other"

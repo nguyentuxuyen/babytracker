@@ -94,6 +94,7 @@
   },
   "activityTypes": {
     "feeding": "授乳",
+    "juice": "ジュース",
     "sleep": "睡眠",
     "diaper": "おむつ",
     "measurement": "計測",
@@ -106,6 +107,7 @@
     "editTitle": "アクティビティを編集",
     "addTitle": {
       "feeding": "授乳を追加",
+      "juice": "ジュースを追加",
       "sleep": "睡眠を追加",
       "diaper": "おむつを追加",
       "measurement": "計測を追加",
@@ -116,6 +118,7 @@
     "quick": {
       "milk": "ミルク",
       "solid": "離乳食",
+      "juice": "ジュース",
       "diaper": "おむつ",
       "sleep": "睡眠",
       "bath": "お風呂",
@@ -214,6 +217,14 @@
     "gramsOf": "{{food}}の量 (g)",
     "totalGrams": "合計 {{amount}}g"
   },
+  "juice": {
+    "fruit": "果物",
+    "fruitPlaceholder": "例: みかん、りんご、なし",
+    "recent": "最近",
+    "amountMl": "量 (ml)",
+    "summary": "{{count}}回 · {{fruits}}",
+    "defaultFruits": "みかん, りんご, なし, すいか, ぶどう"
+  },
   "sleep": {
     "startTime": "開始時刻",
     "endTime": "終了時刻",
@@ -244,6 +255,7 @@
       "all": "すべて",
       "milk": "ミルク",
       "solid": "離乳食",
+      "juice": "ジュース",
       "sleep": "睡眠",
       "diaper": "おむつ",
       "other": "その他"

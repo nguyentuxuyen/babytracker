@@ -11,6 +11,7 @@ export interface Baby {
 
 import type {
     FeedingDetails,
+    JuiceDetails,
     SleepDetails,
     DiaperDetails,
     MeasurementDetails,
@@ -21,6 +22,7 @@ import type {
 export type {
     ActivityType,
     FeedingDetails,
+    JuiceDetails,
     SleepDetails,
     DiaperDetails,
     MeasurementDetails,
@@ -35,6 +37,7 @@ type ActivityBase = { id: string; babyId: string; timestamp: Date };
 
 export type Activity =
     | (ActivityBase & { type: 'feeding'; details: Partial<FeedingDetails> })
+    | (ActivityBase & { type: 'juice'; details: Partial<JuiceDetails> })
     | (ActivityBase & { type: 'diaper'; details: Partial<DiaperDetails> })
     | (ActivityBase & { type: 'sleep'; details: Partial<SleepDetails> })
     | (ActivityBase & { type: 'bath'; details: Partial<NotesDetails> })

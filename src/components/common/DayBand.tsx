@@ -70,6 +70,11 @@ const DayBand: React.FC<{
                 ))}
                 {/* Meals and diapers */}
                 {points.map(({ activity, time }, index) => {
+                    if (activity.type === 'juice') {
+                        return (
+                            <Box key={index} sx={{ position: 'absolute', top: 21, left: percent(time), width: 9, height: 9, ml: '-4.5px', borderRadius: '50% 50% 2px 2px', bgcolor: ACTIVITY_COLORS.juice, border: '1.5px solid #ffffff' }} />
+                        );
+                    }
                     if (activity.type === 'feeding') {
                         const solid = isSolidFeeding(activity);
                         return (
@@ -123,6 +128,9 @@ const DayBand: React.FC<{
                     { color: ACTIVITY_COLORS.sleep, label: t('activityTypes.sleep'), shape: '6px', w: 14, h: 6 },
                     { color: ACTIVITY_COLORS.feeding, label: t('feeding.milk'), shape: '50%', w: 8, h: 8 },
                     { color: ACTIVITY_COLORS.solid, label: t('feeding.solid'), shape: '2px', w: 8, h: 8 },
+                    ...(points.some(({ activity }) => activity.type === 'juice')
+                        ? [{ color: ACTIVITY_COLORS.juice, label: t('activityTypes.juice'), shape: '50% 50% 2px 2px', w: 8, h: 8 }]
+                        : []),
                     { color: ACTIVITY_COLORS.diaper, label: t('activityTypes.diaper'), shape: '1px', w: 2, h: 8 }
                 ].map((item) => (
                     <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

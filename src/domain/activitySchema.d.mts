@@ -1,4 +1,4 @@
-export type ActivityType = 'feeding' | 'sleep' | 'diaper' | 'bath' | 'measurement' | 'memo' | 'dailyRating';
+export type ActivityType = 'feeding' | 'juice' | 'sleep' | 'diaper' | 'bath' | 'measurement' | 'memo' | 'dailyRating';
 
 export type MilkType = 'breast' | 'formula';
 
@@ -20,6 +20,14 @@ export interface FeedingDetails {
     foodGrams?: number[];
     foodPreference?: FoodPreference;
     isAllergic?: boolean;
+}
+
+export interface JuiceDetails {
+    /** Which fruit, as typed: "Cam", "Táo, cà rốt"; empty when not given. */
+    fruit: string;
+    /** ml; 0 when not given. */
+    amount: number;
+    notes: string;
 }
 
 export interface SleepDetails {
@@ -57,6 +65,7 @@ export interface DailyRatingDetails {
 
 export type ActivityDetailsByType = {
     feeding: FeedingDetails;
+    juice: JuiceDetails;
     sleep: SleepDetails;
     diaper: DiaperDetails;
     bath: NotesDetails;

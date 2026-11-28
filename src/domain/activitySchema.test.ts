@@ -66,6 +66,14 @@ describe('buildActivityDoc', () => {
     expect(milk({ foodType: 'solid', amount: 30, foodItem: 'Cháo', milkType: 'formula' })).not.toHaveProperty('milkType');
   });
 
+  it('stores fruit juice as its own type with fruit and ml', () => {
+    const built = buildActivityDoc({ babyId: 'u1', type: 'nước ép', timestamp: at, details: { fruit: '  Cam  tươi ', amount: '60', foodType: 'milk' } });
+    expect(built.type).toBe('juice');
+    expect(built.details).toEqual({ fruit: 'Cam tươi', amount: 60, notes: '' });
+    expect(buildActivityDoc({ babyId: 'u1', type: 'juice', timestamp: at }).details).toEqual({ fruit: '', amount: 0, notes: '' });
+    expect(() => buildActivityDoc({ babyId: 'u1', type: 'juice', timestamp: at, details: { amount: 99999 } })).toThrow(/amount/);
+  });
+
   it('never stores undefined', () => {
     const built = buildActivityDoc({ babyId: 'u1', type: 'sleep', timestamp: at.toISOString(), details: { durationMinutes: undefined } });
 

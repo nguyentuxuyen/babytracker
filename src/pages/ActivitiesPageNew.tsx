@@ -14,7 +14,7 @@ import { MOMENT_ACCENT } from '../components/common/MomentCard';
 import { formatMomentDate } from '../components/common/MomentViewer';
 import { AssistantComposer } from '../components/common/AssistantComposer';
 import RecentDaysStrip from '../components/common/RecentDaysStrip';
-import { BabyIcon, BathIcon, CloseIcon, FoodIcon, MeasurementIcon, MemoIcon, MilkIcon, PhotoCameraIcon, SleepIcon, TimerIcon } from '../components/common/icons';
+import { BabyIcon, BathIcon, CloseIcon, FoodIcon, JuiceIcon, MeasurementIcon, MemoIcon, MilkIcon, PhotoCameraIcon, SleepIcon, TimerIcon } from '../components/common/icons';
 import { useSleepTimer } from '../hooks/useSleepTimer';
 import { filterFoodItems } from '../utils/foodSearch';
 import i18n from '../i18n';
@@ -26,6 +26,7 @@ import SpecialDayCelebration from '../components/common/SpecialDayCelebration';
 import InstallAppCard from '../components/common/InstallAppCard';
 import NotificationCenter, { useNotificationEntry } from '../components/common/NotificationCenter';
 import { suggestMilkAmounts } from '../utils/milkPresets';
+import { JUICE_AMOUNTS, suggestJuiceFruits } from '../utils/juicePresets';
 import RecentActivityList from '../components/common/RecentActivityList';
 import { ACTIVITY_COLORS, getActivityIcon } from '../components/common/activityDisplay';
 import { ChoiceChips, SectionLabel, SegmentedControl, fieldSx, nativeTimeInputStyle } from '../components/common/FormControls';
@@ -84,7 +85,7 @@ const mergeFoodItems = (items: string[]) => {
 
 interface Activity {
     id: string;
-    type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
+    type: 'feeding' | 'juice' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
     timestamp: Date;
     details: any;
 }
@@ -211,6 +212,10 @@ const ActivitiesPage: React.FC = () => {
     }, [normalizedActivities]);
 
     const milkAmountSuggestions = useMemo(() => suggestMilkAmounts(activities || []), [activities]);
+    const juiceFruitSuggestions = useMemo(
+        () => suggestJuiceFruits(activities || [], t('juice.defaultFruits').split(',')),
+        [activities, t]
+    );
 
     useEffect(() => {
         if (!hasLoadedInitialDate.current) {
@@ -257,7 +262,7 @@ const ActivitiesPage: React.FC = () => {
     }, []);
 
     const [formData, setFormData] = useState<{
-        type: 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
+        type: 'feeding' | 'juice' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath';
         time: string;
         amount: string;
         duration: string;
@@ -279,6 +284,8 @@ const ActivitiesPage: React.FC = () => {
         foodPreference?: 'enthusiastic' | 'normal' | 'dislike' | 'allergic';
         /** Bath form: also log a diaper change at the same time (kind from isUrine/isStool). */
         withDiaper?: boolean;
+        /** Juice form: which fruit. */
+        fruit?: string;
     }>({
         type: 'feeding',
         time: new Date().toTimeString().slice(0, 5), // HH:MM format
@@ -641,6 +648,13 @@ const ActivitiesPage: React.FC = () => {
                     }
                     break;
                 }
+                case 'juice':
+                    details = {
+                        fruit: formData.fruit || '',
+                        amount: formData.amount ? Number(formData.amount) : 0,
+                        notes: formData.notes || ''
+                    };
+                    break;
                 case 'sleep':
                     details = {
                         time: timestamp,
@@ -673,7 +687,7 @@ const ActivitiesPage: React.FC = () => {
             
             const activityData = {
                 babyId: baby.id,
-                type: formData.type as 'feeding' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath',
+                type: formData.type as 'feeding' | 'juice' | 'sleep' | 'diaper' | 'measurement' | 'memo' | 'bath',
                 timestamp: timestamp,
                 details: details
             };
@@ -885,6 +899,7 @@ const ActivitiesPage: React.FC = () => {
     const getActivityTitle = (type: string) => {
         switch (type) {
             case 'feeding':
+            case 'juice':
             case 'sleep':
             case 'diaper':
             case 'measurement':
@@ -1022,6 +1037,13 @@ const ActivitiesPage: React.FC = () => {
                                     <FoodIcon sx={{ fontSize: 22 }} />
                                 )
                             },
+                            {
+                                label: t('activities.quick.juice'),
+                                type: 'juice',
+                                icon: (
+                                    <JuiceIcon sx={{ fontSize: 22 }} />
+                                )
+                            },
                             { 
                                 label: t('activities.quick.diaper'),
                                 type: 'diaper', 
@@ -1136,6 +1158,16 @@ const ActivitiesPage: React.FC = () => {
                                             setFormData({ ...baseForm, foodType: 'milk', amount: lastMilk ? String(lastMilk.details.amount) : '' });
                                         } else if (action.type === 'solid') {
                                             setFormData({ ...baseForm, type: 'feeding', foodType: 'solid', foodItems: [], foodGrams: {}, isAllergic: false, foodPreference: 'normal' });
+                                        } else if (action.type === 'juice') {
+                                            // Start from the last juice: same fruit and amount are one tap on Save.
+                                            const lastJuice = (activities || [])
+                                                .filter((item) => item.type === 'juice')
+                                                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                                            setFormData({
+                                                ...baseForm,
+                                                fruit: lastJuice?.details?.fruit || '',
+                                                amount: Number(lastJuice?.details?.amount) > 0 ? String(lastJuice?.details?.amount) : ''
+                                            });
                                         } else if (action.type === 'diaper') {
                                             setFormData({
                                                 ...baseForm,
@@ -1209,7 +1241,8 @@ const ActivitiesPage: React.FC = () => {
                             </Grid>
                             );
                         })}
-                        <Grid item xs={6}>
+                        {/* Nine tiles: the moment one takes the whole last row. */}
+                        <Grid item xs={12}>
                             <Box
                                 component="button"
                                 type="button"
@@ -1458,6 +1491,7 @@ const ActivitiesPage: React.FC = () => {
                                             }}
                                         >
                                             <MenuItem value="feeding">🍼 {t('activityTypes.feeding')}</MenuItem>
+                                            <MenuItem value="juice">🧃 {t('activityTypes.juice')}</MenuItem>
                                             <MenuItem value="sleep">😴 {t('activityTypes.sleep')}</MenuItem>
                                             <MenuItem value="diaper">👶 {t('activities.form.diaperChange')}</MenuItem>
                                             <MenuItem value="bath">🛁 {t('activityTypes.bath')}</MenuItem>
@@ -1607,6 +1641,50 @@ const ActivitiesPage: React.FC = () => {
                                                 </Box>
                                             </>
                                         )}
+                                    </Box>
+                                )}
+
+                                {/* Fruit juice: which fruit and how much */}
+                                {formData.type === 'juice' && (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        <Box>
+                                            <SectionLabel>{t('juice.fruit')}</SectionLabel>
+                                            <ChoiceChips
+                                                color={ACTIVITY_COLORS.juice}
+                                                selected={formData.fruit ? [formData.fruit] : []}
+                                                onToggle={(fruit) => setFormData({ ...formData, fruit: formData.fruit === fruit ? '' : fruit })}
+                                                options={juiceFruitSuggestions.map((fruit) => ({ value: fruit, label: fruit }))}
+                                            />
+                                        </Box>
+                                        <TextField
+                                            label={t('juice.fruit')}
+                                            placeholder={t('juice.fruitPlaceholder')}
+                                            value={formData.fruit || ''}
+                                            onChange={(e) => setFormData({ ...formData, fruit: e.target.value })}
+                                            inputProps={{ maxLength: 100 }}
+                                            fullWidth
+                                            variant="filled" sx={fieldSx}
+                                        />
+                                        <Box>
+                                            <SectionLabel>{t('juice.amountMl')}</SectionLabel>
+                                            <ChoiceChips
+                                                color={ACTIVITY_COLORS.juice}
+                                                selected={[Number(formData.amount)]}
+                                                onToggle={(amount) => setFormData({ ...formData, amount: String(amount) })}
+                                                options={JUICE_AMOUNTS.map((amount) => ({ value: amount, label: `${amount}ml` }))}
+                                            />
+                                        </Box>
+                                        <TextField
+                                            InputProps={{ endAdornment: <InputAdornment position="end">ml</InputAdornment> }}
+                                            label={t('juice.amountMl')}
+                                            type="number"
+                                            inputMode="decimal"
+                                            inputProps={{ inputMode: 'decimal', pattern: '[0-9]*' }}
+                                            value={formData.amount}
+                                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                            fullWidth
+                                            variant="filled" sx={fieldSx}
+                                        />
                                     </Box>
                                 )}
 
@@ -1993,7 +2071,7 @@ const ActivitiesPage: React.FC = () => {
                                 )}
 
                                 {/* Notes Field */}
-                                {(formData.type === 'feeding' || formData.type === 'sleep' || formData.type === 'diaper' || formData.type === 'measurement' || formData.type === 'memo' || formData.type === 'bath') && (
+                                {(formData.type === 'feeding' || formData.type === 'juice' || formData.type === 'sleep' || formData.type === 'diaper' || formData.type === 'measurement' || formData.type === 'memo' || formData.type === 'bath') && (
                                     <TextField
                                         label={t('common.notes')}
                                         value={formData.notes}

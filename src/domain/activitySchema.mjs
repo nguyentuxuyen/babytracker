@@ -15,13 +15,18 @@
 
 const SCHEMA_VERSION = 1;
 
-const ACTIVITY_TYPES = ['feeding', 'sleep', 'diaper', 'bath', 'measurement', 'memo', 'dailyRating'];
+// `juice` is fruit juice (ml), kept apart from feeding so it never counts as milk.
+const ACTIVITY_TYPES = ['feeding', 'juice', 'sleep', 'diaper', 'bath', 'measurement', 'memo', 'dailyRating'];
 
 // Legacy type names written by older versions of the app.
 const TYPE_ALIASES = {
     feeding: 'feeding',
     'sữa': 'feeding',
     'bú sữa': 'feeding',
+    juice: 'juice',
+    'nước ép': 'juice',
+    'nước trái cây': 'juice',
+    'nước hoa quả': 'juice',
     sleep: 'sleep',
     'ngủ': 'sleep',
     diaper: 'diaper',
@@ -234,6 +239,14 @@ const normalizeDetails = (type, rawDetails) => {
             }
             return result;
         }
+        case 'juice': {
+            const amount = toNumber(details.amount);
+            return {
+                fruit: toText(details.fruit, MAX_FOOD_NAME_LENGTH).replace(/\s+/g, ' '),
+                amount: amount !== undefined && amount > 0 ? round1(amount) : 0,
+                notes
+            };
+        }
         case 'sleep': {
             const duration = toNumber(details.duration !== undefined ? details.duration : details.durationMinutes);
             return { duration: duration !== undefined && duration > 0 ? Math.round(duration) : 0, notes };
@@ -273,7 +286,7 @@ const validateActivity = (type, timestamp, details) => {
     const issues = [];
     if (!ACTIVITY_TYPES.includes(type)) issues.push(`unknown activity type "${type}"`);
     if (!timestamp) issues.push('timestamp is missing or invalid');
-    if (type === 'feeding' && details.amount > LIMITS.amount) issues.push(`amount ${details.amount} is out of range`);
+    if ((type === 'feeding' || type === 'juice') && details.amount > LIMITS.amount) issues.push(`amount ${details.amount} is out of range`);
     if (type === 'sleep' && details.duration > LIMITS.duration) issues.push(`duration ${details.duration} is out of range`);
     if (type === 'measurement') {
         if (details.weight > LIMITS.weight) issues.push(`weight ${details.weight} is out of range`);

@@ -20,12 +20,14 @@ Markdownのコードブロック（\`\`\`json）や余分なテキストは一�
 
 1. create_activity — 育児活動を記録する
    params:
-     activityType: "feeding" | "sleep" | "diaper" | "bath" | "measurement" | "memo"
+     activityType: "feeding" | "juice" | "sleep" | "diaper" | "bath" | "measurement" | "memo"
      timestamp: ISO 8601形式の文字列、必ずユーザーのタイムゾーンのオフセット付き (例: "2026-07-23T09:15:00+09:00")
        時刻の指定がなければ「現在時刻」を使う。睡眠は目が覚めた時刻を timestamp にする。
      details (activityTypeに応じて):
        feeding  → { amount: number (ml), foodType: "milk"|"solid", milkType?: "breast"|"formula", foodItem?: string, notes?: string }
          milkType は母乳 (sữa mẹ) なら "breast"、粉ミルク・ミルク (sữa công thức) なら "formula"、言及がなければ省略。
+       juice    → { fruit: string (果物の名前、ユーザーの言葉のまま。例: "Cam", "Táo"), amount: number (ml), notes?: string }
+         果汁・ジュース (nước ép, nước trái cây, nước cam など) は feeding ではなく juice。ミルクに数えない。
        sleep    → { duration: number (分), notes?: string }
        diaper   → { isUrine: boolean, isStool: boolean, notes?: string }
        bath     → { notes?: string }
@@ -273,6 +275,10 @@ so a low ml total with breast feeds may just be unmeasured.
 the baby's reaction ("enthusiastic", "normal", "dislike", "allergic") and "newThisWeek".
 A meal can hold several dishes; each has its own grams when the parents weighed it, otherwise an even share of the meal.
 "weekFoods" lists every food eaten in the last seven days with the number of days it was eaten.
+"juice" is fruit juice drunk yesterday ({drinks, ml, fruits}) or null. It is not milk and is not
+in the milk total. Paediatric advice is no juice before 12 months and at most about 120 ml a day
+from 1 to 3 years, better as whole fruit; mention it in "solids" only when there was juice, and
+gently say so when it is above that for the baby's age.
 
 Answer in ${languageName} with JSON only:
 {"headline": "...", "milk": "...", "solids": "...", "sleep": "...", "tips": ["...", "..."]}

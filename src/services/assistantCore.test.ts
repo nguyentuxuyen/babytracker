@@ -101,8 +101,22 @@ describe('parseAssistantCommand', () => {
     expect(new Date(params.timestamp)).toEqual(new Date(2026, 9, 9, 14, 20));
   });
 
+  it('logs fruit juice as juice with the fruit, not as milk', () => {
+    const orange = parse('nước cam 50ml');
+    expect(orange.params.activityType).toBe('juice');
+    expect(orange.params.details).toMatchObject({ fruit: 'Cam', amount: 50 });
+
+    const apple = parse('bé uống nước ép táo 30ml lúc 10h');
+    expect(apple.params.details).toMatchObject({ fruit: 'Táo', amount: 30 });
+    expect(new Date(apple.params.timestamp)).toEqual(new Date(2026, 9, 9, 10, 0));
+
+    expect(parse('nước trái cây 60').params.details).toMatchObject({ fruit: '', amount: 60 });
+    expect(parse('りんごジュース 40ml').params.details).toMatchObject({ fruit: 'りんご', amount: 40 });
+    expect(parse('sữa 120ml').params.activityType).toBe('feeding');
+  });
+
   it('produces params that pass the activity schema without undefined values', () => {
-    ['bé ngủ', 'cho bú', 'đổi tã', 'bú 100ml lúc 9h'].forEach((text) => {
+    ['bé ngủ', 'cho bú', 'đổi tã', 'bú 100ml lúc 9h', 'nước cam 50ml'].forEach((text) => {
       const { params } = parse(text);
       const built = buildActivityDoc({
         babyId: params.babyId,
