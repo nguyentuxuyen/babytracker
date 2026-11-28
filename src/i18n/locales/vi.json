@@ -94,6 +94,7 @@
   },
   "activityTypes": {
     "feeding": "Cho ăn",
+    "juice": "Nước ép",
     "sleep": "Ngủ",
     "diaper": "Tã",
     "measurement": "Đo lường",
@@ -106,6 +107,7 @@
     "editTitle": "Sửa hoạt động",
     "addTitle": {
       "feeding": "Thêm cữ ăn",
+      "juice": "Thêm nước ép",
       "sleep": "Thêm giấc ngủ",
       "diaper": "Thêm thay tã",
       "measurement": "Thêm số đo",
@@ -116,6 +118,7 @@
     "quick": {
       "milk": "Sữa",
       "solid": "Ăn dặm",
+      "juice": "Nước ép",
       "diaper": "Tã",
       "sleep": "Ngủ",
       "bath": "Tắm",
@@ -214,6 +217,14 @@
     "gramsOf": "Lượng {{food}} (g)",
     "totalGrams": "Tổng {{amount}}g"
   },
+  "juice": {
+    "fruit": "Trái cây",
+    "fruitPlaceholder": "VD: cam, táo, lê",
+    "recent": "Đã uống gần đây",
+    "amountMl": "Lượng (ml)",
+    "summary": "{{count}} lần · {{fruits}}",
+    "defaultFruits": "Cam, Táo, Lê, Dưa hấu, Nho"
+  },
   "sleep": {
     "startTime": "Giờ bắt đầu",
     "endTime": "Giờ kết thúc",
@@ -244,6 +255,7 @@
       "all": "Tất cả",
       "milk": "Sữa",
       "solid": "Ăn dặm",
+      "juice": "Nước ép",
       "sleep": "Ngủ",
       "diaper": "Tã",
       "other": "Khác"

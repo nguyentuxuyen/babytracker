@@ -104,6 +104,7 @@ function buildReviewFacts({ targetsModule, activities, baby, settings, milkProdu
     milkByType: milkByType(yesterdayActivities),
     milkProduct: milkProduct || null,
     solidFoods: solidFoods(yesterdayActivities, earlierActivities),
+    juice: juiceOf(yesterdayActivities),
     weekFoods: weekFoods(activities.filter((a) => dayOf(a.timestamp) <= yesterdayIndex), dayOf),
     previousDays
   };
@@ -144,6 +145,22 @@ function milkByType(dayActivities) {
     result[kind].ml += Number(activity.details.amount) || 0;
   }
   return result;
+}
+
+/** Fruit juice drunk that day (kept apart from milk), or null when there was none. */
+function juiceOf(dayActivities) {
+  const drinks = dayActivities.filter((a) => a.type === 'juice');
+  if (drinks.length === 0) return null;
+  const fruits = [];
+  for (const activity of drinks) {
+    const fruit = cleanFoodName(activity.details.fruit);
+    if (fruit && !fruits.some((name) => name.toLocaleLowerCase() === fruit.toLocaleLowerCase())) fruits.push(fruit);
+  }
+  return {
+    drinks: drinks.length,
+    ml: Math.round(drinks.reduce((sum, a) => sum + (Number(a.details.amount) || 0), 0)),
+    fruits: fruits.slice(0, MAX_FOODS)
+  };
 }
 
 /** Each food eaten that day with meals, grams and the baby's reaction; plus whether it is new this week. */

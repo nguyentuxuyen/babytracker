@@ -11,6 +11,7 @@ import {
     ChartColumn,
     ChartLine,
     Check,
+    CupSoda,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
@@ -76,6 +77,7 @@ export const ChevronDownIcon = createIcon(ChevronDown, 'ChevronDownIcon');
 // Activities
 export const MilkIcon = createIcon(Milk, 'MilkIcon');
 export const FoodIcon = createIcon(Utensils, 'FoodIcon');
+export const JuiceIcon = createIcon(CupSoda, 'JuiceIcon');
 export const SleepIcon = createIcon(Moon, 'SleepIcon');
 export const BabyIcon = createIcon(Baby, 'BabyIcon');
 export const BathIcon = createIcon(Bath, 'BathIcon');

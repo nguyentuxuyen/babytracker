@@ -129,6 +129,23 @@ const parseBareMilkAmount = (text: string): number | undefined => {
     return undefined;
 };
 
+// Fruit juice: "nước cam 50ml", "nước ép táo 30", "uống nước trái cây".
+const JUICE_PATTERN = /nước\s+(?:ép|trái\s+cây|hoa\s+quả)|(^|[\s,.])nước\s+(?:cam|táo|lê|nho|dưa\s+hấu|dứa|thơm|ổi|bưởi|xoài|cà\s+rốt|chanh)($|[\s,.\d])|juice|ジュース|果汁/;
+const JUICE_NOISE_WORDS = new Set(['bé', 'be', 'con', 'cho', 'uống', 'uong', 'đã', 'vừa', 'nước', 'ép', 'juice', 'lúc', 'luc', 'vào', 'vao', 'at', 'tại', 'tai', 'ml', 'rồi']);
+
+// The fruit named in a juice sentence, without amounts, times and filler words.
+const parseJuiceFruit = (text: string): string => {
+    const words = text
+        .replace(/\d{1,2}\s*(?::|h|\.|時)\s*\d{2}(?!\d)/gi, ' ')
+        .replace(/\d+(?:[.,]\d+)?\s*(?:ml|h|giờ|gio|時)?/gi, ' ')
+        .replace(/ジュース|果汁|を|飲んだ|飲みました/g, ' ')
+        .replace(/trái\s+cây|hoa\s+quả/gi, ' ')
+        .split(/[\s,.;:!?()]+/)
+        .filter((word) => word && !JUICE_NOISE_WORDS.has(word.toLowerCase()));
+    const fruit = words.join(' ').trim();
+    return fruit ? fruit.charAt(0).toLocaleUpperCase() + fruit.slice(1) : '';
+};
+
 const STOOL_PATTERN = /(^|[\s,.])(ị|đi ị|phân|poop|stool)($|[\s,.])|うんち|うんこ|便/;
 const URINE_PATTERN = /(^|[\s,.])(tè|đi tè|tiểu|pee|urine)($|[\s,.])|おしっこ|尿/;
 
@@ -167,6 +184,30 @@ export const parseAssistantCommand = (
                 foodName
             },
             preview: foodName ? `Thêm món mới: ${foodName}` : 'Thêm món ăn mới vào danh sách'
+        };
+    }
+
+    if (JUICE_PATTERN.test(normalized)) {
+        const juiceAmount = amountMatch ? amount : parseBareMilkAmount(rawText);
+        const fruit = parseJuiceFruit(rawText);
+        const timeLabel = parsedTime ? formatClockTime(parsedTime.hours, parsedTime.minutes) : '';
+        return {
+            rawText,
+            tool: 'create_activity',
+            confidence: juiceAmount ? 0.86 : 0.6,
+            needsConfirmation: false,
+            missingFields: juiceAmount ? [] : ['amount'],
+            params: {
+                activityType: 'juice',
+                babyId: options?.babyId,
+                timestamp: buildTimestamp(selectedDate, parsedTime, now).toISOString(),
+                details: {
+                    fruit,
+                    amount: juiceAmount || 0,
+                    notes: rawText
+                }
+            },
+            preview: `Ghi nước ép${fruit ? ` ${fruit.toLocaleLowerCase()}` : ''}${juiceAmount ? ` ${juiceAmount}ml` : ''}${timeLabel ? ` lúc ${timeLabel}` : ''}`
         };
     }
 

@@ -19,4 +19,18 @@ describe('calculateStatsForDate', () => {
         expect(stats.urine.count).toBe(1);
         expect(stats.stool.count).toBe(1);
     });
+
+    it('adds up fruit juice apart from milk', () => {
+        const activities = [
+            { id: 'milk', type: 'feeding' as const, timestamp: september4, details: { amount: 120 } },
+            { id: 'j1', type: 'juice' as const, timestamp: september4, details: { fruit: 'Cam', amount: 30 } },
+            { id: 'j2', type: 'juice' as const, timestamp: september4, details: { fruit: 'cam', amount: 20 } },
+            { id: 'j3', type: 'juice' as const, timestamp: september4, details: { fruit: 'Táo', amount: 0 } }
+        ];
+
+        const stats = calculateStatsForDate(activities, september4);
+
+        expect(stats.feeding).toEqual({ count: 1, totalAmount: 120 });
+        expect(stats.juice).toEqual({ count: 3, totalAmount: 50, fruits: ['Cam', 'Táo'] });
+    });
 });

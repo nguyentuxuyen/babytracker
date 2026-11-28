@@ -22,18 +22,19 @@ import { formatHoursMinutes } from '../i18n/format';
 import { MAX_FOODS_PER_MEAL, foodPortionsOf } from '../domain/activitySchema.mjs';
 import PageHeader from '../components/common/PageHeader';
 
-type FilterKey = 'all' | 'milk' | 'solid' | 'sleep' | 'diaper' | 'other';
-const FILTERS: FilterKey[] = ['all', 'milk', 'solid', 'sleep', 'diaper', 'other'];
+type FilterKey = 'all' | 'milk' | 'solid' | 'juice' | 'sleep' | 'diaper' | 'other';
+const FILTERS: FilterKey[] = ['all', 'milk', 'solid', 'juice', 'sleep', 'diaper', 'other'];
 const FILTER_COLORS: Record<Exclude<FilterKey, 'all'>, string> = {
     milk: ACTIVITY_COLORS.feeding,
     solid: ACTIVITY_COLORS.solid,
+    juice: ACTIVITY_COLORS.juice,
     sleep: ACTIVITY_COLORS.sleep,
     diaper: ACTIVITY_COLORS.diaper,
     other: ACTIVITY_COLORS.memo
 };
 const filterKeyOf = (activity: Activity): Exclude<FilterKey, 'all'> => {
     if (activity.type === 'feeding') return isSolidFeeding(activity) ? 'solid' : 'milk';
-    if (activity.type === 'sleep' || activity.type === 'diaper') return activity.type;
+    if (activity.type === 'juice' || activity.type === 'sleep' || activity.type === 'diaper') return activity.type;
     return 'other';
 };
 
@@ -75,6 +76,7 @@ const TimelinePage: React.FC = () => {
     const [editSleepStartTime, setEditSleepStartTime] = useState('');
     const [editSleepEndTime, setEditSleepEndTime] = useState('');
     const [editNotes, setEditNotes] = useState('');
+    const [editFruit, setEditFruit] = useState('');
     const [editIsUrine, setEditIsUrine] = useState(false);
     const [editIsStool, setEditIsStool] = useState(false);
     const [savingEdit, setSavingEdit] = useState(false);
@@ -175,6 +177,7 @@ const TimelinePage: React.FC = () => {
         setEditAmount(details.amount ? String(details.amount) : '');
         const notes = details.notes ? String(details.notes) : '';
         setEditNotes(notes);
+        setEditFruit(details.fruit ? String(details.fruit) : '');
         setEditIsUrine(Boolean(details.isUrine));
         setEditIsStool(Boolean(details.isStool));
         setEditTime(new Date(activity.timestamp).toTimeString().slice(0, 5));
@@ -233,6 +236,7 @@ const TimelinePage: React.FC = () => {
                 delete details.foodGrams;
             }
         }
+        if (editingActivity.type === 'juice') details.fruit = editFruit.trim();
         if (editingActivity.type === 'diaper') {
             details.isUrine = editIsUrine;
             details.isStool = editIsStool;
@@ -433,6 +437,12 @@ const TimelinePage: React.FC = () => {
                     )}
                     {editingActivity?.type === 'feeding' && !isSolidEdit && (
                         <TextField label={t('feeding.amountMl')} type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
+                    )}
+                    {editingActivity?.type === 'juice' && (
+                        <>
+                            <TextField label={t('juice.fruit')} placeholder={t('juice.fruitPlaceholder')} value={editFruit} onChange={(event) => setEditFruit(event.target.value)} inputProps={{ maxLength: 100 }} fullWidth size="small" sx={{ mt: 2 }} />
+                            <TextField label={t('juice.amountMl')} type="number" value={editAmount} onChange={(event) => setEditAmount(event.target.value)} fullWidth size="small" sx={{ mt: 2 }} />
+                        </>
                     )}
                     {isSolidEdit && (
                         <Box sx={{ mt: 2 }}>

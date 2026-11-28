@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { calculateStatsForDate } from '../../utils/dailyStats';
 import { ACTIVITY_COLORS, formatDuration } from './activityDisplay';
-import { BabyIcon, FoodIcon, MilkIcon, SleepIcon } from './icons';
+import { BabyIcon, FoodIcon, JuiceIcon, MilkIcon, SleepIcon } from './icons';
 
 type DayStats = ReturnType<typeof calculateStatsForDate>;
 
@@ -108,6 +108,22 @@ const DayStatsCard: React.FC<DayStatsCardProps> = ({ title, stats, previous, act
                     previous={previous && `${previous.solid.totalAmount}g`}
                     change={previous && formatChange(stats.solid.totalAmount - previous.solid.totalAmount, (v) => `${v}g`)}
                 />
+                {/* Fruit juice only shows on days with juice (or juice the day before), across both columns. */}
+                {(stats.juice.count > 0 || (previous && previous.juice.count > 0)) && (
+                    <Box sx={{ gridColumn: '1 / -1', minWidth: 0 }}>
+                        <Tile
+                            color={ACTIVITY_COLORS.juice}
+                            icon={<JuiceIcon />}
+                            label={t('activityTypes.juice')}
+                            value={`${stats.juice.totalAmount}ml`}
+                            sub={stats.juice.count > 0
+                                ? t('juice.summary', { count: stats.juice.count, fruits: stats.juice.fruits.join(', ') || '—' })
+                                : undefined}
+                            previous={previous && `${previous.juice.totalAmount}ml`}
+                            change={previous && formatChange(stats.juice.totalAmount - previous.juice.totalAmount, (v) => `${v}ml`)}
+                        />
+                    </Box>
+                )}
             </Box>
         </Box>
     );

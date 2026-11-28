@@ -117,6 +117,7 @@ describe('morning review from the reminder cron', () => {
                 },
                 milkProduct: null,
                 solidFoods: [{ name: 'cháo bí', meals: 1, grams: 60, reaction: 'enthusiastic', newThisWeek: true }],
+                juice: null,
                 weekFoods: [{ name: 'cháo bí', days: 1 }, { name: 'Cà rốt', days: 1 }]
             }
         });
@@ -180,6 +181,19 @@ describe('morning review from the reminder cron', () => {
             { name: 'Cơm', meals: 1, grams: 50, reaction: 'normal', newThisWeek: true },
             { name: 'Chuối', meals: 1, grams: 15, reaction: 'normal', newThisWeek: true }
         ]));
+    });
+
+    it('reports fruit juice apart from milk', async () => {
+        logYesterday();
+        addActivity('juice', jst(20, 10), { fruit: 'Cam', amount: 30 });
+        addActivity('juice', jst(20, 16), { fruit: 'cam', amount: 20 });
+        addActivity('juice', jst(19, 16), { fruit: 'Táo', amount: 50 });
+        vi.setSystemTime(jst(21, 9, 5));
+
+        await dispatch();
+
+        expect(reviewDoc()?.facts.juice).toEqual({ drinks: 2, ml: 50, fruits: ['Cam'] });
+        expect(reviewDoc()?.facts.yesterday).toMatchObject({ milkMl: 400, milkFeeds: 4 });
     });
 
     it('tells the AI which formula the baby drinks', async () => {
